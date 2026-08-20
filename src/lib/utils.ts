@@ -1,30 +1,125 @@
+import { DEFAULT_LOCALE, isLocale, type Locale } from './i18n/config';
+import { getDictionary } from './i18n/dictionaries';
 import type { ConnectorStatus, Station, StationAvailability } from './types';
+
+/** Narrows an arbitrary locale string ('mn', 'en-GB', undefined) to a supported one. */
+function toAppLocale(locale?: string): Locale {
+  if (isLocale(locale)) return locale;
+  if (locale?.startsWith('en')) return 'en';
+  return DEFAULT_LOCALE;
+}
 
 /** Tiny classnames helper — no dependency needed for the handful of variants we use. */
 export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ');
 }
 
-export function formatKwh(kwh: number | undefined | null, digits = 2): string {
+/**
+ * Formatting locale. Mongolian is the product default; pass 'en-GB' (or the value
+ * from useI18n().locale) to render a screen in English.
+ */
+export type FormatLocale = 'mn-MN' | 'en-GB' | string;
+
+export const DEFAULT_FORMAT_LOCALE: FormatLocale = 'mn-MN';
+
+/** Maps the app's locale code onto the matching Intl locale. */
+export function intlLocale(locale?: string): FormatLocale {
+  if (!locale) return DEFAULT_FORMAT_LOCALE;
+  if (locale.startsWith('en')) return 'en-GB';
+  return 'mn-MN';
+}
+
+/**
+ * Intl throws on a malformed tag, which would take a whole page down over a
+ * formatting detail. Anything unrecognised falls back to the default locale.
+ */
+function safeLocale(locale: FormatLocale): FormatLocale {
+  try {
+    return Intl.NumberFormat.supportedLocalesOf(locale).length > 0 ? locale : DEFAULT_FORMAT_LOCALE;
+  } catch {
+    return DEFAULT_FORMAT_LOCALE;
+  }
+}
+
+const UNITS = {
+  'mn-MN': { kwh: 'кВт·ц', kw: 'кВт', w: 'Вт', hour: 'ц', minute: 'м', km: 'км', m: 'м' },
+  'en-GB': { kwh: 'kWh', kw: 'kW', w: 'W', hour: 'h', minute: 'm', km: 'km', m: 'm' },
+} as const;
+
+function units(locale: FormatLocale) {
+  return locale.startsWith('en') ? UNITS['en-GB'] : UNITS['mn-MN'];
+}
+
+export function formatNumber(
+  value: number,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return new Intl.NumberFormat(safeLocale(locale), options).format(value);
+}
+
+export function formatKwh(
+  kwh: number | undefined | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+  digits = 2,
+): string {
   if (kwh === undefined || kwh === null || Number.isNaN(kwh)) return '—';
-  return `${kwh.toFixed(digits)} kWh`;
+  const value = formatNumber(kwh, locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return `${value} ${units(locale).kwh}`;
 }
 
-export function formatPower(watts: number | undefined | null): string {
+export function formatPower(
+  watts: number | undefined | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
   if (!watts) return '—';
-  return watts >= 1000 ? `${(watts / 1000).toFixed(1)} kW` : `${Math.round(watts)} W`;
+  const u = units(locale);
+  return watts >= 1000
+    ? `${formatNumber(watts / 1000, locale, { maximumFractionDigits: 1 })} ${u.kw}`
+    : `${formatNumber(Math.round(watts), locale)} ${u.w}`;
 }
 
-export function formatMoney(value: number | undefined | null, currency = '₮'): string {
+/** Power ratings are advertised as whole numbers: "120 кВт", not "120.0 кВт". */
+export function formatPowerKw(
+  kw: number | undefined | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
+  if (kw === undefined || kw === null || Number.isNaN(kw)) return '—';
+  return `${formatNumber(kw, locale, { maximumFractionDigits: 0 })} ${units(locale).kw}`;
+}
+
+export function formatMoney(
+  value: number | undefined | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
   if (value === undefined || value === null || Number.isNaN(value)) return '—';
-  return `${currency}${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  return new Intl.NumberFormat(safeLocale(locale), {
+    style: 'currency',
+    currency: 'MNT',
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
-export function formatDateTime(value?: string | Date | null): string {
+/** Tariffs read as a rate: "₮ 550/кВт·ц". */
+export function formatTariff(
+  perKwh: number | undefined | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
+  if (perKwh === undefined || perKwh === null || Number.isNaN(perKwh)) return '—';
+  return `${formatMoney(perKwh, locale)}/${units(locale).kwh}`;
+}
+
+export function formatDateTime(
+  value?: string | Date | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
   if (!value) return '—';
   const d = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(safeLocale(locale), {
     year: 'numeric',
     month: 'short',
     day: '2-digit',
@@ -33,14 +128,29 @@ export function formatDateTime(value?: string | Date | null): string {
   });
 }
 
-export function formatDuration(from?: string | Date | null, to?: string | Date | null): string {
+export function formatDate(
+  value?: string | Date | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
+  if (!value) return '—';
+  const d = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(safeLocale(locale), { year: 'numeric', month: 'short', day: '2-digit' });
+}
+
+export function formatDuration(
+  from?: string | Date | null,
+  to?: string | Date | null,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
   if (!from) return '—';
   const start = new Date(from).getTime();
   const end = to ? new Date(to).getTime() : Date.now();
   const minutes = Math.max(0, Math.round((end - start) / 60000));
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  const u = units(locale);
+  return h > 0 ? `${h}${u.hour} ${m}${u.minute}` : `${m}${u.minute}`;
 }
 
 /** Great-circle distance in kilometres. */
@@ -59,25 +169,23 @@ export function haversineKm(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function formatDistance(km?: number): string {
+export function formatDistance(
+  km?: number,
+  locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+): string {
   if (km === undefined || Number.isNaN(km)) return '';
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  const u = units(locale);
+  return km < 1
+    ? `${formatNumber(Math.round(km * 1000), locale)} ${u.m}`
+    : `${formatNumber(km, locale, { maximumFractionDigits: 1 })} ${u.km}`;
 }
 
-const STATUS_LABELS: Record<ConnectorStatus, string> = {
-  Available: 'Available',
-  Preparing: 'Preparing',
-  Charging: 'Charging',
-  SuspendedEV: 'Paused by car',
-  SuspendedEVSE: 'Paused by station',
-  Finishing: 'Finishing',
-  Reserved: 'Reserved',
-  Unavailable: 'Unavailable',
-  Faulted: 'Out of order',
-};
-
-export function connectorStatusLabel(status: ConnectorStatus): string {
-  return STATUS_LABELS[status] ?? status;
+/**
+ * Status wording is translated, so it comes from the dictionary rather than a
+ * table here. Pass the locale from `useI18n()` or `getLocale()`.
+ */
+export function connectorStatusLabel(status: ConnectorStatus, locale?: string): string {
+  return getDictionary(toAppLocale(locale)).status.connector[status] ?? status;
 }
 
 /** Tailwind classes per connector state, kept in one place so badges stay consistent. */
@@ -100,12 +208,9 @@ export function connectorStatusTone(status: ConnectorStatus): string {
   }
 }
 
-export const AVAILABILITY_LABELS: Record<StationAvailability, string> = {
-  available: 'Available now',
-  busy: 'All plugs in use',
-  offline: 'Offline',
-  unknown: 'Status unknown',
-};
+export function availabilityLabel(a: StationAvailability, locale?: string): string {
+  return getDictionary(toAppLocale(locale)).status.availability[a] ?? a;
+}
 
 export function availabilityTone(a: StationAvailability): string {
   switch (a) {
@@ -120,11 +225,12 @@ export function availabilityTone(a: StationAvailability): string {
   }
 }
 
-export function stationSubtitle(station: Station): string {
+export function stationSubtitle(station: Station, locale?: string): string {
+  const intl = intlLocale(locale);
   const bits: string[] = [];
-  if (station.maxPowerKw) bits.push(`${station.maxPowerKw} kW`);
+  if (station.maxPowerKw) bits.push(formatPowerKw(station.maxPowerKw, intl));
   if (station.connectorTypes.length) bits.push(station.connectorTypes.join(' · '));
-  bits.push(`${station.availableConnectors}/${station.totalConnectors} free`);
+  bits.push(`${station.availableConnectors}/${station.totalConnectors}`);
   return bits.join(' • ');
 }
 
