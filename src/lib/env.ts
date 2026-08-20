@@ -15,8 +15,15 @@ function bool(key: string, fallback: boolean): boolean {
 }
 
 function int(key: string, fallback: number): number {
-  const raw = Number(str(key));
-  return Number.isFinite(raw) ? raw : fallback;
+  // An unset or blank variable must fall through to the default. Number('') is
+  // 0 and Number.isFinite(0) is true, so testing the parsed value alone would
+  // silently return 0 — which meant an unset CSMS_TIMEOUT_MS aborted every
+  // request before it was sent, and an unset SESSION_MAX_AGE_DAYS expired the
+  // session cookie immediately.
+  const raw = str(key);
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 export const isProduction = process.env.NODE_ENV === 'production';
