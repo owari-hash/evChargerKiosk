@@ -3,7 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Alert, Button, ButtonLink, Card, CardBody, CardHeader, CardTitle, Field, Select } from '@/components/ui';
+import { format, useI18n } from '@/components/i18n-provider';
 import type { StationConnector } from '@/lib/types';
+import { formatPowerKw, intlLocale } from '@/lib/utils';
 
 interface StartChargingProps {
   stationId: string;
@@ -22,6 +24,8 @@ export function StartCharging({
   hasIdTag,
 }: StartChargingProps) {
   const router = useRouter();
+  const { d, locale } = useI18n();
+  const intl = intlLocale(locale);
   const free = connectors.filter(
     (c) => c.status === 'Available' && c.availability === 'Operative',
   );
@@ -41,11 +45,11 @@ export function StartCharging({
         body: JSON.stringify(connectorId ? { connectorId: Number(connectorId) } : {}),
       });
       const payload = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
-      if (!res.ok) throw new Error(payload.error ?? 'The charge point did not accept the request');
+      if (!res.ok) throw new Error(payload.error ?? d.start.rejected);
       setStatus(payload.status ?? 'Accepted');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'The request could not be sent');
+      setError(err instanceof Error ? err.message : d.start.requestFailed);
     } finally {
       setBusy(false);
     }
@@ -54,42 +58,30 @@ export function StartCharging({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Start charging</CardTitle>
+        <CardTitle>{d.start.title}</CardTitle>
       </CardHeader>
       <CardBody className="space-y-4">
         {!remoteStartEnabled ? (
-          <p className="text-sm text-muted">
-            Sessions at this charge point are started on the unit itself — hold your charge tag
-            against the reader and plug in.
-          </p>
+          <p className="text-sm text-muted">{d.start.localOnly}</p>
         ) : !signedIn ? (
           <>
-            <p className="text-sm text-muted">
-              Sign in to start a session from your phone. You can always start one at the charge
-              point instead.
-            </p>
+            <p className="text-sm text-muted">{d.start.signInBody}</p>
             <ButtonLink href={`/login?next=/stations/${encodeURIComponent(stationId)}`}>
-              Sign in to start
+              {d.start.signInCta}
             </ButtonLink>
           </>
         ) : !hasIdTag ? (
           <>
-            <p className="text-sm text-muted">
-              Link the charge tag printed on your RFID card to your account, and you can start a
-              session from here.
-            </p>
+            <p className="text-sm text-muted">{d.start.linkTagBody}</p>
             <ButtonLink href="/account" variant="secondary">
-              Link a charge tag
+              {d.start.linkTagCta}
             </ButtonLink>
           </>
         ) : free.length === 0 ? (
-          <p className="text-sm text-muted">
-            Every plug here is busy or out of service right now. Availability updates on this page
-            as the station reports in.
-          </p>
+          <p className="text-sm text-muted">{d.start.allBusy}</p>
         ) : (
           <>
-            <Field label="Connector" htmlFor="start-connector">
+            <Field label={d.start.connectorLabel} htmlFor="start-connector">
               <Select
                 id="start-connector"
                 value={connectorId}
@@ -97,38 +89,37 @@ export function StartCharging({
               >
                 {free.map((connector) => (
                   <option key={connector.connectorId} value={connector.connectorId}>
-                    Connector {connector.connectorId}
+                    {format(d.start.connectorOption, { id: connector.connectorId })}
                     {connector.type ? ` · ${connector.type}` : ''}
-                    {connector.powerKw ? ` · ${connector.powerKw} kW` : ''}
+                    {connector.powerKw ? ` · ${formatPowerKw(connector.powerKw, intl)}` : ''}
                   </option>
                 ))}
               </Select>
             </Field>
 
             <Button type="button" onClick={start} loading={busy} className="w-full">
-              Start charging
+              {busy ? d.start.submitting : d.start.submit}
             </Button>
 
             <p className="text-sm text-muted">
-              Plug the cable in first. The station has the final say and may still decline.
+              {d.start.plugFirst}
             </p>
           </>
         )}
 
         {status &&
           (status === 'Accepted' ? (
-            <Alert tone="success" title="Request accepted">
-              The charge point accepted the request. Charging starts once the cable is locked in.
+            <Alert tone="success" title={d.start.acceptedTitle}>
+              {d.start.acceptedBody2}
             </Alert>
           ) : (
-            <Alert tone="warning" title="Not started">
-              The charge point replied “{status}”. Try another connector, or start the session at
-              the unit.
+            <Alert tone="warning" title={d.start.notStartedTitle}>
+              {format(d.start.rejectedBody, { status })}
             </Alert>
           ))}
 
         {error && (
-          <Alert tone="danger" title="Could not start">
+          <Alert tone="danger" title={d.start.couldNotStartTitle}>
             {error}
           </Alert>
         )}

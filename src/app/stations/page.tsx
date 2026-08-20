@@ -7,15 +7,15 @@ import {
 } from '@/components/stations/station-finder';
 import { listStations, type StationResult } from '@/lib/csms/stations';
 import { CONNECTOR_TYPES } from '@/lib/types';
+import { getTranslations } from '@/lib/i18n';
 import { stationQuerySchema } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Find a charger',
-  description:
-    'Search the charging network by name, connector and power, and see which plugs are free right now.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getTranslations();
+  return { title: d.stations.title, description: d.stations.metaDescription };
+}
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -35,7 +35,7 @@ function normalizeConnectorType(value: string | undefined): string {
 }
 
 export default async function StationsPage(props: PageProps<'/stations'>) {
-  const searchParams = await props.searchParams;
+  const [searchParams, { d }] = await Promise.all([props.searchParams, getTranslations()]);
   const parsed = stationQuerySchema.safeParse(firstValues(searchParams));
   const query = parsed.success ? parsed.data : stationQuerySchema.parse({});
   const connectorType = normalizeConnectorType(query.connectorType);
@@ -46,7 +46,7 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
     result = await listStations({ ...query, connectorType: connectorType || undefined });
   } catch (err) {
     console.error('[stations] initial load failed', err);
-    loadError = 'The charging network is not reachable right now. Please try again shortly.';
+    loadError = d.errors.networkUnreachable;
   }
 
   const initialFilters: StationFilters = {
@@ -64,11 +64,10 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Find a charger
+          {d.stations.title}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-          Live plug availability across the network. Filter by connector and power, or sort by how
-          far away each station is.
+          {d.stations.subtitle}
         </p>
       </header>
 

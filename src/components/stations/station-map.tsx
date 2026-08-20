@@ -5,10 +5,17 @@ import { divIcon, latLngBounds, type DivIcon } from 'leaflet';
 import Link from 'next/link';
 import { useEffect, useMemo } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
-import { useI18n } from '@/components/i18n-provider';
+import { format, useI18n } from '@/components/i18n-provider';
 import { publicEnv } from '@/lib/env';
 import type { Station, StationAvailability } from '@/lib/types';
-import { availabilityLabel, availabilityTone, cn, formatMoney } from '@/lib/utils';
+import {
+  availabilityLabel,
+  availabilityTone,
+  cn,
+  formatPowerKw,
+  formatTariff,
+  intlLocale,
+} from '@/lib/utils';
 
 export interface StationMapProps {
   stations: Station[];
@@ -112,10 +119,12 @@ export function StationMap({
   fitToStations = true,
   zoom,
   scrollWheelZoom = true,
-  ariaLabel = 'Map of charging stations',
+  ariaLabel,
   className,
 }: StationMapProps) {
-  const { locale } = useI18n();
+  const { locale, d } = useI18n();
+  const intl = intlLocale(locale);
+  const label = ariaLabel ?? d.stations.mapAria;
   const points = useMemo(() => stations.filter(isLocated), [stations]);
   const selected = points.find((s) => s.id === selectedId);
   const first = points[0];
@@ -124,7 +133,7 @@ export function StationMap({
     : [publicEnv.defaultCenter.lat, publicEnv.defaultCenter.lng];
 
   return (
-    <div role="region" aria-label={ariaLabel} className={cn('h-full w-full', className)}>
+    <div role="region" aria-label={label} className={cn('h-full w-full', className)}>
       <MapContainer
         center={center}
         zoom={zoom ?? publicEnv.defaultZoom}
@@ -156,20 +165,23 @@ export function StationMap({
                       availabilityTone(station.availability),
                     )}
                   />
-                  {availabilityLabel(station.availability, locale)} · {station.availableConnectors}/
-                  {station.totalConnectors} free
+                  {availabilityLabel(station.availability, locale)} ·{' '}
+                  {format(d.stations.free, {
+                    available: station.availableConnectors,
+                    total: station.totalConnectors,
+                  })}
                 </p>
                 <p className="text-xs text-muted">
-                  {station.maxPowerKw ? `${station.maxPowerKw} kW` : 'Power not published'} ·{' '}
-                  {station.tariffPerKwh === undefined
-                    ? 'Tariff not published'
-                    : `${formatMoney(station.tariffPerKwh)}/kWh`}
+                  {station.maxPowerKw
+                    ? formatPowerKw(station.maxPowerKw, intl)
+                    : d.stations.powerMissing}{' '}
+                  · {formatTariff(station.tariffPerKwh, intl)}
                 </p>
                 <Link
                   href={`/stations/${encodeURIComponent(station.id)}`}
                   className="inline-block pt-1 text-xs font-semibold text-brand hover:underline"
                 >
-                  View station
+                  {d.stations.viewStation}
                 </Link>
               </div>
             </Popup>

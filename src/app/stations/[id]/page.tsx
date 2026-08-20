@@ -10,8 +10,9 @@ import { Alert, Badge, ButtonLink, Card, CardBody, CardHeader, CardTitle } from 
 import { getCurrentUser } from '@/lib/auth/session';
 import { getStation } from '@/lib/csms/stations';
 import { serverEnv } from '@/lib/env';
+import { format, getTranslations } from '@/lib/i18n';
 import type { Station } from '@/lib/types';
-import { directionsUrl, formatDateTime, formatMoney } from '@/lib/utils';
+import { directionsUrl, formatDateTime, formatMoney, formatPowerKw, intlLocale } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,13 +36,17 @@ const loadStation = cache(async (id: string): Promise<StationLoad> => {
 
 export async function generateMetadata(props: PageProps<'/stations/[id]'>): Promise<Metadata> {
   const { id } = await props.params;
-  const { station } = await loadStation(id);
-  return { title: station?.name ?? 'Charging station' };
+  const [{ station }, { d }] = await Promise.all([loadStation(id), getTranslations()]);
+  return { title: station?.name ?? d.stations.chargePoint };
 }
 
 export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   const { id } = await props.params;
-  const { station, demo, unreachable } = await loadStation(id);
+  const [{ station, demo, unreachable }, { locale, d }] = await Promise.all([
+    loadStation(id),
+    getTranslations(),
+  ]);
+  const intl = intlLocale(locale);
 
   if (!station) {
     if (!unreachable) notFound();
@@ -55,7 +60,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
       <Link href="/stations" className="text-sm font-medium text-muted hover:text-foreground">
-        ← All chargers
+        {d.stations.allChargers}
       </Link>
 
       <header className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -64,15 +69,20 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
             {station.name}
           </h1>
           <p className="mt-1 text-sm text-muted sm:text-base">
-            {station.address || 'Address not published'}
+            {station.address || d.stations.addressMissing}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <AvailabilityStatus availability={station.availability} />
+            <AvailabilityStatus availability={station.availability} locale={locale} />
             <span className="text-sm text-muted">
-              {station.availableConnectors}/{station.totalConnectors} plugs free
+              {format(d.stations.plugsFree, {
+                available: station.availableConnectors,
+                total: station.totalConnectors,
+              })}
             </span>
             {station.maxPowerKw && (
-              <span className="text-sm text-muted">Up to {station.maxPowerKw} kW</span>
+              <span className="text-sm text-muted">
+                {format(d.stations.upToPower, { power: formatPowerKw(station.maxPowerKw, intl) })}
+              </span>
             )}
           </div>
         </div>
@@ -85,15 +95,14 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
             rel="noopener noreferrer"
             className="shrink-0"
           >
-            Directions
+            {d.stations.directions}
           </ButtonLink>
         )}
       </header>
 
       {demo && (
-        <Alert tone="warning" title="Sample data" className="mt-6">
-          Live data is unavailable right now, so this page shows a sample charge point. Status and
-          pricing may not match the real station.
+        <Alert tone="warning" title={d.errors.sampleData} className="mt-6">
+          {d.stations.demoBody}
         </Alert>
       )}
 
@@ -103,10 +112,10 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Connectors</CardTitle>
+              <CardTitle>{d.stations.connectorsTitle}</CardTitle>
             </CardHeader>
             <CardBody>
-              <ConnectorList connectors={station.connectors} />
+              <ConnectorList connectors={station.connectors} locale={locale} />
             </CardBody>
           </Card>
 
@@ -118,7 +127,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
                 fitToStations={false}
                 zoom={15}
                 scrollWheelZoom={false}
-                ariaLabel={`Map showing ${station.name}`}
+                ariaLabel={format(d.stations.mapOf, { name: station.name })}
               />
             </div>
           )}
@@ -127,23 +136,26 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Details</CardTitle>
+              <CardTitle>{d.stations.detailsTitle}</CardTitle>
             </CardHeader>
             <CardBody>
               <dl className="space-y-3 text-sm">
-                <Detail label="Price">
+                <Detail label={d.stations.price}>
                   {station.tariffPerKwh === undefined
-                    ? 'Not published'
-                    : `${formatMoney(station.tariffPerKwh)} per kWh`}
+                    ? d.stations.notPublished
+                    : format(d.stations.perKwh, {
+                        price: formatMoney(station.tariffPerKwh, intl),
+                      })}
                 </Detail>
-                <Detail label="Hardware">
-                  {[station.vendor, station.model].filter(Boolean).join(' ') || 'Not published'}
+                <Detail label={d.stations.hardware}>
+                  {[station.vendor, station.model].filter(Boolean).join(' ') ||
+                    d.stations.notPublished}
                 </Detail>
-                <Detail label="Charge point">
+                <Detail label={d.stations.chargePoint}>
                   <span className="font-mono text-xs">{station.id}</span>
                 </Detail>
-                <Detail label="Last seen">
-                  {station.isOnline ? 'Online now' : formatDateTime(station.lastSeenAt)}
+                <Detail label={d.stations.lastSeen}>
+                  {station.isOnline ? d.stations.onlineNow : formatDateTime(station.lastSeenAt, intl)}
                 </Detail>
               </dl>
 
@@ -179,17 +191,18 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function StationUnavailable({ id }: { id: string }) {
+async function StationUnavailable({ id }: { id: string }) {
+  const { d } = await getTranslations();
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-16">
-      <Alert tone="danger" title="This station cannot be reached">
-        We could not load live details for <span className="font-mono text-xs">{id}</span> right
-        now. The charging network may be temporarily unavailable.
+      <Alert tone="danger" title={d.stations.unreachableTitle}>
+        <span className="font-mono text-xs">{id}</span> — {d.stations.unreachableBody}
       </Alert>
       <div className="mt-6 flex flex-wrap gap-2">
-        <ButtonLink href="/stations">Back to all chargers</ButtonLink>
+        <ButtonLink href="/stations">{d.stations.backToAll}</ButtonLink>
         <ButtonLink href="/help" variant="secondary">
-          Get help
+          {d.nav.help}
         </ButtonLink>
       </div>
     </div>

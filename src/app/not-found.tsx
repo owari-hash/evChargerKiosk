@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ButtonLink } from '@/components/ui';
+import { getTranslations } from '@/lib/i18n';
 
 export const metadata: Metadata = {
-  title: 'Page not found',
+  title: 'Хуудас олдсонгүй',
 };
 
-export default function NotFound() {
+export default async function NotFound() {
+  const { d } = await getTranslations();
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col items-center px-4 py-20 text-center sm:py-28">
       <span
@@ -16,29 +19,30 @@ export default function NotFound() {
         ⚡
       </span>
 
-      <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-muted">Error 404</p>
+      <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-muted">
+        {d.errors.notFoundCode}
+      </p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        We could not find that page
+        {d.errors.notFoundTitle}
       </h1>
       <p className="mt-3 max-w-md text-base text-muted">
-        The link may be out of date, or the charge point it pointed at is no longer published.
+        {d.errors.notFoundBody}
       </p>
 
       <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:flex-row">
         <ButtonLink href="/stations" size="lg">
-          Find a charger
+          {d.stations.title}
         </ButtonLink>
         <ButtonLink href="/" variant="secondary" size="lg">
-          Go to the home page
+          {d.errors.goHome}
         </ButtonLink>
       </div>
 
       <p className="mt-8 text-sm text-muted">
-        Still stuck?{' '}
+        {d.errors.stillStuck}{' '}
         <Link href="/help" className="font-medium text-brand hover:underline">
-          Read the help page
+          {d.errors.readHelp}
         </Link>
-        .
       </p>
     </div>
   );

@@ -7,12 +7,12 @@ import { getStore } from '@/lib/db';
 const MAX_ATTEMPTS = 5;
 
 const schema = z.object({
-  token: z.string().trim().min(1, 'This confirmation link is incomplete'),
+  token: z.string().trim().min(1, 'Энэ баталгаажуулах холбоос дутуу байна'),
 });
 
 const invalid = () =>
-  badRequest('That confirmation link is invalid or has expired. Please request a new one.', {
-    token: 'This confirmation link is no longer valid',
+  badRequest('Энэ баталгаажуулах холбоос буруу эсвэл хугацаа нь дууссан байна. Шинэ холбоос авна уу.', {
+    token: 'Энэ баталгаажуулах холбоос хүчингүй болсон байна',
   });
 
 export const POST = route(async (req: Request) => {

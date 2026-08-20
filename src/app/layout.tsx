@@ -13,11 +13,14 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export const metadata: Metadata = {
   title: {
-    default: `${publicEnv.brandName} — find and use EV chargers`,
+    default: `${publicEnv.brandName} — цахилгаан машины цэнэглэх сүлжээ`,
     template: `%s · ${publicEnv.brandName}`,
   },
   description:
-    'Find nearby EV charging stations, check live plug availability, and manage your charging account.',
+    'Ойролцоох цэнэглэх станцуудыг хайж, холбогчийн сул байдлыг шууд харж, цэнэглэлтийн бүртгэлээ удирдаарай.',
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+  },
 };
 
 export const viewport: Viewport = {

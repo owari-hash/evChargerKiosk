@@ -5,7 +5,7 @@ import { setSessionCookie, toPublicUser } from '@/lib/auth/session';
 import { getStore } from '@/lib/db';
 import { loginSchema } from '@/lib/validation';
 
-const GENERIC = 'Email or password is incorrect';
+const GENERIC = 'И-мэйл эсвэл нууц үг буруу байна';
 
 /**
  * Compared against when no account matches, so an unknown email costs the same

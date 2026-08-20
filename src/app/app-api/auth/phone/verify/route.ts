@@ -8,8 +8,8 @@ import type { StoredToken } from '@/lib/db/types';
 const MAX_ATTEMPTS = 5;
 
 const invalid = () =>
-  badRequest('That code is invalid or has expired. Please request a new one.', {
-    code: 'This code is not valid',
+  badRequest('Энэ код буруу эсвэл хугацаа нь дууссан байна. Шинэ код авна уу.', {
+    code: 'Энэ код буруу байна',
   });
 
 function usable(token: StoredToken): boolean {
@@ -40,8 +40,8 @@ export const POST = route(async (req: Request) => {
   const owner = await store.findUserByPhone(matched.destination);
   if (owner && owner.id !== user.id) {
     await store.markTokenUsed(matched.id);
-    throw conflict('That phone number is already registered', {
-      phone: 'That phone number is already registered',
+    throw conflict('Энэ утасны дугаар аль хэдийн бүртгэлтэй байна', {
+      phone: 'Энэ утасны дугаар аль хэдийн бүртгэлтэй байна',
     });
   }
 

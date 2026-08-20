@@ -12,6 +12,7 @@ import {
   Field,
   Input,
 } from '@/components/ui';
+import { useI18n } from '@/components/i18n-provider';
 
 interface PasswordResponse {
   ok?: boolean;
@@ -20,6 +21,7 @@ interface PasswordResponse {
 }
 
 export function ChangePasswordForm() {
+  const { d } = useI18n();
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
@@ -50,7 +52,7 @@ export function ChangePasswordForm() {
       const data = (await res.json().catch(() => ({}))) as PasswordResponse;
 
       if (!res.ok || !data.ok) {
-        setError(data.error ?? 'Could not change your password. Please try again.');
+        setError(data.error ?? d.account.password.failed);
         setFields(data.fields ?? {});
         return;
       }
@@ -61,7 +63,7 @@ export function ChangePasswordForm() {
       setDone(true);
       router.refresh();
     } catch {
-      setError('Could not reach the server. Please check your connection and try again.');
+      setError(d.account.profile.networkError);
     } finally {
       setSaving(false);
     }
@@ -70,7 +72,7 @@ export function ChangePasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Password</CardTitle>
+        <CardTitle>{d.account.password.title}</CardTitle>
       </CardHeader>
       <CardBody>
         <form onSubmit={onSubmit} noValidate className="space-y-4">
@@ -78,10 +80,15 @@ export function ChangePasswordForm() {
             Changing your password signs out every other device that is still using this account.
           </p>
 
-          {done && <Alert tone="success">Your password has been changed. Other devices are now signed out.</Alert>}
+          {done && <Alert tone="success">{d.account.password.changed}</Alert>}
           {error && <Alert tone="danger">{error}</Alert>}
 
-          <Field label="Current password" htmlFor="current-password" required error={fields.currentPassword}>
+          <Field
+            label={d.account.password.currentLabel}
+            htmlFor="current-password"
+            required
+            error={fields.currentPassword}
+          >
             <Input
               id="current-password"
               name="currentPassword"
@@ -99,10 +106,10 @@ export function ChangePasswordForm() {
           </Field>
 
           <Field
-            label="New password"
+            label={d.account.password.newLabel}
             htmlFor="new-password"
             required
-            hint="At least 8 characters, including a letter and a number."
+            hint={d.auth.passwordHint}
             error={fields.password}
           >
             <Input
@@ -122,7 +129,7 @@ export function ChangePasswordForm() {
           </Field>
 
           <Field
-            label="Confirm new password"
+            label={d.account.password.confirmLabel}
             htmlFor="confirm-password"
             required
             error={fields.confirmPassword}

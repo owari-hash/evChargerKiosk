@@ -21,7 +21,7 @@ export function AccountNav() {
 
   return (
     <nav
-      aria-label="Account sections"
+      aria-label={d.account.title}
       className="-mx-4 overflow-x-auto px-4 md:mx-0 md:self-start md:overflow-visible md:px-0 md:sticky md:top-20"
     >
       <ul className="flex min-w-max gap-1 md:min-w-0 md:flex-col">

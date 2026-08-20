@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Card } from '@/components/ui';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 interface AuthShellProps {
   title: string;
@@ -30,7 +31,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
 export function AuthFormFallback({ rows = 3 }: { rows?: number }) {
   return (
     <>
-      <span className="sr-only">Loading the form</span>
+      <span className="sr-only">{getDictionary('mn').auth.loadingForm}</span>
       <div className="animate-pulse space-y-5" aria-hidden>
         {Array.from({ length: rows }, (_, index) => (
           <div key={index} className="space-y-2">

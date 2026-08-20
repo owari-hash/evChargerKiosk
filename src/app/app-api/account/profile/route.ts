@@ -19,16 +19,16 @@ export const PATCH = route(async (req: Request) => {
     } else {
       const phone = normalizePhone(body.phone);
       if (!phone) {
-        throw badRequest('Please check the highlighted fields', {
-          phone: 'Enter a valid phone number',
+        throw badRequest('Тэмдэглэсэн талбаруудаа шалгана уу', {
+          phone: 'Зөв утасны дугаар оруулна уу',
         });
       }
       if (phone !== user.phone) {
         const store = await getStore();
         const existing = await store.findUserByPhone(phone);
         if (existing && existing.id !== user.id) {
-          throw conflict('That phone number is already in use', {
-            phone: 'That phone number is already linked to another account',
+          throw conflict('Энэ утасны дугаар аль хэдийн ашиглагдаж байна', {
+            phone: 'Энэ утасны дугаар өөр бүртгэлд холбогдсон байна',
           });
         }
         patch.phone = phone;
@@ -44,7 +44,7 @@ export const PATCH = route(async (req: Request) => {
 
   const store = await getStore();
   const updated = await store.updateUser(user.id, patch);
-  if (!updated) throw notFound('We could not find your account');
+  if (!updated) throw notFound('Таны бүртгэлийг олсонгүй');
 
   return json({ user: toPublicUser(updated) });
 });

@@ -4,24 +4,16 @@ import { Alert, ButtonLink } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listStations, type StationResult } from '@/lib/csms/stations';
 import { publicEnv } from '@/lib/env';
-
-const STEPS = [
-  {
-    title: 'Find a charger',
-    body: 'Search by place or share your location to see what is free right now, with live plug status from every charge point.',
-  },
-  {
-    title: 'Plug in',
-    body: 'Hold your charge tag against the reader, or start the session from your phone where the station supports it.',
-  },
-  {
-    title: 'Track and pay',
-    body: 'Watch energy, power and cost while you charge, and keep every receipt in your account history.',
-  },
-];
+import { getTranslations } from '@/lib/i18n';
 
 export default async function HomePage() {
-  const user = await getCurrentUser();
+  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
+
+  const steps = [
+    { title: d.home.step1Title, body: d.home.step1Body },
+    { title: d.home.step2Title, body: d.home.step2Body },
+    { title: d.home.step3Title, body: d.home.step3Body },
+  ];
 
   let result: StationResult = { stations: [], demo: false };
   let loadError: string | undefined;
@@ -29,7 +21,7 @@ export default async function HomePage() {
     result = await listStations({ limit: 6 });
   } catch (err) {
     console.error('[home] failed to load stations', err);
-    loadError = 'The charging network is not reachable right now. Please try again shortly.';
+    loadError = d.errors.networkUnreachable;
   }
 
   return (
@@ -40,11 +32,10 @@ export default async function HomePage() {
             {publicEnv.brandName}
           </p>
           <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Charge where you are already going.
+            {d.home.title}
           </h1>
           <p className="mt-4 max-w-xl text-base text-muted sm:text-lg">
-            Live plug availability, clear pricing and directions for every charge point on the
-            network.
+            {d.home.subtitle}
           </p>
           <StationQuickSearch className="mt-8 max-w-3xl" />
         </div>
@@ -54,25 +45,25 @@ export default async function HomePage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Chargers on the network
+              {d.home.networkTitle}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              A snapshot of the network. Open the finder to filter by connector, power and distance.
+              {d.home.networkSubtitle}
             </p>
           </div>
           <ButtonLink href="/stations" variant="secondary">
-            See all chargers
+            {d.home.seeAll}
           </ButtonLink>
         </div>
 
         {result.demo && result.warning && (
-          <Alert tone="warning" title="Sample data" className="mt-6">
+          <Alert tone="warning" title={d.errors.sampleData} className="mt-6">
             {result.warning}
           </Alert>
         )}
 
         {loadError && (
-          <Alert tone="danger" title="Stations could not be loaded" className="mt-6">
+          <Alert tone="danger" title={d.errors.stationsFailed} className="mt-6">
             {loadError}
           </Alert>
         )}
@@ -87,9 +78,7 @@ export default async function HomePage() {
           </ul>
         ) : (
           !loadError && (
-            <p className="mt-6 text-sm text-muted">
-              No charge points are being reported right now. Please try again shortly.
-            </p>
+            <p className="mt-6 text-sm text-muted">{d.home.noStations}</p>
           )
         )}
       </section>
@@ -97,10 +86,10 @@ export default async function HomePage() {
       <section className="border-y border-border bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-12">
           <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-            How it works
+            {d.home.howItWorks}
           </h2>
           <ol className="mt-6 grid gap-6 sm:grid-cols-3">
-            {STEPS.map((step, index) => (
+            {steps.map((step, index) => (
               <li key={step.title}>
                 <span
                   aria-hidden
@@ -120,18 +109,15 @@ export default async function HomePage() {
         <section className="mx-auto max-w-6xl px-4 py-12">
           <div className="rounded-2xl bg-surface p-6 ring-1 ring-border shadow-[var(--shadow-card)] sm:p-8">
             <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Create a free account
+              {d.home.ctaTitle}
             </h2>
-            <p className="mt-2 max-w-xl text-sm text-muted">
-              Link your charge tag, follow live sessions from your phone and keep every receipt in
-              one place.
-            </p>
+            <p className="mt-2 max-w-xl text-sm text-muted">{d.home.ctaBody}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <ButtonLink href="/register" size="lg">
-                Create account
+                {d.common.createAccount}
               </ButtonLink>
               <ButtonLink href="/login" variant="secondary" size="lg">
-                Sign in
+                {d.common.signIn}
               </ButtonLink>
             </div>
           </div>

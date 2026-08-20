@@ -15,7 +15,7 @@ import { forgotPasswordSchema, normalizePhone } from '@/lib/validation';
 import type { StoredUser } from '@/lib/db/types';
 
 /** The same answer is returned whether or not an account matched. */
-const MESSAGE = 'If that account exists, we have sent password reset instructions.';
+const MESSAGE = 'Ийм бүртгэл байгаа бол нууц үг сэргээх зааврыг илгээлээ.';
 const MAX_PER_HOUR = 5;
 
 const quiet = () => json({ ok: true, channel: null, message: MESSAGE });

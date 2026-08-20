@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, ButtonLink } from '@/components/ui';
+import { useI18n } from '@/components/i18n-provider';
 import { DevHint } from './dev-hint';
 
 type Status = 'verifying' | 'verified' | 'failed';
@@ -16,13 +17,14 @@ interface ResendState {
 }
 
 export function VerifyEmailPanel() {
+  const { d } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get('token') ?? '';
 
   const [status, setStatus] = useState<Status>(token ? 'verifying' : 'failed');
   const [message, setMessage] = useState(
-    token ? '' : 'This link is missing its confirmation token. Open the link from the email again.',
+    token ? '' : d.auth.verify.missingToken,
   );
   const [resending, setResending] = useState(false);
   const [resend, setResend] = useState<ResendState | null>(null);
@@ -50,7 +52,7 @@ export function VerifyEmailPanel() {
         if (!res.ok) {
           setStatus('failed');
           setMessage(
-            body.error ?? 'This confirmation link is no longer valid. It may have expired already.',
+            body.error ?? d.auth.verify.invalidToken,
           );
           return;
         }
@@ -60,7 +62,7 @@ export function VerifyEmailPanel() {
       } catch {
         if (!active) return;
         setStatus('failed');
-        setMessage('We could not reach the server. Check your connection and try again.');
+        setMessage(d.auth.networkError);
       }
     })();
 
@@ -85,7 +87,7 @@ export function VerifyEmailPanel() {
         setResend({
           tone: 'danger',
           message:
-            'We can only send a new link to a signed-in account. Sign in first, then ask again.',
+            d.auth.verify.signInFirst,
           needsSignIn: true,
         });
         return;
@@ -94,7 +96,7 @@ export function VerifyEmailPanel() {
       if (!res.ok) {
         setResend({
           tone: 'danger',
-          message: body.error ?? 'We could not send a new link just now. Try again shortly.',
+          message: body.error ?? d.auth.verify.resendFailed,
         });
         return;
       }
@@ -103,11 +105,11 @@ export function VerifyEmailPanel() {
         tone: 'info',
         message: body.destination
           ? `A new confirmation link is on its way to ${body.destination}.`
-          : 'A new confirmation link is on its way.',
+          : d.auth.verify.resent,
         devToken: body.devToken,
       });
     } catch {
-      setResend({ tone: 'danger', message: 'We could not reach the server. Try again shortly.' });
+      setResend({ tone: 'danger', message: d.auth.verify.retryShortly });
     } finally {
       setResending(false);
     }
@@ -120,7 +122,7 @@ export function VerifyEmailPanel() {
           aria-hidden
           className="size-5 shrink-0 animate-spin rounded-full border-2 border-brand border-t-transparent"
         />
-        <p className="text-sm text-muted">Confirming your email address…</p>
+        <p className="text-sm text-muted">{d.auth.verify.confirming}</p>
       </div>
     );
   }
@@ -128,12 +130,12 @@ export function VerifyEmailPanel() {
   if (status === 'verified') {
     return (
       <div className="space-y-5">
-        <Alert tone="success" title="Email confirmed">
-          Thanks — your address is verified, so charging receipts and account notices can reach you.
+        <Alert tone="success" title={d.auth.verify.confirmed}>
+          {d.auth.verify.confirmedBody}
         </Alert>
 
         <ButtonLink href="/account" size="lg" className="w-full">
-          Go to your account
+          {d.auth.verify.goToAccount}
         </ButtonLink>
       </div>
     );
@@ -141,7 +143,7 @@ export function VerifyEmailPanel() {
 
   return (
     <div className="space-y-5">
-      <Alert tone="danger" title="We could not confirm this link">
+      <Alert tone="danger" title={d.auth.verify.failedTitle}>
         {message}
       </Alert>
 
@@ -152,7 +154,7 @@ export function VerifyEmailPanel() {
         loading={resending}
         onClick={requestNewLink}
       >
-        Send a new link
+        {d.auth.verify.resend}
       </Button>
 
       {resend && (
@@ -173,9 +175,9 @@ export function VerifyEmailPanel() {
       )}
 
       <p className="text-center text-sm text-muted">
-        Need something else?{' '}
+        {d.auth.verify.needSomethingElse}{' '}
         <Link href="/help" className="font-medium text-brand underline underline-offset-2">
-          Get help
+          {d.auth.login.getHelp}
         </Link>
       </p>
     </div>

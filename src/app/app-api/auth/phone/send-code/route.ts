@@ -35,7 +35,7 @@ async function readBody(req: Request): Promise<unknown> {
   try {
     return JSON.parse(raw) as unknown;
   } catch {
-    throw badRequest('Expected a JSON request body');
+    throw badRequest('JSON форматтай хүсэлтийн бие шаардлагатай');
   }
 }
 
@@ -49,26 +49,26 @@ export const POST = route(async (req: Request) => {
   if (requested) {
     const normalized = normalizePhone(requested);
     if (!normalized) {
-      throw badRequest('Enter a valid phone number', { phone: 'Enter a valid phone number' });
+      throw badRequest('Зөв утасны дугаар оруулна уу', { phone: 'Зөв утасны дугаар оруулна уу' });
     }
     destination = normalized;
   } else if (user.phone) {
     destination = user.phone;
   } else {
-    throw badRequest('Add a phone number first', { phone: 'Enter a phone number' });
+    throw badRequest('Эхлээд утасны дугаар нэмнэ үү', { phone: 'Утасны дугаар оруулна уу' });
   }
 
   const store = await getStore();
   const owner = await store.findUserByPhone(destination);
   if (owner && owner.id !== user.id) {
-    throw conflict('That phone number is already registered', {
-      phone: 'That phone number is already registered',
+    throw conflict('Энэ утасны дугаар аль хэдийн бүртгэлтэй байна', {
+      phone: 'Энэ утасны дугаар аль хэдийн бүртгэлтэй байна',
     });
   }
 
   const issued = await store.countTokensSince(user.id, 'phone_verify', new Date(Date.now() - HOUR));
   if (issued >= MAX_PER_HOUR) {
-    throw tooMany('Too many codes requested. Please try again in an hour.');
+    throw tooMany('Хэт олон код хүсэлээ. Нэг цагийн дараа дахин оролдоно уу.');
   }
 
   await store.invalidateTokens(user.id, 'phone_verify');
@@ -91,7 +91,7 @@ export const POST = route(async (req: Request) => {
   });
   if (!delivery.delivered) {
     console.error('[phone/send-code] sms not delivered', delivery.error);
-    throw new ApiError(502, 'We could not send that code just now. Please try again shortly.');
+    throw new ApiError(502, 'Одоохондоо кодыг илгээж чадсангүй. Хэсэг хугацааны дараа дахин оролдоно уу.');
   }
 
   return json({

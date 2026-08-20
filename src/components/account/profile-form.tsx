@@ -14,6 +14,7 @@ import {
   Input,
   Select,
 } from '@/components/ui';
+import { useI18n } from '@/components/i18n-provider';
 import type { PublicUser } from '@/lib/types';
 
 type Locale = 'en' | 'mn';
@@ -34,6 +35,7 @@ function describedBy(id: string, error: string | undefined, hasHint: boolean): s
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
+  const { d } = useI18n();
   const router = useRouter();
   const [name, setName] = useState(user.name ?? '');
   const [phone, setPhone] = useState(user.phone ?? '');
@@ -65,7 +67,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       const data = (await res.json().catch(() => ({}))) as ProfileResponse;
 
       if (!res.ok || !data.user) {
-        setError(data.error ?? 'Could not save your details. Please try again.');
+        setError(data.error ?? d.account.profile.saveFailed);
         setFields(data.fields ?? {});
         return;
       }
@@ -76,7 +78,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       setSaved(true);
       router.refresh();
     } catch {
-      setError('Could not reach the server. Please check your connection and try again.');
+      setError(d.account.profile.networkError);
     } finally {
       setSaving(false);
     }
@@ -95,13 +97,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your details</CardTitle>
+        <CardTitle>{d.account.profile.title}</CardTitle>
       </CardHeader>
       <CardBody>
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           {error && <Alert tone="danger">{error}</Alert>}
 
-          <Field label="Name" htmlFor="profile-name" error={fields.name}>
+          <Field label={d.account.profile.nameLabel} htmlFor="profile-name" error={fields.name}>
             <Input
               id="profile-name"
               name="name"
@@ -118,7 +120,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           </Field>
 
           <Field
-            label="Mobile number"
+            label={d.account.mobileLabel}
             htmlFor="profile-phone"
             hint={phoneHint}
             error={fields.phone}
@@ -130,7 +132,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               inputMode="tel"
               value={phone}
               autoComplete="tel"
-              placeholder="+976 9911 2233"
+              placeholder={d.account.profile.phonePlaceholder}
               aria-invalid={fields.phone ? true : undefined}
               aria-describedby={describedBy('profile-phone', fields.phone, true)}
               onChange={(event) => {
@@ -141,9 +143,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
           </Field>
 
           <Field
-            label="Language"
+            label={d.account.profile.languageLabel}
             htmlFor="profile-locale"
-            hint="Used for emails and text messages we send you."
+            hint={d.account.profile.languageHint}
             error={fields.locale}
           >
             <Select

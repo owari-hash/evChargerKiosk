@@ -3,22 +3,25 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AuthFormFallback, AuthShell } from '@/components/auth/auth-shell';
 import { LoginForm } from '@/components/auth/login-form';
+import { getTranslations } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'Sign in',
-  description: 'Sign in to your charging account to start sessions and see your history.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getTranslations();
+  return { title: d.auth.login.metaTitle, description: d.auth.login.metaDescription };
+}
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const { d } = await getTranslations();
+
   return (
     <AuthShell
-      title="Sign in"
-      subtitle="Reach your charging account, sessions and receipts."
+      title={d.auth.login.title}
+      subtitle={d.auth.login.subtitle}
       footer={
         <>
-          Trouble signing in?{' '}
+          {d.auth.login.footerPrompt}{' '}
           <Link href="/help" className="font-medium text-brand underline underline-offset-2">
-            Get help
+            {d.auth.login.getHelp}
           </Link>
         </>
       }

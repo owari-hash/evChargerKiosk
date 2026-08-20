@@ -12,7 +12,7 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ id: stri
   const user = await requireUser();
 
   if (!serverEnv.enableRemoteStart()) {
-    throw forbidden('Remote start is switched off on this network. Please start the charge at the station.');
+    throw forbidden('Энэ сүлжээнд алсаас эхлүүлэх боломж идэвхгүй байна. Цэнэглэлтийг станц дээр нь эхлүүлнэ үү.');
   }
 
   guard(req, `station-start:${user.id}`, 10, HOUR);
@@ -23,13 +23,13 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ id: stri
   const raw: unknown = await req.json().catch(() => ({}));
   const parsed = bodySchema.safeParse(raw ?? {});
   if (!parsed.success) {
-    throw new ApiError(400, 'Please check the highlighted fields', fieldErrors(parsed.error));
+    throw new ApiError(400, 'Тэмдэглэсэн талбаруудаа шалгана уу', fieldErrors(parsed.error));
   }
 
   const idTag = (user.idTags ?? [])[0];
   if (!idTag) {
-    throw badRequest('Link a charge tag to your account before starting a charge remotely', {
-      idTag: 'Add a charge tag in your account settings',
+    throw badRequest('Алсаас цэнэглэлт эхлүүлэхийн өмнө бүртгэлдээ цэнэглэх карт холбоно уу', {
+      idTag: 'Бүртгэлийн тохиргоондоо цэнэглэх карт нэмнэ үү',
     });
   }
 

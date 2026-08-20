@@ -3,23 +3,29 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AuthFormFallback, AuthShell } from '@/components/auth/auth-shell';
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
+import { getTranslations } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'Choose a new password',
-  description: 'Set a new password using your reset link or the code we texted you.',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getTranslations();
+  return {
+    title: d.auth.reset.metaTitle,
+    description: d.auth.reset.metaDescription,
+    robots: { index: false, follow: false },
+  };
+}
 
-export default function ResetPasswordPage() {
+export default async function ResetPasswordPage() {
+  const { d } = await getTranslations();
+
   return (
     <AuthShell
-      title="Choose a new password"
-      subtitle="Pick something you have not used here before."
+      title={d.auth.reset.title}
+      subtitle={d.auth.reset.subtitle}
       footer={
         <>
-          Changed your mind?{' '}
+          {d.auth.reset.footerPrompt}{' '}
           <Link href="/login" className="font-medium text-brand underline underline-offset-2">
-            Back to sign in
+            {d.auth.reset.backToSignIn}
           </Link>
         </>
       }

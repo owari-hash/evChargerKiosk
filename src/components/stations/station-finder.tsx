@@ -4,8 +4,9 @@ import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Field, Input, Select } from '@/components/ui';
+import { format, useI18n } from '@/components/i18n-provider';
 import { CONNECTOR_TYPES, type Station } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatPowerKw, intlLocale } from '@/lib/utils';
 import { StationCard } from './station-card';
 import type { StationMapProps } from './station-map';
 
@@ -29,20 +30,11 @@ export const EMPTY_FILTERS: StationFilters = {
   origin: null,
 };
 
-const STATUS_OPTIONS: Array<{ value: StationStatusFilter; label: string }> = [
-  { value: 'all', label: 'Any status' },
-  { value: 'available', label: 'Available now' },
-  { value: 'busy', label: 'All plugs in use' },
-  { value: 'offline', label: 'Offline' },
-];
+/** Status filter values; the labels come from the availability dictionary. */
+const STATUS_OPTIONS: StationStatusFilter[] = ['all', 'available', 'busy', 'offline'];
 
-const POWER_OPTIONS = [
-  { value: 0, label: 'Any power' },
-  { value: 22, label: '22 kW or more' },
-  { value: 50, label: '50 kW or more' },
-  { value: 100, label: '100 kW or more' },
-  { value: 150, label: '150 kW or more' },
-];
+/** Power thresholds in kW; the label is built from the localised unit. */
+const POWER_OPTIONS = [0, 22, 50, 100, 150];
 
 const GEO_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
@@ -79,14 +71,13 @@ function buildQuery(filters: StationFilters): string {
   return params.toString();
 }
 
-function geolocationMessage(error: GeolocationPositionError): string {
-  if (error.code === error.PERMISSION_DENIED) {
-    return 'Location sharing is turned off for this site. Search by name instead.';
-  }
-  if (error.code === error.TIMEOUT) {
-    return 'Finding your location took too long. Try again or search by name.';
-  }
-  return 'We could not work out where you are. Search by name instead.';
+type GeoErrorKey = 'geoDenied' | 'geoTimeout' | 'geoFailed';
+
+/** Which dictionary key explains this geolocation failure. */
+function geolocationMessage(error: GeolocationPositionError): GeoErrorKey {
+  if (error.code === error.PERMISSION_DENIED) return 'geoDenied';
+  if (error.code === error.TIMEOUT) return 'geoTimeout';
+  return 'geoFailed';
 }
 
 interface StationsResponse {
@@ -115,6 +106,9 @@ export function StationFinder({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const { d, locale } = useI18n();
+  const intl = intlLocale(locale);
+
   const [filters, setFilters] = useState<StationFilters>(initialFilters);
   const [stations, setStations] = useState<Station[]>(initialStations);
   const [demo, setDemo] = useState(initialDemo);
@@ -122,7 +116,7 @@ export function StationFinder({
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoError, setGeoError] = useState<GeoErrorKey | 'geoUnsupported' | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const view = searchParams.get('view') === 'map' ? 'map' : 'list';
@@ -161,7 +155,7 @@ export function StationFinder({
       fetch(`/app-api/stations${query ? `?${query}` : ''}`, { signal: controller.signal })
         .then(async (res) => {
           const payload = (await res.json().catch(() => ({}))) as StationsResponse;
-          if (!res.ok) throw new Error(payload.error ?? 'Stations could not be loaded');
+          if (!res.ok) throw new Error(payload.error ?? d.errors.stationsFailed);
           return payload;
         })
         .then((payload) => {
@@ -173,7 +167,7 @@ export function StationFinder({
         })
         .catch((err: unknown) => {
           if (controller.signal.aborted) return;
-          setError(err instanceof Error ? err.message : 'Stations could not be loaded');
+          setError(err instanceof Error ? err.message : d.errors.stationsFailed);
           setLoading(false);
         });
     }, DEBOUNCE_MS);
@@ -194,7 +188,7 @@ export function StationFinder({
   function locate() {
     setGeoError(null);
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoError('This browser cannot share a location. Search by name instead.');
+      setGeoError('geoUnsupported');
       return;
     }
     setLocating(true);
@@ -215,10 +209,9 @@ export function StationFinder({
   }
 
   const countLabel = loading
-    ? 'Updating results'
-    : `${stations.length} ${stations.length === 1 ? 'station' : 'stations'}${
-        filters.origin ? ', nearest first' : ''
-      }`;
+    ? d.stations.updating
+    : format(d.stations.countStations, { count: stations.length }) +
+      (filters.origin ? d.stations.nearestFirst : '');
 
   return (
     <div className="space-y-6">
@@ -228,12 +221,16 @@ export function StationFinder({
         className="rounded-2xl bg-surface p-4 ring-1 ring-border shadow-[var(--shadow-card)]"
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Search" htmlFor="station-search" className="sm:col-span-2 lg:col-span-1">
+          <Field
+            label={d.stations.searchLabel}
+            htmlFor="station-search"
+            className="sm:col-span-2 lg:col-span-1"
+          >
             <Input
               id="station-search"
               type="search"
               value={filters.search}
-              placeholder="Name, address or tag"
+              placeholder={d.stations.searchPlaceholder}
               autoComplete="off"
               onChange={(event) =>
                 setFilters((current) => ({ ...current, search: event.target.value }))
@@ -241,7 +238,7 @@ export function StationFinder({
             />
           </Field>
 
-          <Field label="Status" htmlFor="station-status">
+          <Field label={d.stations.statusLabel} htmlFor="station-status">
             <Select
               id="station-status"
               value={filters.status}
@@ -253,14 +250,14 @@ export function StationFinder({
               }
             >
               {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+                <option key={option} value={option}>
+                  {option === 'all' ? d.stations.anyStatus : d.status.availability[option]}
                 </option>
               ))}
             </Select>
           </Field>
 
-          <Field label="Connector" htmlFor="station-connector">
+          <Field label={d.stations.connectorLabel} htmlFor="station-connector">
             <Select
               id="station-connector"
               value={filters.connectorType}
@@ -268,7 +265,7 @@ export function StationFinder({
                 setFilters((current) => ({ ...current, connectorType: event.target.value }))
               }
             >
-              <option value="">Any connector</option>
+              <option value="">{d.stations.anyConnector}</option>
               {CONNECTOR_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -277,7 +274,7 @@ export function StationFinder({
             </Select>
           </Field>
 
-          <Field label="Minimum power" htmlFor="station-power">
+          <Field label={d.stations.minPowerLabel} htmlFor="station-power">
             <Select
               id="station-power"
               value={String(filters.minPowerKw)}
@@ -286,8 +283,10 @@ export function StationFinder({
               }
             >
               {POWER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+                <option key={option} value={option}>
+                  {option === 0
+                    ? d.stations.anyPower
+                    : format(d.stations.powerOrMore, { power: formatPowerKw(option, intl) })}
                 </option>
               ))}
             </Select>
@@ -296,7 +295,7 @@ export function StationFinder({
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button type="button" variant="secondary" onClick={locate} loading={locating}>
-            Near me
+            {d.stations.nearMe}
           </Button>
           {filters.origin && (
             <Button
@@ -304,7 +303,7 @@ export function StationFinder({
               variant="ghost"
               onClick={() => setFilters((current) => ({ ...current, origin: null }))}
             >
-              Stop sorting by distance
+              {d.stations.stopSortingByDistance}
             </Button>
           )}
           {hasFilters && (
@@ -316,26 +315,26 @@ export function StationFinder({
                 setFilters(EMPTY_FILTERS);
               }}
             >
-              Clear filters
+              {d.stations.clearFilters}
             </Button>
           )}
         </div>
 
         {geoError && (
           <p role="alert" className="mt-3 text-sm text-danger">
-            {geoError}
+            {d.stations[geoError]}
           </p>
         )}
       </form>
 
       {demo && warning && (
-        <Alert tone="warning" title="Sample data">
+        <Alert tone="warning" title={d.errors.sampleData}>
           {warning}
         </Alert>
       )}
 
       {error && (
-        <Alert tone="danger" title="Stations could not be loaded">
+        <Alert tone="danger" title={d.errors.stationsFailed}>
           {error}
         </Alert>
       )}
@@ -347,7 +346,7 @@ export function StationFinder({
 
         <div
           role="group"
-          aria-label="Result view"
+          aria-label={d.stations.resultView}
           className="inline-flex rounded-xl bg-surface-muted p-1 ring-1 ring-border"
         >
           {(['list', 'map'] as const).map((option) => (
@@ -363,7 +362,7 @@ export function StationFinder({
                   : 'text-muted hover:text-foreground',
               )}
             >
-              {option === 'list' ? 'List' : 'Map'}
+              {option === 'list' ? d.stations.list : d.stations.map}
             </button>
           ))}
         </div>
@@ -415,6 +414,8 @@ interface StationListProps {
 }
 
 function StationList({ stations, selectedId, onHighlight, className }: StationListProps) {
+  const { locale } = useI18n();
+
   return (
     <ul className={cn('grid', className)}>
       {stations.map((station) => (
@@ -424,7 +425,11 @@ function StationList({ stations, selectedId, onHighlight, className }: StationLi
           onMouseEnter={() => onHighlight(station.id)}
           onFocus={() => onHighlight(station.id)}
         >
-          <StationCard station={station} selected={station.id === selectedId} />
+          <StationCard
+            station={station}
+            selected={station.id === selectedId}
+            locale={locale}
+          />
         </li>
       ))}
     </ul>
@@ -448,17 +453,17 @@ function ResultsSkeleton({ view }: { view: 'list' | 'map' }) {
 }
 
 function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () => void }) {
+  const { d } = useI18n();
+
   return (
     <div className="rounded-2xl bg-surface px-6 py-12 text-center ring-1 ring-border shadow-[var(--shadow-card)]">
-      <p className="text-base font-semibold text-foreground">No stations match this search</p>
+      <p className="text-base font-semibold text-foreground">{d.stations.noMatchTitle}</p>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-        {hasFilters
-          ? 'Try a wider power range, a different connector, or clear the filters to see the whole network.'
-          : 'No charge points are being reported right now. Please try again shortly.'}
+        {hasFilters ? d.stations.noMatchFiltered : d.home.noStations}
       </p>
       {hasFilters && (
         <Button type="button" variant="secondary" className="mt-5" onClick={onClear}>
-          Clear filters
+          {d.stations.clearFilters}
         </Button>
       )}
     </div>
@@ -471,9 +476,10 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
  */
 export function StationQuickSearch({ className }: { className?: string }) {
   const router = useRouter();
+  const { d } = useI18n();
   const [search, setSearch] = useState('');
   const [locating, setLocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoError, setGeoError] = useState<GeoErrorKey | 'geoUnsupported' | null>(null);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -484,7 +490,7 @@ export function StationQuickSearch({ className }: { className?: string }) {
   function locate() {
     setGeoError(null);
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoError('This browser cannot share a location. Search by name instead.');
+      setGeoError('geoUnsupported');
       return;
     }
     setLocating(true);
@@ -508,29 +514,29 @@ export function StationQuickSearch({ className }: { className?: string }) {
       <form role="search" onSubmit={submit} className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1">
           <label htmlFor="home-search" className="sr-only">
-            Search for a charging station
+            {d.stations.searchAria}
           </label>
           <Input
             id="home-search"
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by place, address or network"
+            placeholder={d.stations.quickPlaceholder}
             autoComplete="off"
             className="h-12"
           />
         </div>
         <Button type="submit" size="lg">
-          Find chargers
+          {d.stations.findChargers}
         </Button>
         <Button type="button" size="lg" variant="secondary" onClick={locate} loading={locating}>
-          Use my location
+          {d.stations.useMyLocation}
         </Button>
       </form>
 
       {geoError && (
         <p role="alert" className="text-sm text-danger">
-          {geoError}
+          {d.stations[geoError]}
         </p>
       )}
     </div>

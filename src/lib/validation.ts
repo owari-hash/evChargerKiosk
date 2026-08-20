@@ -25,18 +25,18 @@ export const emailSchema = z
   .trim()
   .min(3)
   .max(200)
-  .email('Enter a valid email address')
+  .email('Зөв и-мэйл хаяг оруулна уу')
   .transform((v) => v.toLowerCase());
 
 export const phoneSchema = z
   .string()
   .trim()
-  .min(6, 'Enter a valid phone number')
+  .min(6, 'Зөв утасны дугаар оруулна уу')
   .max(20)
   .transform((v, ctx) => {
     const normalized = normalizePhone(v);
     if (!normalized) {
-      ctx.addIssue({ code: 'custom', message: 'Enter a valid phone number' });
+      ctx.addIssue({ code: 'custom', message: 'Зөв утасны дугаар оруулна уу' });
       return z.NEVER;
     }
     return normalized;
@@ -44,35 +44,35 @@ export const phoneSchema = z
 
 export const passwordSchema = z
   .string()
-  .min(8, 'Use at least 8 characters')
-  .max(128, 'That password is too long')
+  .min(8, 'Дор хаяж 8 тэмдэгт ашиглана уу')
+  .max(128, 'Энэ нууц үг хэт урт байна')
   .refine((v) => /[a-zA-Z]/.test(v) && /\d/.test(v), {
-    message: 'Include at least one letter and one number',
+    message: 'Дор хаяж нэг үсэг, нэг тоо оруулна уу',
   });
 
 export const registerSchema = z
   .object({
-    name: z.string().trim().min(1, 'Tell us your name').max(80),
+    name: z.string().trim().min(1, 'Нэрээ оруулна уу').max(80),
     email: emailSchema,
     phone: z.string().trim().max(20).optional().or(z.literal('')),
     password: passwordSchema,
     confirmPassword: z.string(),
-    acceptTerms: z.literal(true, { message: 'Please accept the terms to continue' }),
+    acceptTerms: z.literal(true, { message: 'Үргэлжлүүлэхийн тулд нөхцөлийг зөвшөөрнө үү' }),
   })
   .refine((v) => v.password === v.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'Нууц үг таарахгүй байна',
     path: ['confirmPassword'],
   });
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, 'Enter your password'),
+  password: z.string().min(1, 'Нууц үгээ оруулна уу'),
   remember: z.boolean().optional(),
 });
 
 /** Forgot-password accepts either an email address or a phone number. */
 export const forgotPasswordSchema = z.object({
-  identifier: z.string().trim().min(3, 'Enter your email or phone number').max(200),
+  identifier: z.string().trim().min(3, 'И-мэйл хаяг эсвэл утасны дугаараа оруулна уу').max(200),
   channel: z.enum(['auto', 'email', 'sms']).default('auto'),
 });
 
@@ -80,27 +80,27 @@ export const resetPasswordSchema = z
   .object({
     token: z.string().trim().min(1).optional(),
     phone: z.string().trim().max(20).optional(),
-    code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code').optional(),
+    code: z.string().trim().regex(/^\d{6}$/, '6 оронтой кодоо оруулна уу').optional(),
     password: passwordSchema,
     confirmPassword: z.string(),
   })
   .refine((v) => v.password === v.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'Нууц үг таарахгүй байна',
     path: ['confirmPassword'],
   })
   .refine((v) => Boolean(v.token) || (Boolean(v.phone) && Boolean(v.code)), {
-    message: 'A reset link token or a phone number with its code is required',
+    message: 'Сэргээх холбоосын код эсвэл утасны дугаар, түүний код шаардлагатай',
     path: ['token'],
   });
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Enter your current password'),
+    currentPassword: z.string().min(1, 'Одоогийн нууц үгээ оруулна уу'),
     password: passwordSchema,
     confirmPassword: z.string(),
   })
   .refine((v) => v.password === v.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'Нууц үг таарахгүй байна',
     path: ['confirmPassword'],
   });
 
@@ -111,7 +111,7 @@ export const updateProfileSchema = z.object({
 });
 
 export const verifyPhoneSchema = z.object({
-  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+  code: z.string().trim().regex(/^\d{6}$/, '6 оронтой кодоо оруулна уу'),
 });
 
 export const stationQuerySchema = z.object({

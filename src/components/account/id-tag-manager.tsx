@@ -12,6 +12,7 @@ import {
   Field,
   Input,
 } from '@/components/ui';
+import { format, useI18n } from '@/components/i18n-provider';
 import type { PublicUser } from '@/lib/types';
 
 interface IdTagResponse {
@@ -25,6 +26,7 @@ interface IdTagManagerProps {
 }
 
 export function IdTagManager({ user }: IdTagManagerProps) {
+  const { d } = useI18n();
   const router = useRouter();
   const [tags, setTags] = useState<string[]>(user.idTags);
   const [value, setValue] = useState('');
@@ -39,7 +41,7 @@ export function IdTagManager({ user }: IdTagManagerProps) {
     event.preventDefault();
     const idTag = value.trim();
     if (!idTag) {
-      setFieldError('Enter the code from your charge tag');
+      setFieldError(d.account.idTags.enterCode);
       return;
     }
 
@@ -57,17 +59,17 @@ export function IdTagManager({ user }: IdTagManagerProps) {
       const data = (await res.json().catch(() => ({}))) as IdTagResponse;
 
       if (!res.ok || !data.user) {
-        setError(data.error ?? 'Could not link that charge tag. Please try again.');
+        setError(data.error ?? d.account.idTags.linkFailed);
         setFieldError(data.fields?.idTag ?? '');
         return;
       }
 
       setTags(data.user.idTags);
       setValue('');
-      setNotice(`Charge tag ${idTag} is linked to your account.`);
+      setNotice(format(d.account.idTags.linked, { tag: idTag }));
       router.refresh();
     } catch {
-      setError('Could not reach the server. Please check your connection and try again.');
+      setError(d.account.profile.networkError);
     } finally {
       setAdding(false);
     }
@@ -85,16 +87,16 @@ export function IdTagManager({ user }: IdTagManagerProps) {
       const data = (await res.json().catch(() => ({}))) as IdTagResponse;
 
       if (!res.ok || !data.user) {
-        setError(data.error ?? 'Could not unlink that charge tag. Please try again.');
+        setError(data.error ?? d.account.idTags.unlinkFailed);
         return;
       }
 
       setTags(data.user.idTags);
       setPendingTag(null);
-      setNotice(`Charge tag ${idTag} is no longer linked to your account.`);
+      setNotice(format(d.account.idTags.unlinked, { tag: idTag }));
       router.refresh();
     } catch {
-      setError('Could not reach the server. Please check your connection and try again.');
+      setError(d.account.profile.networkError);
     } finally {
       setBusyTag(null);
     }
@@ -103,12 +105,11 @@ export function IdTagManager({ user }: IdTagManagerProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Charge tags</CardTitle>
+        <CardTitle>{d.account.idTags.title}</CardTitle>
       </CardHeader>
       <CardBody className="space-y-4">
         <p className="text-sm text-muted">
-          A charge tag is the RFID card or app code a charger reads to recognise you; your charging
-          operator issues it and prints the code on the card.
+          {d.account.idTags.body}
         </p>
 
         {notice && <Alert tone="success">{notice}</Alert>}
@@ -116,7 +117,7 @@ export function IdTagManager({ user }: IdTagManagerProps) {
 
         {tags.length === 0 ? (
           <p className="rounded-xl bg-surface-muted px-4 py-3 text-sm text-muted">
-            No charge tags are linked yet.
+            {d.account.idTags.none}
           </p>
         ) : (
           <ul className="divide-y divide-border rounded-xl ring-1 ring-border">
@@ -126,17 +127,17 @@ export function IdTagManager({ user }: IdTagManagerProps) {
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                   {pendingTag === tag ? (
                     <>
-                      <span className="text-sm text-muted">Unlink this tag?</span>
+                      <span className="text-sm text-muted">{d.account.idTags.unlinkConfirm}</span>
                       <Button
                         variant="danger"
                         size="sm"
                         loading={busyTag === tag}
                         onClick={() => unlink(tag)}
                       >
-                        Yes, unlink
+                        {d.account.idTags.unlinkYes}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setPendingTag(null)}>
-                        Cancel
+                        {d.common.cancel}
                       </Button>
                     </>
                   ) : (
@@ -149,8 +150,10 @@ export function IdTagManager({ user }: IdTagManagerProps) {
                         setPendingTag(tag);
                       }}
                     >
-                      Unlink
-                      <span className="sr-only"> charge tag {tag}</span>
+                      {d.account.idTags.unlink}
+                      <span className="sr-only">
+                        {format(d.account.idTags.unlinkSr, { tag })}
+                      </span>
                     </Button>
                   )}
                 </div>
@@ -161,9 +164,9 @@ export function IdTagManager({ user }: IdTagManagerProps) {
 
         <form onSubmit={add} noValidate className="space-y-3 border-t border-border pt-4">
           <Field
-            label="Add a charge tag"
+            label={d.account.idTags.addLabel}
             htmlFor="id-tag-value"
-            hint="Enter the code printed on the card, exactly as shown."
+            hint={d.account.idTags.addHint}
             error={fieldError || undefined}
           >
             <Input
@@ -182,7 +185,7 @@ export function IdTagManager({ user }: IdTagManagerProps) {
             />
           </Field>
           <Button type="submit" variant="secondary" loading={adding}>
-            Link tag
+            {d.account.idTags.addSubmit}
           </Button>
         </form>
       </CardBody>

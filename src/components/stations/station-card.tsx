@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui';
 import type { Station } from '@/lib/types';
-import { cn, formatDistance, formatMoney } from '@/lib/utils';
+import type { Locale } from '@/lib/i18n/config';
+import { format, getDictionary } from '@/lib/i18n/dictionaries';
+import { cn, formatDistance, formatPowerKw, formatTariff, intlLocale } from '@/lib/utils';
 import { AvailabilityStatus } from './availability-dot';
 
 interface StationCardProps {
@@ -9,11 +11,18 @@ interface StationCardProps {
   /** Highlights the card that the map is currently centred on. */
   selected?: boolean;
   className?: string;
+  /** Defaults to the product locale; pass `useI18n().locale` from a client tree. */
+  locale?: Locale;
 }
 
-export function StationCard({ station, selected = false, className }: StationCardProps) {
-  const distance = station.distanceKm === undefined ? '' : formatDistance(station.distanceKm);
-  const plugs = `${station.availableConnectors}/${station.totalConnectors} free`;
+export function StationCard({ station, selected = false, className, locale }: StationCardProps) {
+  const d = getDictionary(locale ?? 'mn');
+  const intl = intlLocale(locale);
+  const distance = station.distanceKm === undefined ? '' : formatDistance(station.distanceKm, intl);
+  const plugs = format(d.stations.free, {
+    available: station.availableConnectors,
+    total: station.totalConnectors,
+  });
 
   return (
     <Link
@@ -29,7 +38,7 @@ export function StationCard({ station, selected = false, className }: StationCar
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-foreground">{station.name}</h3>
           <p className="mt-0.5 line-clamp-2 text-sm text-muted">
-            {station.address || 'Address not published'}
+            {station.address || d.stations.addressMissing}
           </p>
         </div>
         {distance && (
@@ -40,7 +49,7 @@ export function StationCard({ station, selected = false, className }: StationCar
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <AvailabilityStatus availability={station.availability} />
+        <AvailabilityStatus availability={station.availability} locale={locale} />
         <span className="text-sm text-muted">· {plugs}</span>
       </div>
 
@@ -54,15 +63,15 @@ export function StationCard({ station, selected = false, className }: StationCar
 
       <dl className="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 pt-4 text-sm">
         <div className="flex items-baseline justify-between gap-2 border-t border-border pt-3">
-          <dt className="text-muted">Max power</dt>
+          <dt className="text-muted">{d.stations.maxPower}</dt>
           <dd className="font-medium text-foreground">
-            {station.maxPowerKw ? `${station.maxPowerKw} kW` : '—'}
+            {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-2 border-t border-border pt-3">
-          <dt className="text-muted">Price</dt>
+          <dt className="text-muted">{d.stations.price}</dt>
           <dd className="font-medium text-foreground">
-            {station.tariffPerKwh === undefined ? '—' : `${formatMoney(station.tariffPerKwh)}/kWh`}
+            {formatTariff(station.tariffPerKwh, intl)}
           </dd>
         </div>
       </dl>

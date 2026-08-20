@@ -15,9 +15,9 @@ import { bindIdTagToWallet, unbindIdTagFromWallet } from '@/lib/csms/wallet';
 const idTagSchema = z
   .string()
   .trim()
-  .min(1, 'Enter the tag printed on your card')
-  .max(20, 'A charge tag is at most 20 characters')
-  .regex(/^[A-Za-z0-9._:-]+$/, 'Use letters, numbers and . _ : - only');
+  .min(1, 'Карт дээрээ хэвлэгдсэн кодыг оруулна уу')
+  .max(20, 'Цэнэглэх карт хамгийн ихдээ 20 тэмдэгт байна')
+  .regex(/^[A-Za-z0-9._:-]+$/, 'Зөвхөн үсэг, тоо болон . _ : - тэмдэгт ашиглана уу');
 
 const bodySchema = z.object({ idTag: idTagSchema });
 const querySchema = z.object({ idTag: idTagSchema });
@@ -28,14 +28,14 @@ export const POST = route(async (req: Request) => {
 
   const idTags = user.idTags ?? [];
   if (idTags.includes(idTag)) {
-    throw conflict('That charge tag is already linked', {
-      idTag: 'This tag is already linked to your account',
+    throw conflict('Энэ цэнэглэх карт аль хэдийн холбогдсон байна', {
+      idTag: 'Энэ карт таны бүртгэлд аль хэдийн холбогдсон байна',
     });
   }
 
   const store = await getStore();
   const updated = await store.updateUser(user.id, { idTags: [...idTags, idTag] });
-  if (!updated) throw notFound('We could not find your account');
+  if (!updated) throw notFound('Таны бүртгэлийг олсонгүй');
 
   // Point the tag at this account's wallet so charging with it draws on the
   // account balance. Best-effort: a tag the operator has not created in the CSMS
@@ -51,14 +51,14 @@ export const DELETE = route(async (req: Request) => {
 
   const idTags = user.idTags ?? [];
   if (!idTags.includes(idTag)) {
-    throw notFound('That charge tag is not linked to your account');
+    throw notFound('Энэ цэнэглэх карт таны бүртгэлд холбогдоогүй байна');
   }
 
   const store = await getStore();
   const updated = await store.updateUser(user.id, {
     idTags: idTags.filter((tag) => tag !== idTag),
   });
-  if (!updated) throw notFound('We could not find your account');
+  if (!updated) throw notFound('Таны бүртгэлийг олсонгүй');
 
   // The tag falls back to its own wallet; the account balance stays put.
   await unbindIdTagFromWallet(user.id, idTag);

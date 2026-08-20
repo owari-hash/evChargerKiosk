@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Alert, Button, Field, Input } from '@/components/ui';
+import { useI18n } from '@/components/i18n-provider';
 import { fieldErrors, loginSchema } from '@/lib/validation';
 import { fieldAria, sanitizeNext } from './auth-shell';
 
@@ -13,6 +14,7 @@ interface LoginErrorBody {
 }
 
 export function LoginForm() {
+  const { d } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
 
@@ -35,7 +37,7 @@ export function LoginForm() {
     if (!parsed.success) {
       const fields = fieldErrors(parsed.error);
       setErrors(fields);
-      setFormError(fields._form ?? 'Please check the highlighted fields');
+      setFormError(fields._form ?? d.auth.checkFields);
       return;
     }
 
@@ -53,7 +55,7 @@ export function LoginForm() {
 
       if (!res.ok) {
         setErrors(body.fields ?? {});
-        setFormError(body.fields?._form ?? body.error ?? 'We could not sign you in.');
+        setFormError(body.fields?._form ?? body.error ?? d.auth.login.failed);
         setPending(false);
         return;
       }
@@ -61,7 +63,7 @@ export function LoginForm() {
       router.replace(next);
       router.refresh();
     } catch {
-      setFormError('We could not reach the server. Check your connection and try again.');
+      setFormError(d.auth.networkError);
       setPending(false);
     }
   }
@@ -69,20 +71,20 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       {justRegistered && (
-        <Alert tone="success" title="Your account is ready">
+        <Alert tone="success" title={d.auth.login.accountReady}>
           Sign in to pick up where you left off.
         </Alert>
       )}
 
       {justReset && (
-        <Alert tone="success" title="Password changed">
+        <Alert tone="success" title={d.auth.login.passwordChanged}>
           Sign in with your new password.
         </Alert>
       )}
 
       {formError && <Alert tone="danger">{formError}</Alert>}
 
-      <Field label="Email address" htmlFor="email" error={errors.email} required>
+      <Field label={d.auth.emailLabel} htmlFor="email" error={errors.email} required>
         <Input
           id="email"
           name="email"
@@ -93,12 +95,12 @@ export function LoginForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
+          placeholder={d.auth.emailPlaceholder}
           {...fieldAria('email', errors.email)}
         />
       </Field>
 
-      <Field label="Password" htmlFor="password" error={errors.password} required>
+      <Field label={d.auth.passwordLabel} htmlFor="password" error={errors.password} required>
         <Input
           id="password"
           name="password"
@@ -121,25 +123,25 @@ export function LoginForm() {
             onChange={(event) => setRemember(event.target.checked)}
             className="size-5 shrink-0 rounded accent-brand"
           />
-          Keep me signed in
+          {d.auth.login.keepSignedIn}
         </label>
 
         <Link
           href="/forgot-password"
           className="text-sm font-medium text-brand underline underline-offset-2"
         >
-          Forgot your password?
+          {d.auth.login.forgotPassword}
         </Link>
       </div>
 
       <Button type="submit" size="lg" loading={pending} className="w-full">
-        Sign in
+        {d.auth.login.submit}
       </Button>
 
       <p className="text-center text-sm text-muted">
-        New here?{' '}
+        {d.auth.login.newHere}{' '}
         <Link href={registerHref} className="font-medium text-brand underline underline-offset-2">
-          Create an account
+          {d.auth.login.createAccount}
         </Link>
       </p>
     </form>

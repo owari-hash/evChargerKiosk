@@ -36,8 +36,8 @@ async function loadChargePoints(): Promise<{ raw: CsmsChargePoint[]; demo: boole
         raw: DEMO_CHARGE_POINTS,
         demo: true,
         warning: unreachable
-          ? 'Live data is unavailable right now — showing a sample network.'
-          : `Live data is unavailable (${message}) — showing a sample network.`,
+          ? 'Шууд мэдээлэл одоогоор боломжгүй байна — жишээ сүлжээг харуулж байна.'
+          : `Шууд мэдээлэл боломжгүй байна (${message}) — жишээ сүлжээг харуулж байна.`,
       };
     }
     throw err;

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Alert, Button, Field, Input } from '@/components/ui';
+import { useI18n } from '@/components/i18n-provider';
 import { fieldErrors, registerSchema } from '@/lib/validation';
 import { fieldAria, sanitizeNext } from './auth-shell';
 import { DevHint } from './dev-hint';
@@ -22,6 +23,7 @@ interface RegisterResponseBody {
 }
 
 export function RegisterForm() {
+  const { d } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const next = sanitizeNext(params.get('next'));
@@ -53,7 +55,7 @@ export function RegisterForm() {
     if (!parsed.success) {
       const fields = fieldErrors(parsed.error);
       setErrors(fields);
-      setFormError(fields._form ?? 'Please check the highlighted fields');
+      setFormError(fields._form ?? d.auth.checkFields);
       return;
     }
 
@@ -71,7 +73,7 @@ export function RegisterForm() {
 
       if (!res.ok) {
         setErrors(body.fields ?? {});
-        setFormError(body.fields?._form ?? body.error ?? 'We could not create your account.');
+        setFormError(body.fields?._form ?? body.error ?? d.auth.register.failed);
         setPending(false);
         return;
       }
@@ -82,7 +84,7 @@ export function RegisterForm() {
       setVerification(body.verification ?? { sent: false, destination: parsed.data.email });
       setPending(false);
     } catch {
-      setFormError('We could not reach the server. Check your connection and try again.');
+      setFormError(d.auth.networkError);
       setPending(false);
     }
   }
@@ -95,7 +97,7 @@ export function RegisterForm() {
   if (verification) {
     return (
       <div className="space-y-5">
-        <Alert tone="success" title="Your account is ready">
+        <Alert tone="success" title={d.auth.login.accountReady}>
           {verification.sent ? (
             <>
               We sent a confirmation link to <strong>{verification.destination}</strong>. Open it to
@@ -128,7 +130,7 @@ export function RegisterForm() {
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       {formError && <Alert tone="danger">{formError}</Alert>}
 
-      <Field label="Full name" htmlFor="name" error={errors.name} required>
+      <Field label={d.auth.nameLabel} htmlFor="name" error={errors.name} required>
         <Input
           id="name"
           name="name"
@@ -141,7 +143,7 @@ export function RegisterForm() {
         />
       </Field>
 
-      <Field label="Email address" htmlFor="email" error={errors.email} required>
+      <Field label={d.auth.emailLabel} htmlFor="email" error={errors.email} required>
         <Input
           id="email"
           name="email"
@@ -152,16 +154,16 @@ export function RegisterForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
+          placeholder={d.auth.emailPlaceholder}
           {...fieldAria('email', errors.email)}
         />
       </Field>
 
       <Field
-        label="Phone number"
+        label={d.auth.phoneLabel}
         htmlFor="phone"
         error={errors.phone}
-        hint="Optional. Used for SMS reset codes — type your local number and the country code is added for you."
+        hint={d.auth.phoneHint}
       >
         <Input
           id="phone"
@@ -171,16 +173,16 @@ export function RegisterForm() {
           autoComplete="tel"
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
-          placeholder="9911 2233"
+          placeholder={d.auth.phonePlaceholder}
           {...fieldAria('phone', errors.phone, true)}
         />
       </Field>
 
       <Field
-        label="Password"
+        label={d.auth.passwordLabel}
         htmlFor="password"
         error={errors.password}
-        hint="At least 8 characters, including a letter and a number."
+        hint={d.auth.passwordHint}
         required
       >
         <Input
@@ -197,7 +199,7 @@ export function RegisterForm() {
       </Field>
 
       <Field
-        label="Confirm password"
+        label={d.auth.confirmPasswordLabel}
         htmlFor="confirmPassword"
         error={errors.confirmPassword}
         required
@@ -229,18 +231,18 @@ export function RegisterForm() {
             {...fieldAria('acceptTerms', errors.acceptTerms)}
           />
           <span>
-            I agree to the{' '}
+            {d.auth.register.agreePrefix}{' '}
             <Link href="/legal/terms" className="font-medium text-brand underline underline-offset-2">
-              terms of service
+              {d.privacy.termsLink}
             </Link>{' '}
-            and the{' '}
+            {d.auth.register.agreeMiddle}{' '}
             <Link
               href="/legal/privacy"
               className="font-medium text-brand underline underline-offset-2"
             >
-              privacy policy
+              {d.terms.privacyLink}
             </Link>
-            .
+            {d.auth.register.agreeSuffix}
           </span>
         </label>
         {errors.acceptTerms && (
@@ -251,13 +253,13 @@ export function RegisterForm() {
       </div>
 
       <Button type="submit" size="lg" loading={pending} className="w-full">
-        Create account
+        {d.auth.register.submit}
       </Button>
 
       <p className="text-center text-sm text-muted">
-        Already have an account?{' '}
+        {d.auth.register.haveAccount}{' '}
         <Link href="/login" className="font-medium text-brand underline underline-offset-2">
-          Sign in
+          {d.auth.login.submit}
         </Link>
       </p>
     </form>

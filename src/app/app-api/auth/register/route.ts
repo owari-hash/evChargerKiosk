@@ -22,21 +22,21 @@ export const POST = route(async (req: Request) => {
   if (body.phone) {
     const normalized = normalizePhone(body.phone);
     if (!normalized) {
-      throw badRequest('Please check the highlighted fields', {
-        phone: 'Enter a valid phone number',
+      throw badRequest('Тэмдэглэсэн талбаруудаа шалгана уу', {
+        phone: 'Зөв утасны дугаар оруулна уу',
       });
     }
     phone = normalized;
   }
 
   if (await store.findUserByEmail(body.email)) {
-    throw conflict('That email address is already registered', {
-      email: 'That email address is already registered',
+    throw conflict('Энэ и-мэйл хаяг аль хэдийн бүртгэлтэй байна', {
+      email: 'Энэ и-мэйл хаяг аль хэдийн бүртгэлтэй байна',
     });
   }
   if (phone && (await store.findUserByPhone(phone))) {
-    throw conflict('That phone number is already registered', {
-      phone: 'That phone number is already registered',
+    throw conflict('Энэ утасны дугаар аль хэдийн бүртгэлтэй байна', {
+      phone: 'Энэ утасны дугаар аль хэдийн бүртгэлтэй байна',
     });
   }
 

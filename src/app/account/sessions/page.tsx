@@ -4,16 +4,18 @@ import { SessionsTable } from '@/components/account/sessions-table';
 import { Alert } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth/session';
 import { decorateSessions, listSessionsForIdTags } from '@/lib/csms/stations';
+import { getTranslations } from '@/lib/i18n';
 import type { ChargingSession } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Charging history',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getTranslations();
+  return { title: d.account.sessions.title };
+}
 
 export default async function AccountSessionsPage() {
-  const user = await getCurrentUser();
+  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
   if (!user) redirect('/login');
 
   let sessions: ChargingSession[] = [];
@@ -29,9 +31,8 @@ export default async function AccountSessionsPage() {
 
   if (unavailable) {
     return (
-      <Alert tone="warning" title="Charging history is unavailable">
-        We could not reach the charging network just now, so your sessions are not shown. Please try
-        again in a few minutes.
+      <Alert tone="warning" title={d.account.sessions.unavailable}>
+        {d.account.sessions.unavailableBody}
       </Alert>
     );
   }

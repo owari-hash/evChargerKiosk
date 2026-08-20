@@ -4,6 +4,7 @@ import { IdTagManager } from '@/components/account/id-tag-manager';
 import { ProfileForm } from '@/components/account/profile-form';
 import { Badge, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
+import { getDictionary, getTranslations } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,8 @@ interface StatusRowProps {
 }
 
 function StatusRow({ label, detail, verified, href, action }: StatusRowProps) {
+  const d = getDictionary('mn');
+
   return (
     <div className="flex items-start gap-3 rounded-xl bg-surface-muted px-4 py-3">
       <div className="min-w-0 flex-1">
@@ -27,7 +30,7 @@ function StatusRow({ label, detail, verified, href, action }: StatusRowProps) {
       </div>
       <div className="flex flex-col items-end gap-2">
         <Badge tone={verified ? VERIFIED_TONE : PENDING_TONE}>
-          {verified ? 'Verified' : 'Not verified'}
+          {verified ? d.account.verified : d.account.notVerified}
         </Badge>
         <Link
           href={href}
@@ -41,7 +44,7 @@ function StatusRow({ label, detail, verified, href, action }: StatusRowProps) {
 }
 
 export default async function AccountOverviewPage() {
-  const user = await getCurrentUser();
+  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
   if (!user) redirect('/login');
 
   const publicUser = toPublicUser(user);
@@ -50,22 +53,22 @@ export default async function AccountOverviewPage() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Account status</CardTitle>
+          <CardTitle>{d.account.statusTitle}</CardTitle>
         </CardHeader>
         <CardBody className="grid gap-3 sm:grid-cols-2">
           <StatusRow
-            label="Email address"
+            label={d.account.emailLabel}
             detail={publicUser.email}
             verified={publicUser.emailVerified}
             href="/account/security#email"
-            action={publicUser.emailVerified ? 'Manage' : 'Confirm email'}
+            action={publicUser.emailVerified ? d.account.manage : d.account.confirmEmail}
           />
           <StatusRow
-            label="Mobile number"
-            detail={publicUser.phone ?? 'No number added yet'}
+            label={d.account.mobileLabel}
+            detail={publicUser.phone ?? d.account.noNumberYet}
             verified={publicUser.phoneVerified}
             href="/account/security#phone"
-            action={publicUser.phoneVerified ? 'Manage' : 'Verify number'}
+            action={publicUser.phoneVerified ? d.account.manage : d.account.verifyNumber}
           />
         </CardBody>
       </Card>

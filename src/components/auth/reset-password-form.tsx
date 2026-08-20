@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Alert, Button, ButtonLink, Field, Input } from '@/components/ui';
+import { useI18n } from '@/components/i18n-provider';
 import { fieldErrors, resetPasswordSchema } from '@/lib/validation';
 import { fieldAria } from './auth-shell';
 import { DevHint } from './dev-hint';
@@ -21,6 +22,7 @@ interface ResendState {
 }
 
 export function ResetPasswordForm() {
+  const { d } = useI18n();
   const params = useSearchParams();
   const token = params.get('token') ?? '';
   const tokenMode = token.length > 0;
@@ -50,10 +52,10 @@ export function ResetPasswordForm() {
       if (!tokenMode) {
         // The "token or phone + code" rule reports on `token`, which this mode never shows.
         delete fields.token;
-        if (!phone.trim()) fields.phone = 'Enter the phone number you used';
+        if (!phone.trim()) fields.phone = d.auth.reset.needPhone;
       }
       setErrors(fields);
-      setFormError(fields._form ?? 'Please check the highlighted fields');
+      setFormError(fields._form ?? d.auth.checkFields);
       return;
     }
 
@@ -71,7 +73,7 @@ export function ResetPasswordForm() {
 
       if (!res.ok) {
         setErrors(body.fields ?? {});
-        setFormError(body.fields?._form ?? body.error ?? 'We could not change your password.');
+        setFormError(body.fields?._form ?? body.error ?? d.auth.reset.failed);
         setPending(false);
         return;
       }
@@ -79,15 +81,15 @@ export function ResetPasswordForm() {
       setDone(true);
       setPending(false);
     } catch {
-      setFormError('We could not reach the server. Check your connection and try again.');
+      setFormError(d.auth.networkError);
       setPending(false);
     }
   }
 
   async function resendCode() {
     if (!phone.trim()) {
-      setErrors((current) => ({ ...current, phone: 'Enter the phone number you used' }));
-      setFormError('Enter your phone number so we know where to text the code');
+      setErrors((current) => ({ ...current, phone: d.auth.reset.needPhone }));
+      setFormError(d.auth.reset.needPhoneToResend);
       return;
     }
 
@@ -110,13 +112,13 @@ export function ResetPasswordForm() {
         res.ok
           ? {
               tone: 'info',
-              message: body.message ?? 'If that number is on file, a new code is on its way.',
+              message: body.message ?? d.auth.reset.resent,
               devCode: body.devCode,
             }
-          : { tone: 'danger', message: body.error ?? 'We could not send a new code just now.' },
+          : { tone: 'danger', message: body.error ?? d.auth.reset.resendFailed },
       );
     } catch {
-      setResend({ tone: 'danger', message: 'We could not reach the server. Try again shortly.' });
+      setResend({ tone: 'danger', message: d.auth.reset.retryShortly });
     } finally {
       setResending(false);
     }
@@ -125,7 +127,7 @@ export function ResetPasswordForm() {
   if (done) {
     return (
       <div className="space-y-5">
-        <Alert tone="success" title="Password changed">
+        <Alert tone="success" title={d.auth.reset.passwordChanged}>
           You can sign in with your new password now.
         </Alert>
 
@@ -151,7 +153,7 @@ export function ResetPasswordForm() {
             Enter the 6-digit code we texted you, then choose a new password.
           </Alert>
 
-          <Field label="Phone number" htmlFor="phone" error={errors.phone} required>
+          <Field label={d.auth.phoneLabel} htmlFor="phone" error={errors.phone} required>
             <Input
               id="phone"
               name="phone"
@@ -161,16 +163,16 @@ export function ResetPasswordForm() {
               required
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              placeholder="9911 2233"
+              placeholder={d.auth.phonePlaceholder}
               {...fieldAria('phone', errors.phone)}
             />
           </Field>
 
           <Field
-            label="6-digit code"
+            label={d.auth.reset.codeLabel}
             htmlFor="code"
             error={errors.code}
-            hint="It expires 10 minutes after we send it."
+            hint={d.auth.reset.codeHint}
             required
           >
             <Input
@@ -197,7 +199,7 @@ export function ResetPasswordForm() {
               loading={resending}
               onClick={resendCode}
             >
-              Resend the code
+              {d.auth.reset.resend}
             </Button>
             {resend && (
               <>
@@ -210,10 +212,10 @@ export function ResetPasswordForm() {
       )}
 
       <Field
-        label="New password"
+        label={d.auth.reset.newPasswordLabel}
         htmlFor="password"
         error={errors.password}
-        hint="At least 8 characters, including a letter and a number."
+        hint={d.auth.passwordHint}
         required
       >
         <Input
@@ -230,7 +232,7 @@ export function ResetPasswordForm() {
       </Field>
 
       <Field
-        label="Confirm new password"
+        label={d.auth.reset.confirmNewLabel}
         htmlFor="confirmPassword"
         error={errors.confirmPassword}
         required

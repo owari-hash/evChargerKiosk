@@ -12,8 +12,8 @@ export const POST = route(async (req: Request) => {
 
   const matches = await verifyPassword(body.currentPassword, user.passwordHash);
   if (!matches) {
-    throw badRequest('Please check the highlighted fields', {
-      currentPassword: 'That password is not correct',
+    throw badRequest('Тэмдэглэсэн талбаруудаа шалгана уу', {
+      currentPassword: 'Энэ нууц үг буруу байна',
     });
   }
 
@@ -22,7 +22,7 @@ export const POST = route(async (req: Request) => {
     passwordHash: await hashPassword(body.password),
     tokenVersion: (user.tokenVersion ?? 0) + 1,
   });
-  if (!updated) throw notFound('We could not find your account');
+  if (!updated) throw notFound('Таны бүртгэлийг олсонгүй');
 
   // Bumping tokenVersion invalidates every existing cookie; re-issuing one here
   // keeps this device signed in while other devices are signed out.

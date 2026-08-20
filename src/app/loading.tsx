@@ -1,7 +1,11 @@
-export default function Loading() {
+import { getTranslations } from '@/lib/i18n';
+
+export default async function Loading() {
+  const { d } = await getTranslations();
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14" role="status" aria-busy="true">
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">{d.errors.loading}</span>
 
       <div className="animate-pulse space-y-8">
         <div className="space-y-3">

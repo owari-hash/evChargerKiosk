@@ -22,14 +22,14 @@ export class ApiError extends Error {
   }
 }
 
-export const unauthorized = (message = 'Please sign in to continue') => new ApiError(401, message);
-export const forbidden = (message = 'You do not have access to this') => new ApiError(403, message);
-export const notFound = (message = 'Not found') => new ApiError(404, message);
+export const unauthorized = (message = 'Үргэлжлүүлэхийн тулд нэвтэрнэ үү') => new ApiError(401, message);
+export const forbidden = (message = 'Танд энэ рүү хандах эрх байхгүй') => new ApiError(403, message);
+export const notFound = (message = 'Олдсонгүй') => new ApiError(404, message);
 export const badRequest = (message: string, fields?: Record<string, string>) =>
   new ApiError(400, message, fields);
 export const conflict = (message: string, fields?: Record<string, string>) =>
   new ApiError(409, message, fields);
-export const tooMany = (message = 'Too many requests, please try again later') =>
+export const tooMany = (message = 'Хэт олон хүсэлт илгээлээ. Дараа дахин оролдоно уу.') =>
   new ApiError(429, message);
 
 export function json<T>(data: T, status = 200): NextResponse {
@@ -52,13 +52,13 @@ export function route<Req extends Request, Args extends unknown[]>(
       }
       if (err instanceof z.ZodError) {
         return NextResponse.json(
-          { error: 'Please check the highlighted fields', fields: fieldErrors(err) },
+          { error: 'Тэмдэглэсэн талбаруудаа шалгана уу', fields: fieldErrors(err) },
           { status: 400 },
         );
       }
       if (err instanceof CsmsUnavailableError) {
         return NextResponse.json(
-          { error: 'The charging network is not reachable right now. Please try again shortly.' },
+          { error: 'Цэнэглэх сүлжээтэй одоогоор холбогдох боломжгүй байна. Хэсэг хугацааны дараа дахин оролдоно уу.' },
           { status: 503 },
         );
       }
@@ -66,7 +66,7 @@ export function route<Req extends Request, Args extends unknown[]>(
         return NextResponse.json({ error: err.message }, { status: err.status === 401 ? 502 : err.status });
       }
       console.error('[api] unhandled error', err);
-      return NextResponse.json({ error: 'Something went wrong on our side' }, { status: 500 });
+      return NextResponse.json({ error: 'Манай талд алдаа гарлаа' }, { status: 500 });
     }
   };
 }
@@ -77,11 +77,11 @@ export async function parseBody<S extends z.ZodTypeAny>(req: Request, schema: S)
   try {
     raw = await req.json();
   } catch {
-    throw badRequest('Expected a JSON request body');
+    throw badRequest('JSON форматтай хүсэлтийн бие шаардлагатай');
   }
   const result = schema.safeParse(raw);
   if (!result.success) {
-    throw new ApiError(400, 'Please check the highlighted fields', fieldErrors(result.error));
+    throw new ApiError(400, 'Тэмдэглэсэн талбаруудаа шалгана уу', fieldErrors(result.error));
   }
   return result.data;
 }
@@ -90,7 +90,7 @@ export function parseQuery<S extends z.ZodTypeAny>(req: Request, schema: S): z.i
   const params = Object.fromEntries(new URL(req.url).searchParams.entries());
   const result = schema.safeParse(params);
   if (!result.success) {
-    throw new ApiError(400, 'Invalid query parameters', fieldErrors(result.error));
+    throw new ApiError(400, 'Хайлтын утга буруу байна', fieldErrors(result.error));
   }
   return result.data;
 }
@@ -105,7 +105,7 @@ export async function requireUser(): Promise<StoredUser> {
 export function guard(req: Request, scope: string, limit: number, windowMs: number): void {
   const result = rateLimit(`${scope}:${clientIp(req)}`, limit, windowMs);
   if (!result.ok) {
-    throw tooMany(`Too many attempts. Try again in ${result.retryAfterSeconds}s.`);
+    throw tooMany(`Хэт олон удаа оролдлоо. ${result.retryAfterSeconds} секундын дараа дахин оролдоно уу.`);
   }
 }
 

@@ -8,13 +8,13 @@ import type { StoredToken, UserStore } from '@/lib/db/types';
 const MAX_ATTEMPTS = 5;
 
 const invalidLink = () =>
-  badRequest('That reset link is invalid or has expired. Please request a new one.', {
-    token: 'This reset link is no longer valid',
+  badRequest('Энэ сэргээх холбоос буруу эсвэл хугацаа нь дууссан байна. Шинэ холбоос авна уу.', {
+    token: 'Энэ сэргээх холбоос хүчингүй болсон байна',
   });
 
 const invalidCode = () =>
-  badRequest('That code is invalid or has expired. Please request a new one.', {
-    code: 'This code is not valid',
+  badRequest('Энэ код буруу эсвэл хугацаа нь дууссан байна. Шинэ код авна уу.', {
+    code: 'Энэ код буруу байна',
   });
 
 function usable(token: StoredToken): boolean {
@@ -51,7 +51,7 @@ export const POST = route(async (req: Request) => {
   } else {
     const phone = normalizePhone(body.phone ?? '');
     if (!phone) {
-      throw badRequest('Enter a valid phone number', { phone: 'Enter a valid phone number' });
+      throw badRequest('Зөв утасны дугаар оруулна уу', { phone: 'Зөв утасны дугаар оруулна уу' });
     }
 
     const owner = await store.findUserByPhone(phone);

@@ -23,15 +23,17 @@ export function AvailabilityDot({ availability, className }: AvailabilityDotProp
 interface AvailabilityStatusProps {
   availability: StationAvailability;
   className?: string;
+  /** Defaults to the product locale (Mongolian) when the caller has none. */
+  locale?: string;
 }
 
-export function AvailabilityStatus({ availability, className }: AvailabilityStatusProps) {
+export function AvailabilityStatus({ availability, className, locale }: AvailabilityStatusProps) {
   return (
     <span
       className={cn('inline-flex items-center gap-2 text-sm font-medium text-foreground', className)}
     >
       <AvailabilityDot availability={availability} />
-      {availabilityLabel(availability)}
+      {availabilityLabel(availability, locale)}
     </span>
   );
 }

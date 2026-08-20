@@ -3,22 +3,25 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AuthFormFallback, AuthShell } from '@/components/auth/auth-shell';
 import { RegisterForm } from '@/components/auth/register-form';
+import { getTranslations } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'Create account',
-  description: 'Create a charging account to start sessions and keep your receipts in one place.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getTranslations();
+  return { title: d.auth.register.metaTitle, description: d.auth.register.metaDescription };
+}
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const { d } = await getTranslations();
+
   return (
     <AuthShell
-      title="Create your account"
-      subtitle="It takes a minute, and you can charge straight afterwards."
+      title={d.auth.register.title}
+      subtitle={d.auth.register.subtitle}
       footer={
         <>
-          Questions first?{' '}
+          {d.auth.register.footerPrompt}{' '}
           <Link href="/help" className="font-medium text-brand underline underline-offset-2">
-            Read the help pages
+            {d.auth.register.readHelp}
           </Link>
         </>
       }

@@ -16,12 +16,12 @@ export const POST = route(async (req: Request) => {
   const user = await requireUser();
   guard(req, 'auth:resend-verification', 5, HOUR);
 
-  if (user.emailVerifiedAt) throw conflict('Your email address is already confirmed');
+  if (user.emailVerifiedAt) throw conflict('Таны и-мэйл хаяг аль хэдийн баталгаажсан байна');
 
   const store = await getStore();
   const issued = await store.countTokensSince(user.id, 'email_verify', new Date(Date.now() - HOUR));
   if (issued >= MAX_PER_HOUR) {
-    throw tooMany('Too many confirmation emails requested. Please try again in an hour.');
+    throw tooMany('Хэт олон баталгаажуулах и-мэйл хүсэлээ. Нэг цагийн дараа дахин оролдоно уу.');
   }
 
   await store.invalidateTokens(user.id, 'email_verify');
@@ -41,7 +41,7 @@ export const POST = route(async (req: Request) => {
   const delivery = await sendEmail({ to: user.email, ...templates.verifyEmail(url) });
   if (!delivery.delivered) {
     console.error('[resend-verification] email not delivered', delivery.error);
-    throw new ApiError(502, 'We could not send that email just now. Please try again shortly.');
+    throw new ApiError(502, 'Одоохондоо и-мэйлийг илгээж чадсангүй. Хэсэг хугацааны дараа дахин оролдоно уу.');
   }
 
   return json({

@@ -2,14 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Alert, ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { listStations } from '@/lib/csms/stations';
+import { format, getTranslations } from '@/lib/i18n';
 import type { Station } from '@/lib/types';
-import { formatMoney } from '@/lib/utils';
+import { formatMoney, formatPowerKw, intlLocale } from '@/lib/utils';
 
-export const metadata: Metadata = {
-  title: 'Pricing',
-  description:
-    'Charging is billed per kilowatt-hour. Each charge point has its own tariff, set by the operator and shown before you plug in.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getTranslations();
+  return { title: d.pricing.metaTitle, description: d.pricing.metaDescription };
+}
 
 // Tariffs are read live from the CSMS, so this page must not be cached at build time.
 export const dynamic = 'force-dynamic';
@@ -32,58 +32,50 @@ async function loadTariffs(): Promise<TariffData> {
 }
 
 export default async function PricingPage() {
-  const { stations, demo, warning, failed } = await loadTariffs();
+  const [{ stations, demo, warning, failed }, { locale, d }] = await Promise.all([
+    loadTariffs(),
+    getTranslations(),
+  ]);
+  const intl = intlLocale(locale);
   const priced = stations.filter((s) => typeof s.tariffPerKwh === 'number');
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
       <header className="max-w-2xl">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Pricing</h1>
-        <p className="mt-3 text-base text-muted">
-          You pay for the energy you take, measured in kilowatt-hours. There is no single network
-          price: every charge point carries its own tariff, set by the operator who runs it. The
-          tariff that applies to you is always shown on the station page before you start.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          {d.pricing.title}
+        </h1>
+        <p className="mt-3 text-base text-muted">{d.pricing.intro}</p>
       </header>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>How a charge is priced</CardTitle>
+            <CardTitle>{d.pricing.howTitle}</CardTitle>
           </CardHeader>
           <CardBody>
             <dl className="space-y-4 text-sm">
               <div>
-                <dt className="font-semibold text-foreground">Energy, not time</dt>
-                <dd className="mt-1 text-muted">
-                  The charge point meters how much energy your car actually accepted. The cost of a
-                  session is that figure multiplied by the tariff of the charge point.
-                </dd>
+                <dt className="font-semibold text-foreground">{d.pricing.energyTitle}</dt>
+                <dd className="mt-1 text-muted">{d.pricing.energyBody}</dd>
               </div>
               <div>
-                <dt className="font-semibold text-foreground">The tariff is per charge point</dt>
-                <dd className="mt-1 text-muted">
-                  Operators set it individually, so a fast roadside charger and a slow one in a car
-                  park will not cost the same. A charge point with no tariff configured shows a dash
-                  instead of a price.
-                </dd>
+                <dt className="font-semibold text-foreground">{d.pricing.perPointTitle}</dt>
+                <dd className="mt-1 text-muted">{d.pricing.perPointBody}</dd>
               </div>
               <div>
-                <dt className="font-semibold text-foreground">Shown before you plug in</dt>
+                <dt className="font-semibold text-foreground">{d.pricing.shownTitle}</dt>
                 <dd className="mt-1 text-muted">
-                  Open a station from{' '}
+                  {d.pricing.shownBodyPrefix}{' '}
                   <Link href="/stations" className="font-medium text-brand hover:underline">
-                    Find a charger
+                    {d.stations.title}
                   </Link>{' '}
-                  to see its current tariff, plug types and live availability.
+                  {d.pricing.shownBodySuffix}
                 </dd>
               </div>
               <div>
-                <dt className="font-semibold text-foreground">Recorded on your session</dt>
-                <dd className="mt-1 text-muted">
-                  Where the operator has configured a tariff, the cost of each completed session is
-                  stored with it and appears in your charging history.
-                </dd>
+                <dt className="font-semibold text-foreground">{d.pricing.recordedTitle}</dt>
+                <dd className="mt-1 text-muted">{d.pricing.recordedBody}</dd>
               </div>
             </dl>
           </CardBody>
@@ -91,22 +83,13 @@ export default async function PricingPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>What this app does not do</CardTitle>
+            <CardTitle>{d.pricing.notesTitle}</CardTitle>
           </CardHeader>
           <CardBody>
             <ul className="space-y-3 text-sm text-muted">
-              <li>
-                There are no subscriptions, memberships or prepaid bundles to buy here. Nothing on
-                this site is for sale.
-              </li>
-              <li>
-                This app does not take payments. Billing is arranged by the network operator through
-                whatever method they have agreed with you.
-              </li>
-              <li>
-                Parking charges, if the site owner levies any, are separate from the charging tariff
-                and are not shown here.
-              </li>
+              <li>{d.pricing.note1}</li>
+              <li>{d.pricing.note2}</li>
+              <li>{d.pricing.note3}</li>
             </ul>
           </CardBody>
         </Card>
@@ -115,35 +98,36 @@ export default async function PricingPage() {
       <section className="mt-10">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">Current tariffs</h2>
+            <h2 className="text-xl font-semibold text-foreground">{d.pricing.currentTitle}</h2>
             <p className="mt-1 text-sm text-muted">
               {priced.length > 0
-                ? `${priced.length} of ${stations.length} charge points publish a price per kilowatt-hour.`
-                : 'Prices are published by each operator as they configure their charge points.'}
+                ? format(d.pricing.pricedCount, {
+                    priced: priced.length,
+                    total: stations.length,
+                  })
+                : d.pricing.noneCount}
             </p>
           </div>
           <ButtonLink href="/stations" variant="secondary" size="md">
-            Find a charger
+            {d.stations.title}
           </ButtonLink>
         </div>
 
         {demo && (
-          <Alert tone="warning" title="Sample data" className="mt-4">
-            {warning ??
-              'The charging network is not reachable, so the prices below come from the built-in demo network. They are not real tariffs.'}
+          <Alert tone="warning" title={d.errors.sampleData} className="mt-4">
+            {warning ?? d.pricing.demoBody}
           </Alert>
         )}
 
         {failed && (
-          <Alert tone="danger" title="Tariffs unavailable" className="mt-4">
-            We could not reach the charging network to read current prices. Please try again in a
-            few minutes.
+          <Alert tone="danger" title={d.pricing.failedTitle} className="mt-4">
+            {d.pricing.failedBody}
           </Alert>
         )}
 
         {!failed && stations.length === 0 && (
           <Alert tone="info" className="mt-4">
-            No charge points are published yet, so there is nothing to price.
+            {d.pricing.emptyBody}
           </Alert>
         )}
 
@@ -151,22 +135,20 @@ export default async function PricingPage() {
           <Card className="mt-4 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[34rem] border-collapse text-sm">
-                <caption className="sr-only">
-                  Charge points with their price per kilowatt-hour and maximum power
-                </caption>
+                <caption className="sr-only">{d.pricing.caption}</caption>
                 <thead>
                   <tr className="border-b border-border bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <th scope="col" className="px-4 py-3">
-                      Charge point
+                      {d.pricing.colChargePoint}
                     </th>
                     <th scope="col" className="px-4 py-3">
-                      Plugs
+                      {d.pricing.colPlugs}
                     </th>
                     <th scope="col" className="px-4 py-3 text-right">
-                      Max power
+                      {d.pricing.colMaxPower}
                     </th>
                     <th scope="col" className="px-4 py-3 text-right">
-                      Price per kWh
+                      {d.pricing.colPrice}
                     </th>
                   </tr>
                 </thead>
@@ -190,10 +172,10 @@ export default async function PricingPage() {
                         {station.connectorTypes.length ? station.connectorTypes.join(' · ') : '—'}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-muted">
-                        {station.maxPowerKw ? `${station.maxPowerKw} kW` : '—'}
+                        {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
-                        {formatMoney(station.tariffPerKwh)}
+                        {formatMoney(station.tariffPerKwh, intl)}
                       </td>
                     </tr>
                   ))}
@@ -203,11 +185,7 @@ export default async function PricingPage() {
           </Card>
         )}
 
-        <p className="mt-4 text-xs text-muted">
-          Prices are read from the charging network each time this page loads. An operator can change
-          a tariff at any time; the figure shown on the station page immediately before you start is
-          the one that applies.
-        </p>
+        <p className="mt-4 text-xs text-muted">{d.pricing.footnote}</p>
       </section>
     </div>
   );

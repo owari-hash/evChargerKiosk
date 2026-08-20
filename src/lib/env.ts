@@ -99,7 +99,7 @@ export const publicEnv = {
  */
 export function requireSessionSecret(): string {
   const secret = serverEnv.sessionSecret();
-  if (secret.length >= 32) return secret;
+  if (secret.length >= 32) return secret; 
   if (isProduction) {
     throw new Error('SESSION_SECRET must be set to at least 32 characters in production');
   }

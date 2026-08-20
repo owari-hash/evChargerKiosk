@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { Alert, Button, ButtonLink, Field, Input, Select } from '@/components/ui';
+import { useI18n } from '@/components/i18n-provider';
 import { fieldErrors, forgotPasswordSchema } from '@/lib/validation';
 import { fieldAria } from './auth-shell';
 import { DevHint } from './dev-hint';
@@ -20,6 +21,7 @@ interface ForgotResponseBody {
 }
 
 export function ForgotPasswordForm() {
+  const { d } = useI18n();
   const [identifier, setIdentifier] = useState('');
   const [channel, setChannel] = useState<Channel>('auto');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -34,7 +36,7 @@ export function ForgotPasswordForm() {
     if (!parsed.success) {
       const fields = fieldErrors(parsed.error);
       setErrors(fields);
-      setFormError(fields._form ?? 'Please check the highlighted fields');
+      setFormError(fields._form ?? d.auth.checkFields);
       return;
     }
 
@@ -52,7 +54,7 @@ export function ForgotPasswordForm() {
 
       if (!res.ok) {
         setErrors(body.fields ?? {});
-        setFormError(body.fields?._form ?? body.error ?? 'We could not send the reset instructions.');
+        setFormError(body.fields?._form ?? body.error ?? d.auth.forgot.failed);
         setPending(false);
         return;
       }
@@ -60,7 +62,7 @@ export function ForgotPasswordForm() {
       setSent(body);
       setPending(false);
     } catch {
-      setFormError('We could not reach the server. Check your connection and try again.');
+      setFormError(d.auth.networkError);
       setPending(false);
     }
   }
@@ -68,15 +70,15 @@ export function ForgotPasswordForm() {
   if (sent) {
     const heading =
       sent.channel === 'sms'
-        ? 'Check your phone'
+        ? d.auth.forgot.checkPhone
         : sent.channel === 'email'
-          ? 'Check your email'
-          : 'Check your messages';
+          ? d.auth.forgot.checkEmail
+          : d.auth.forgot.checkMessages;
 
     return (
       <div className="space-y-5">
         <Alert tone="success" title={heading}>
-          {sent.message ?? 'If that account exists, reset instructions are on their way.'}
+          {sent.message ?? d.auth.forgot.sent}
           {sent.destination && (
             <>
               {' '}
@@ -117,12 +119,12 @@ export function ForgotPasswordForm() {
             className="w-full"
             onClick={() => setSent(null)}
           >
-            Try a different address
+            {d.auth.forgot.tryDifferent}
           </Button>
           <p className="text-center text-sm text-muted">
-            Remembered it?{' '}
+            {d.auth.forgot.rememberedIt}{' '}
             <Link href="/login" className="font-medium text-brand underline underline-offset-2">
-              Back to sign in
+              {d.auth.reset.backToSignIn}
             </Link>
           </p>
         </div>
@@ -135,10 +137,10 @@ export function ForgotPasswordForm() {
       {formError && <Alert tone="danger">{formError}</Alert>}
 
       <Field
-        label="Email or phone number"
+        label={d.auth.forgot.identifierLabel}
         htmlFor="identifier"
         error={errors.identifier}
-        hint="Whichever you used when you created the account."
+        hint={d.auth.forgot.identifierHint}
         required
       >
         <Input
@@ -151,16 +153,16 @@ export function ForgotPasswordForm() {
           required
           value={identifier}
           onChange={(event) => setIdentifier(event.target.value)}
-          placeholder="you@example.com or 9911 2233"
+          placeholder={d.auth.forgot.identifierPlaceholder}
           {...fieldAria('identifier', errors.identifier, true)}
         />
       </Field>
 
       <Field
-        label="How should we send it?"
+        label={d.auth.forgot.channelLabel}
         htmlFor="channel"
         error={errors.channel}
-        hint="An email carries a reset link; an SMS carries a 6-digit code."
+        hint={d.auth.forgot.channelHint}
       >
         <Select
           id="channel"
@@ -169,20 +171,20 @@ export function ForgotPasswordForm() {
           onChange={(event) => setChannel(event.target.value as Channel)}
           {...fieldAria('channel', errors.channel, true)}
         >
-          <option value="auto">Whichever suits my account</option>
-          <option value="email">Email me a link</option>
-          <option value="sms">Text me a code</option>
+          <option value="auto">{d.auth.forgot.channelAuto}</option>
+          <option value="email">{d.auth.forgot.channelEmail}</option>
+          <option value="sms">{d.auth.forgot.channelSms}</option>
         </Select>
       </Field>
 
       <Button type="submit" size="lg" loading={pending} className="w-full">
-        Send reset instructions
+        {d.auth.forgot.submit}
       </Button>
 
       <p className="text-center text-sm text-muted">
-        Remembered it?{' '}
+        {d.auth.forgot.rememberedIt}{' '}
         <Link href="/login" className="font-medium text-brand underline underline-offset-2">
-          Back to sign in
+          {d.auth.reset.backToSignIn}
         </Link>
       </p>
     </form>

@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui';
+import { format, useI18n } from '@/components/i18n-provider';
 import type { ChargingSession } from '@/lib/types';
 import {
   connectorStatusTone,
@@ -23,10 +24,14 @@ import {
   formatPower,
 } from '@/lib/utils';
 
-const STATUS_META: Record<ChargingSession['status'], { label: string; tone: string }> = {
-  Active: { label: 'In progress', tone: connectorStatusTone('Charging') },
-  Completed: { label: 'Completed', tone: connectorStatusTone('Available') },
-  Rejected: { label: 'Rejected', tone: connectorStatusTone('Faulted') },
+/** Tone per session state; the label is looked up in `d.account.sessions`. */
+const STATUS_META: Record<
+  ChargingSession['status'],
+  { labelKey: 'inProgress' | 'completed' | 'rejected'; tone: string }
+> = {
+  Active: { labelKey: 'inProgress', tone: connectorStatusTone('Charging') },
+  Completed: { labelKey: 'completed', tone: connectorStatusTone('Available') },
+  Rejected: { labelKey: 'rejected', tone: connectorStatusTone('Faulted') },
 };
 
 interface StopResponse {
@@ -43,6 +48,7 @@ function stationHref(session: ChargingSession): string {
 }
 
 export function SessionsTable({ sessions }: SessionsTableProps) {
+  const { d } = useI18n();
   const router = useRouter();
   /** Ticks while a session is still running so its elapsed time stays honest. */
   const [clock, setClock] = useState(() => Date.now());
@@ -79,19 +85,19 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
       const data = (await res.json().catch(() => ({}))) as StopResponse;
 
       if (!res.ok) {
-        setError(data.error ?? 'Could not stop the session. Please try again.');
+        setError(data.error ?? d.account.sessions.stopFailed);
         return;
       }
 
       setPendingId(null);
       setNotice(
         data.status === 'Accepted'
-          ? 'Stop request accepted. The charger is ending the session now.'
-          : `The charger answered "${data.status ?? 'unknown'}". If the session keeps running, stop it at the station.`,
+          ? d.account.sessions.stopAccepted
+          : format(d.account.sessions.stopAnswered, { status: data.status ?? '—' }),
       );
       router.refresh();
     } catch {
-      setError('Could not reach the server. Please check your connection and try again.');
+      setError(d.account.profile.networkError);
     } finally {
       setBusyId(null);
     }
@@ -107,17 +113,17 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
     if (pendingId === session.transactionId) {
       return (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted">Stop this charge?</span>
+          <span className="text-sm text-muted">{d.account.sessions.stopConfirm}</span>
           <Button
             variant="danger"
             size="sm"
             loading={busyId === session.transactionId}
             onClick={() => stop(session.transactionId)}
           >
-            Yes, stop
+            {d.account.sessions.stopYes}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setPendingId(null)}>
-            Keep charging
+            {d.account.sessions.keepCharging}
           </Button>
         </div>
       );
@@ -133,10 +139,11 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           setPendingId(session.transactionId);
         }}
       >
-        Stop
+        {d.account.sessions.stop}
         <span className="sr-only">
-          {' '}
-          charging at {session.stationName ?? session.chargePointId}
+          {format(d.account.sessions.stopSrAt, {
+            station: session.stationName ?? session.chargePointId,
+          })}
         </span>
       </Button>
     );
@@ -146,15 +153,14 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Charging history</CardTitle>
+          <CardTitle>{d.account.sessions.title}</CardTitle>
         </CardHeader>
         <CardBody className="space-y-4">
           <p className="text-sm text-muted">
-            Your charging history appears here once a charge tag is linked to your account and used
-            at a charger.
+            {d.account.sessions.empty}
           </p>
           <ButtonLink href="/account" variant="secondary" size="sm">
-            Manage charge tags
+            {d.account.idTags.manage}
           </ButtonLink>
         </CardBody>
       </Card>
@@ -164,9 +170,9 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   return (
     <Card>
       <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-        <CardTitle>Charging history</CardTitle>
+        <CardTitle>{d.account.sessions.title}</CardTitle>
         <p className="text-sm text-muted">
-          {ordered.length} {ordered.length === 1 ? 'session' : 'sessions'}
+          {format(d.account.sessions.count, { count: ordered.length })}
         </p>
       </CardHeader>
 
@@ -192,35 +198,37 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   >
                     {session.stationName ?? session.chargePointId}
                   </Link>
-                  <p className="mt-0.5 text-sm text-muted">Connector {session.connectorId}</p>
+                  <p className="mt-0.5 text-sm text-muted">
+                    {format(d.account.sessions.connector, { id: session.connectorId })}
+                  </p>
                 </div>
-                <Badge tone={meta.tone}>{meta.label}</Badge>
+                <Badge tone={meta.tone}>{d.account.sessions[meta.labelKey]}</Badge>
               </div>
 
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
-                  <dt className="text-muted">Started</dt>
+                  <dt className="text-muted">{d.account.sessions.started}</dt>
                   <dd suppressHydrationWarning className="text-foreground">
                     {formatDateTime(session.startTimestamp)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Duration</dt>
+                  <dt className="text-muted">{d.account.sessions.duration}</dt>
                   <dd suppressHydrationWarning className="text-foreground">
                     {duration(session)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Energy</dt>
+                  <dt className="text-muted">{d.account.sessions.energy}</dt>
                   <dd className="text-foreground">{formatKwh(session.energyKwh)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Cost</dt>
+                  <dt className="text-muted">{d.account.sessions.cost}</dt>
                   <dd className="text-foreground">{formatMoney(session.cost)}</dd>
                 </div>
                 {active && (
                   <div>
-                    <dt className="text-muted">Right now</dt>
+                    <dt className="text-muted">{d.account.sessions.rightNow}</dt>
                     <dd className="text-foreground">{formatPower(session.lastPowerW)}</dd>
                   </div>
                 )}
@@ -234,32 +242,32 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
 
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[48rem] text-left text-sm">
-          <caption className="sr-only">Your charging sessions, most recent first</caption>
+          <caption className="sr-only">{d.account.sessions.caption}</caption>
           <thead>
             <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted">
               <th scope="col" className="px-5 py-3">
-                Station
+                {d.account.sessions.station}
               </th>
               <th scope="col" className="px-5 py-3">
-                Connector
+                {d.account.sessions.connectorHeader}
               </th>
               <th scope="col" className="px-5 py-3">
-                Started
+                {d.account.sessions.started}
               </th>
               <th scope="col" className="px-5 py-3">
-                Duration
+                {d.account.sessions.duration}
               </th>
               <th scope="col" className="px-5 py-3">
-                Energy
+                {d.account.sessions.energy}
               </th>
               <th scope="col" className="px-5 py-3">
-                Cost
+                {d.account.sessions.cost}
               </th>
               <th scope="col" className="px-5 py-3">
-                Status
+                {d.account.sessions.status}
               </th>
               <th scope="col" className="px-5 py-3">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{d.account.sessions.actions}</span>
               </th>
             </tr>
           </thead>
@@ -297,7 +305,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     {formatMoney(session.cost)}
                   </td>
                   <td className="px-5 py-3">
-                    <Badge tone={meta.tone}>{meta.label}</Badge>
+                    <Badge tone={meta.tone}>{d.account.sessions[meta.labelKey]}</Badge>
                   </td>
                   <td className="px-5 py-3">{stopControls(session)}</td>
                 </tr>
