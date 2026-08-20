@@ -123,7 +123,14 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
           return true;
         }
 
-        setInvoice(data.invoice);
+        // The poll answers from /payments/:id/check, which strips qrImage (a
+        // large base64 blob) and carries no deeplinks. Take only what can
+        // actually change, or the QR on screen would be replaced by nothing.
+        setInvoice((current) =>
+          current
+            ? { ...current, status: data.invoice!.status, paidAmount: data.invoice!.paidAmount }
+            : data.invoice!,
+        );
         if (data.invoice.status === 'EXPIRED') {
           setError(ti.expired);
           setInvoice(null);
