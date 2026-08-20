@@ -84,7 +84,7 @@ export function VerificationPanel({ user }: VerificationPanelProps) {
     setEmailDevToken('');
 
     try {
-      const res = await fetch('/api/auth/resend-verification', { method: 'POST' });
+      const res = await fetch('/app-api/auth/resend-verification', { method: 'POST' });
       const data = (await res.json().catch(() => ({}))) as ResendResponse;
 
       if (!res.ok || !data.ok) {
@@ -112,7 +112,7 @@ export function VerificationPanel({ user }: VerificationPanelProps) {
     setDevCode('');
 
     try {
-      const res = await fetch('/api/auth/phone/send-code', {
+      const res = await fetch('/app-api/auth/phone/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phone.trim() }),
@@ -144,7 +144,7 @@ export function VerificationPanel({ user }: VerificationPanelProps) {
     setPhoneFields({});
 
     try {
-      const res = await fetch('/api/auth/phone/verify', {
+      const res = await fetch('/app-api/auth/phone/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: code.trim() }),

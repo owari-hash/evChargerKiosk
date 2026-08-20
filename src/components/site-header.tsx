@@ -29,7 +29,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
 
   async function signOut() {
     setSigningOut(true);
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetch('/app-api/auth/logout', { method: 'POST' });
     setOpen(false);
     setSigningOut(false);
     router.replace('/');

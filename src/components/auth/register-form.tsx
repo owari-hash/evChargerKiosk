@@ -62,7 +62,7 @@ export function RegisterForm() {
     setPending(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/app-api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...parsed.data, phone: parsed.data.phone || undefined }),

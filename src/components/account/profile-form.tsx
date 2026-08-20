@@ -57,7 +57,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setFields({});
 
     try {
-      const res = await fetch('/api/account/profile', {
+      const res = await fetch('/app-api/account/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim(), locale }),

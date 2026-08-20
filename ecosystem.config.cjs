@@ -1,11 +1,12 @@
 /**
- * PM2 process definition for the eplug.mn admin console.
+ * PM2 process definition for the eplug.mn driver web app.
  *
  *   npm run build && pm2 start ecosystem.config.cjs --env production
  *
- * Serves Next.js on 127.0.0.1:3001; nginx proxies https://eplug.mn/ to it.
+ * Serves Next.js on 127.0.0.1:3100; nginx proxies https://eplug.mn/ (the domain
+ * root) to it, with the admin console at /admin and the CSMS API at /api.
  * Unlike the CSMS backend this process holds no per-connection state, so it can
- * safely be scaled (`instances: 2`) if the console ever needs it.
+ * safely be scaled (`instances: 2`) if the app ever needs it.
  */
 module.exports = {
   apps: [

@@ -49,7 +49,7 @@ export function IdTagManager({ user }: IdTagManagerProps) {
     setFieldError('');
 
     try {
-      const res = await fetch('/api/account/id-tags', {
+      const res = await fetch('/app-api/account/id-tags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idTag }),
@@ -79,7 +79,7 @@ export function IdTagManager({ user }: IdTagManagerProps) {
     setError('');
 
     try {
-      const res = await fetch(`/api/account/id-tags?idTag=${encodeURIComponent(idTag)}`, {
+      const res = await fetch(`/app-api/account/id-tags?idTag=${encodeURIComponent(idTag)}`, {
         method: 'DELETE',
       });
       const data = (await res.json().catch(() => ({}))) as IdTagResponse;

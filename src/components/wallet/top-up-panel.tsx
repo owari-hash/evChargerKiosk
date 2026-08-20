@@ -67,7 +67,7 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
     setNotice('');
 
     try {
-      const res = await fetch('/api/wallet/topup', {
+      const res = await fetch('/app-api/wallet/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount }),
@@ -101,7 +101,7 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
         setError('');
       }
       try {
-        const res = await fetch(`/api/wallet/topup/${encodeURIComponent(id)}`);
+        const res = await fetch(`/app-api/wallet/topup/${encodeURIComponent(id)}`);
         const data = (await res.json().catch(() => ({}))) as {
           invoice?: Invoice;
           paid?: boolean;

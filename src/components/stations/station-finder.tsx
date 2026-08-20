@@ -158,7 +158,7 @@ export function StationFinder({
       setLoading(true);
       setError(null);
 
-      fetch(`/api/stations${query ? `?${query}` : ''}`, { signal: controller.signal })
+      fetch(`/app-api/stations${query ? `?${query}` : ''}`, { signal: controller.signal })
         .then(async (res) => {
           const payload = (await res.json().catch(() => ({}))) as StationsResponse;
           if (!res.ok) throw new Error(payload.error ?? 'Stations could not be loaded');

@@ -35,7 +35,7 @@ export function StartCharging({
     setError(null);
     setStatus(null);
     try {
-      const res = await fetch(`/api/stations/${encodeURIComponent(stationId)}/start`, {
+      const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(connectorId ? { connectorId: Number(connectorId) } : {}),

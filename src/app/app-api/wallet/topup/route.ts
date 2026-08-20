@@ -5,7 +5,7 @@ import { createTopUp, getTopUpQr, getWalletConfig } from '@/lib/csms/wallet';
 /**
  * Start a QPay top-up: creates the invoice in the CSMS and returns the QR the
  * driver scans. No money moves here — the balance changes only when QPay
- * confirms the payment, which `/api/wallet/topup/[id]` polls for.
+ * confirms the payment, which `/app-api/wallet/topup/[id]` polls for.
  */
 
 const bodySchema = z.object({

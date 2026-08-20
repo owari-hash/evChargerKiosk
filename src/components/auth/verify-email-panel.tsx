@@ -39,7 +39,7 @@ export function VerifyEmailPanel() {
 
     (async () => {
       try {
-        const res = await fetch('/api/auth/verify-email', {
+        const res = await fetch('/app-api/auth/verify-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
@@ -74,7 +74,7 @@ export function VerifyEmailPanel() {
     setResending(true);
 
     try {
-      const res = await fetch('/api/auth/resend-verification', { method: 'POST' });
+      const res = await fetch('/app-api/auth/resend-verification', { method: 'POST' });
       const body = (await res.json().catch(() => ({}))) as {
         destination?: string;
         devToken?: string;

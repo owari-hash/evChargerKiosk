@@ -42,7 +42,7 @@ export function ChangePasswordForm() {
     setFields({});
 
     try {
-      const res = await fetch('/api/account/password', {
+      const res = await fetch('/app-api/account/password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, password, confirmPassword }),

@@ -75,7 +75,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
     setError('');
 
     try {
-      const res = await fetch(`/api/sessions/${transactionId}/stop`, { method: 'POST' });
+      const res = await fetch(`/app-api/sessions/${transactionId}/stop`, { method: 'POST' });
       const data = (await res.json().catch(() => ({}))) as StopResponse;
 
       if (!res.ok) {

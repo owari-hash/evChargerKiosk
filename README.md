@@ -111,7 +111,7 @@ npm run typecheck  # tsc --noEmit
    |  Next.js 16 server  —  this app, port 3100                     |
    |                                                                |
    |   src/app/**/page.tsx       server components, per request     |
-   |   src/app/api/**/route.ts   the app's own JSON API             |
+   |   src/app/app-api/**/route.ts  the app's own JSON API          |
    |   src/middleware.ts         edge redirect guard                |
    |                                                                |
    |   src/lib/csms/*   src/lib/db/*   src/lib/auth/*               |
@@ -137,7 +137,7 @@ npm run typecheck  # tsc --noEmit
 ### Security rule
 
 **CSMS credentials and the driver account store are server-only. The browser never talks to the
-CSMS, and never sees a CSMS token.** Every client component calls this app's own `/api/*` routes;
+CSMS, and never sees a CSMS token.** Every client component calls this app's own `/app-api/*` routes;
 those handlers authenticate the cookie session, decide what this particular driver may see, and
 only then call `@/lib/csms/*`. Nothing under `@/lib/db`, `@/lib/csms` or `@/lib/notify` may be
 imported from a `'use client'` file or from `middleware.ts` — `src/lib/auth/edge-session.ts`
@@ -399,7 +399,7 @@ mean shipping a CSMS credential to the browser, so do not.
 
 **Checking the link.** With the CSMS down you will see `[stations] serving demo data — …` in the
 log and a "sample data" notice in the UI. When the connection is right, that notice disappears and
-`demo` is `false` in the `/api/stations` response.
+`demo` is `false` in the `/app-api/stations` response.
 
 ---
 
@@ -478,35 +478,39 @@ signed-in visitors away from `/login`, `/register` and `/forgot-password`.
 
 ### API
 
+This app's own route handlers live under **`/app-api/`**, not `/api/`. In production the CSMS is
+proxied at `https://eplug.mn/api/...` on the same origin, so anything this app served at `/api/`
+would be shadowed by it — the same reason the admin console uses `/console-api/`.
+
 Every endpoint answers errors as `{ error: string, fields?: Record<string,string> }` with a 4xx or
 5xx status. "Session" means the cookie must be present and valid.
 
 | Method | Endpoint | Auth | Success |
 | --- | --- | --- | --- |
-| POST | `/api/auth/register` | — | `{ user, verification: { sent, destination, devToken? } }`; 409 with `fields.email` / `fields.phone` |
-| POST | `/api/auth/login` | — | `{ user }`; 401 on bad credentials |
-| POST | `/api/auth/logout` | — | `{ ok: true }` |
-| GET | `/api/auth/me` | session | `{ user }`; 401 when signed out |
-| POST | `/api/auth/forgot-password` | — | Always 200 `{ ok, channel, destination?, message, devToken?, devCode? }` |
-| POST | `/api/auth/reset-password` | — | `{ ok: true }`; body is `{ token, … }` or `{ phone, code, … }` |
-| POST | `/api/auth/verify-email` | — | `{ ok: true, user }` |
-| POST | `/api/auth/resend-verification` | session | `{ ok: true, destination, devToken? }` |
-| POST | `/api/auth/phone/send-code` | session | `{ ok: true, destination, devCode? }` |
-| POST | `/api/auth/phone/verify` | session | `{ ok: true, user }` |
-| PATCH | `/api/account/profile` | session | `{ user }` |
-| POST | `/api/account/password` | session | `{ ok: true }` — also bumps `tokenVersion` |
-| POST | `/api/account/id-tags` | session | `{ user }` |
-| DELETE | `/api/account/id-tags?idTag=XYZ` | session | `{ user }` |
-| GET | `/api/sessions?limit=50` | session | `{ sessions: ChargingSession[] }` |
-| POST | `/api/sessions/[id]/stop` | session | `{ status }` |
-| GET | `/api/wallet?limit=10` | session | `{ wallet, config, entries, total }` |
-| POST | `/api/wallet/topup` | session | `{ invoice }` with `qrImage`, `qrText` and bank deeplinks |
-| GET | `/api/wallet/topup/[id]` | session | `{ invoice, paid, wallet }` — the polling endpoint |
-| GET | `/api/stations` | — | `{ stations: Station[], demo: boolean, warning? }` |
-| GET | `/api/stations/[id]` | — | `{ station, demo }`; 404 when unknown |
-| POST | `/api/stations/[id]/start` | session | `{ status }` |
+| POST | `/app-api/auth/register` | — | `{ user, verification: { sent, destination, devToken? } }`; 409 with `fields.email` / `fields.phone` |
+| POST | `/app-api/auth/login` | — | `{ user }`; 401 on bad credentials |
+| POST | `/app-api/auth/logout` | — | `{ ok: true }` |
+| GET | `/app-api/auth/me` | session | `{ user }`; 401 when signed out |
+| POST | `/app-api/auth/forgot-password` | — | Always 200 `{ ok, channel, destination?, message, devToken?, devCode? }` |
+| POST | `/app-api/auth/reset-password` | — | `{ ok: true }`; body is `{ token, … }` or `{ phone, code, … }` |
+| POST | `/app-api/auth/verify-email` | — | `{ ok: true, user }` |
+| POST | `/app-api/auth/resend-verification` | session | `{ ok: true, destination, devToken? }` |
+| POST | `/app-api/auth/phone/send-code` | session | `{ ok: true, destination, devCode? }` |
+| POST | `/app-api/auth/phone/verify` | session | `{ ok: true, user }` |
+| PATCH | `/app-api/account/profile` | session | `{ user }` |
+| POST | `/app-api/account/password` | session | `{ ok: true }` — also bumps `tokenVersion` |
+| POST | `/app-api/account/id-tags` | session | `{ user }` |
+| DELETE | `/app-api/account/id-tags?idTag=XYZ` | session | `{ user }` |
+| GET | `/app-api/sessions?limit=50` | session | `{ sessions: ChargingSession[] }` |
+| POST | `/app-api/sessions/[id]/stop` | session | `{ status }` |
+| GET | `/app-api/wallet?limit=10` | session | `{ wallet, config, entries, total }` |
+| POST | `/app-api/wallet/topup` | session | `{ invoice }` with `qrImage`, `qrText` and bank deeplinks |
+| GET | `/app-api/wallet/topup/[id]` | session | `{ invoice, paid, wallet }` — the polling endpoint |
+| GET | `/app-api/stations` | — | `{ stations: Station[], demo: boolean, warning? }` |
+| GET | `/app-api/stations/[id]` | — | `{ station, demo }`; 404 when unknown |
+| POST | `/app-api/stations/[id]/start` | session | `{ status }` |
 
-`/api/stations` accepts `search`, `status` (`all` \| `available` \| `busy` \| `offline`),
+`/app-api/stations` accepts `search`, `status` (`all` \| `available` \| `busy` \| `offline`),
 `connectorType`, `minPowerKw`, `lat`, `lng` and `limit`. Supplying `lat` and `lng` annotates each
 station with `distanceKm` and sorts by it.
 
@@ -516,7 +520,7 @@ The balance lives in the CSMS, not here — this app only renders it. `src/lib/c
 the server-side client; the browser never sees a CSMS credential.
 
 Every wallet route derives the account id from the session cookie, never from the request, so a
-driver can only read their own balance. `/api/wallet/topup/[id]` additionally re-reads the invoice
+driver can only read their own balance. `/app-api/wallet/topup/[id]` additionally re-reads the invoice
 and refuses it unless `walletOwnerId` matches the signed-in account — without that check any
 signed-in driver could force a QPay lookup on an invoice id they guessed.
 
@@ -524,8 +528,8 @@ Top-up flow:
 
 1. The driver taps a preset (`WALLET_TOPUP_PRESETS` in the CSMS, default 1000 / 3000 / 5000 /
    10000 / 20000 / 50000 / 100000 ₮) or types an amount.
-2. `POST /api/wallet/topup` creates a QPay invoice and returns the QR plus bank deeplinks.
-3. The page polls `GET /api/wallet/topup/[id]` every 3 s (10 minutes, then manual "I have paid").
+2. `POST /app-api/wallet/topup` creates a QPay invoice and returns the QR plus bank deeplinks.
+3. The page polls `GET /app-api/wallet/topup/[id]` every 3 s (10 minutes, then manual "I have paid").
 4. The CSMS credits the wallet when QPay confirms payment. The screen only ever reflects what the
    CSMS reports, so a driver cannot fake a paid balance by tampering with the client.
 
@@ -553,7 +557,7 @@ working immediately. `middleware.ts` checks the signature only, because the Edge
 reach Mongo; it decides redirects, never access to data.
 
 **`tokenVersion` signs other devices out.** Each account carries an integer `tokenVersion`, copied
-into the JWT as `v`. Changing the password — through `/api/account/password` or a reset —
+into the JWT as `v`. Changing the password — through `/app-api/account/password` or a reset —
 increments it, so every previously issued cookie now mismatches and is rejected on its next
 request. The device that performed the change is given a fresh cookie. That makes a password
 change a working "sign out everywhere", which is the remedy a driver needs after losing a phone.
@@ -575,7 +579,7 @@ additionally throttled per account through `countTokensSince()`, so rotating IPs
 attacker. The limiter is in-memory: it is per Node process, and behind more than one instance you
 need a shared store such as Redis.
 
-**Forgot-password does not reveal whether an account exists.** `POST /api/auth/forgot-password`
+**Forgot-password does not reveal whether an account exists.** `POST /app-api/auth/forgot-password`
 answers 200 with the same envelope whether the identifier matched an account or not, whether
 delivery succeeded or failed. This is deliberate: a differing response would turn the endpoint
 into a membership oracle for any email address or phone number. The consequences to keep in mind:
