@@ -127,21 +127,37 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-5">
+    <form onSubmit={onSubmit} noValidate className="space-y-4">
       {formError && <Alert tone="danger">{formError}</Alert>}
 
-      <Field label={d.auth.nameLabel} htmlFor="name" error={errors.name} required>
-        <Input
-          id="name"
-          name="name"
-          type="text"
-          autoComplete="name"
-          required
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          {...fieldAria('name', errors.name)}
-        />
-      </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <Field label={d.auth.nameLabel} htmlFor="name" error={errors.name} required>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            {...fieldAria('name', errors.name)}
+          />
+        </Field>
+
+        <Field label={d.auth.phoneLabel} htmlFor="phone" error={errors.phone}>
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder={d.auth.phonePlaceholder}
+            {...fieldAria('phone', errors.phone)}
+          />
+        </Field>
+      </div>
 
       <Field label={d.auth.emailLabel} htmlFor="email" error={errors.email} required>
         <Input
@@ -159,67 +175,46 @@ export function RegisterForm() {
         />
       </Field>
 
-      <Field
-        label={d.auth.phoneLabel}
-        htmlFor="phone"
-        error={errors.phone}
-        hint={d.auth.phoneHint}
-      >
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          placeholder={d.auth.phonePlaceholder}
-          {...fieldAria('phone', errors.phone, true)}
-        />
-      </Field>
+      <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <Field label={d.auth.passwordLabel} htmlFor="password" error={errors.password} required>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              {...fieldAria('password', errors.password)}
+            />
+          </Field>
 
-      <Field
-        label={d.auth.passwordLabel}
-        htmlFor="password"
-        error={errors.password}
-        hint={d.auth.passwordHint}
-        required
-      >
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          {...fieldAria('password', errors.password, true)}
-        />
-        <PasswordStrength password={password} className="pt-1" />
-      </Field>
+          <Field
+            label={d.auth.confirmPasswordLabel}
+            htmlFor="confirmPassword"
+            error={errors.confirmPassword}
+            required
+          >
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              {...fieldAria('confirmPassword', errors.confirmPassword)}
+            />
+          </Field>
+        </div>
+        <PasswordStrength password={password} className="pt-2" />
+      </div>
 
-      <Field
-        label={d.auth.confirmPasswordLabel}
-        htmlFor="confirmPassword"
-        error={errors.confirmPassword}
-        required
-      >
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          {...fieldAria('confirmPassword', errors.confirmPassword)}
-        />
-      </Field>
-
-      <div className="space-y-1.5">
+      <div className="space-y-1 pt-1">
         <label
           htmlFor="acceptTerms"
-          className="flex min-h-11 items-start gap-3 py-1 text-sm text-foreground"
+          className="flex min-h-8 items-center gap-2.5 text-xs text-foreground cursor-pointer"
         >
           <input
             id="acceptTerms"
@@ -227,7 +222,7 @@ export function RegisterForm() {
             type="checkbox"
             checked={acceptTerms}
             onChange={(event) => setAcceptTerms(event.target.checked)}
-            className="mt-0.5 size-5 shrink-0 rounded accent-brand"
+            className="size-4 shrink-0 rounded accent-brand"
             {...fieldAria('acceptTerms', errors.acceptTerms)}
           />
           <span>
@@ -246,17 +241,17 @@ export function RegisterForm() {
           </span>
         </label>
         {errors.acceptTerms && (
-          <p id="acceptTerms-error" className="text-sm text-danger">
+          <p id="acceptTerms-error" className="text-xs text-danger">
             {errors.acceptTerms}
           </p>
         )}
       </div>
 
-      <Button type="submit" size="lg" loading={pending} className="w-full">
+      <Button type="submit" size="lg" loading={pending} className="w-full mt-2">
         {d.auth.register.submit}
       </Button>
 
-      <p className="text-center text-sm text-muted">
+      <p className="text-center text-xs text-muted pt-1">
         {d.auth.register.haveAccount}{' '}
         <Link href="/login" className="font-medium text-brand underline underline-offset-2">
           {d.auth.login.submit}

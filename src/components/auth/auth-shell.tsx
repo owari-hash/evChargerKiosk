@@ -7,21 +7,30 @@ interface AuthShellProps {
   subtitle?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  maxWidth?: 'md' | 'lg' | 'xl';
 }
 
 /** Centred card layout shared by sign-in, sign-up and the recovery screens. */
-export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
+export function AuthShell({ title, subtitle, children, footer, maxWidth = 'md' }: AuthShellProps) {
+  const widthClass = {
+    md: 'max-w-md',
+    lg: 'max-w-xl',
+    xl: 'max-w-2xl',
+  }[maxWidth];
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:py-16">
-      <div className="mx-auto w-full max-w-md">
-        <header className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
-          {subtitle && <p className="mt-2 text-sm text-muted">{subtitle}</p>}
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      <div className={`mx-auto w-full ${widthClass}`}>
+        <header className="mb-5 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
+          {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}
         </header>
 
-        <Card className="p-5 sm:p-7">{children}</Card>
+        <Card className="p-5 sm:p-7 shadow-lg border border-border/80 bg-surface/90 backdrop-blur-sm">
+          {children}
+        </Card>
 
-        {footer && <div className="mt-5 text-center text-sm text-muted">{footer}</div>}
+        {footer && <div className="mt-4 text-center text-sm text-muted">{footer}</div>}
       </div>
     </div>
   );

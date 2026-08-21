@@ -69,7 +69,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-5">
+    <form onSubmit={onSubmit} noValidate className="space-y-4">
       {justRegistered && (
         <Alert tone="success" title={d.auth.login.accountReady}>
           Sign in to pick up where you left off.
@@ -113,32 +113,32 @@ export function LoginForm() {
         />
       </Field>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label htmlFor="remember" className="flex min-h-11 items-center gap-2.5 text-sm text-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+        <label htmlFor="remember" className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
           <input
             id="remember"
             name="remember"
             type="checkbox"
             checked={remember}
             onChange={(event) => setRemember(event.target.checked)}
-            className="size-5 shrink-0 rounded accent-brand"
+            className="size-4 shrink-0 rounded accent-brand"
           />
           {d.auth.login.keepSignedIn}
         </label>
 
         <Link
           href="/forgot-password"
-          className="text-sm font-medium text-brand underline underline-offset-2"
+          className="text-xs font-medium text-brand underline underline-offset-2"
         >
           {d.auth.login.forgotPassword}
         </Link>
       </div>
 
-      <Button type="submit" size="lg" loading={pending} className="w-full">
+      <Button type="submit" size="lg" loading={pending} className="w-full mt-2">
         {d.auth.login.submit}
       </Button>
 
-      <p className="text-center text-sm text-muted">
+      <p className="text-center text-xs text-muted pt-1">
         {d.auth.login.newHere}{' '}
         <Link href={registerHref} className="font-medium text-brand underline underline-offset-2">
           {d.auth.login.createAccount}

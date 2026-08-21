@@ -17,6 +17,7 @@ export default async function RegisterPage() {
     <AuthShell
       title={d.auth.register.title}
       subtitle={d.auth.register.subtitle}
+      maxWidth="lg"
       footer={
         <>
           {d.auth.register.footerPrompt}{' '}
@@ -26,7 +27,7 @@ export default async function RegisterPage() {
         </>
       }
     >
-      <Suspense fallback={<AuthFormFallback rows={5} />}>
+      <Suspense fallback={<AuthFormFallback rows={4} />}>
         <RegisterForm />
       </Suspense>
     </AuthShell>
