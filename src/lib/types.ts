@@ -34,7 +34,10 @@ export interface StationConnector {
 }
 
 export interface Station {
+  /** Stable identifier from the CSMS; survives the station being renamed. */
   id: string;
+  /** The OCPP identifier operators and engineers know the station by. */
+  cpId?: string;
   name: string;
   description?: string;
   address?: string;

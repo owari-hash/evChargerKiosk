@@ -152,7 +152,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
                     d.stations.notPublished}
                 </Detail>
                 <Detail label={d.stations.chargePoint}>
-                  <span className="font-mono text-xs">{station.id}</span>
+                  <span className="font-mono text-xs">{station.cpId ?? station.id}</span>
                 </Detail>
                 <Detail label={d.stations.lastSeen}>
                   {station.isOnline ? d.stations.onlineNow : formatDateTime(station.lastSeenAt, intl)}

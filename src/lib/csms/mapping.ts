@@ -22,6 +22,8 @@ export interface CsmsConnector {
 export interface CsmsChargePoint {
   id?: string;
   _id?: string;
+  /** The OCPP identifier; `id` is the CSMS's own stable identifier. */
+  cpId?: string;
   name?: string;
   description?: string;
   address?: string;
@@ -152,7 +154,10 @@ export function toStation(cp: CsmsChargePoint): Station {
 
   return {
     id,
-    name: cp.name?.trim() || id,
+    cpId: cp.cpId,
+    // Falling back to the OCPP identifier rather than the internal id keeps an
+    // unnamed station readable instead of showing a hex string to drivers.
+    name: cp.name?.trim() || cp.cpId || id,
     description: cp.description,
     address: cp.address,
     latitude: cp.latitude,
