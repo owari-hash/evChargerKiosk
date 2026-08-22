@@ -58,7 +58,7 @@ export const serverEnv = {
 
   // ---- notifications ----
   emailProvider: () => str('EMAIL_PROVIDER', 'console').toLowerCase(),
-  emailFrom: () => str('EMAIL_FROM', 'EV Charge <no-reply@example.com>'),
+  emailFrom: () => str('EMAIL_FROM', 'eplug <no-reply@example.com>'),
   smtp: () => ({
     host: str('SMTP_HOST'),
     port: int('SMTP_PORT', 587),
@@ -88,7 +88,7 @@ export const serverEnv = {
 
 /** Values that are safe to expose to the browser (must be NEXT_PUBLIC_*). */
 export const publicEnv = {
-  brandName: process.env.NEXT_PUBLIC_BRAND_NAME || 'EV Charge',
+  brandName: process.env.NEXT_PUBLIC_BRAND_NAME || 'eplug',
   mapTileUrl:
     process.env.NEXT_PUBLIC_MAP_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   mapAttribution:
