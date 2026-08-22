@@ -280,12 +280,12 @@ body {
    for the dark palette. The filter sits on the tile pane, which the compositor
    handles once per tile rather than per frame. */
 :root[data-theme="dark"] .ev-map .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.85);
+  filter: invert(1) hue-rotate(180deg) brightness(0.94);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .ev-map .leaflet-tile-pane {
-    filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.85);
+    filter: invert(1) hue-rotate(180deg) brightness(0.94);
   }
 }
 

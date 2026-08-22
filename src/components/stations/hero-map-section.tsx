@@ -390,8 +390,8 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
               title={t.clearAllHint}
               className={cn(
                 'flex h-14 w-[132px] shrink-0 items-center justify-center gap-1.5 rounded-2xl px-3',
-                'bg-surface/90 text-sm font-semibold text-foreground shadow-sm ring-1 ring-border',
-                'backdrop-blur-xl transition hover:bg-surface',
+                'bg-surface text-sm font-semibold text-foreground shadow-sm ring-1 ring-border',
+                'transition hover:bg-surface',
               )}
             >
               <svg
@@ -431,8 +431,8 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             role="listbox"
             aria-label={open.label}
             className={cn(
-              'pointer-events-auto w-full max-w-xl rounded-2xl bg-surface/95 p-3',
-              'shadow-[0_16px_44px_-18px_rgb(2_6_23/0.6)] ring-1 ring-border backdrop-blur-xl',
+              'pointer-events-auto w-full max-w-xl rounded-2xl bg-surface p-3',
+              'shadow-[0_16px_44px_-18px_rgb(2_6_23/0.6)] ring-1 ring-border',
             )}
           >
             <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -463,7 +463,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         {geoError && (
           <p
             role="alert"
-            className="pointer-events-auto rounded-full bg-surface/90 px-4 py-2 text-xs text-danger shadow-sm ring-1 ring-border backdrop-blur-xl"
+            className="pointer-events-auto rounded-full bg-surface px-4 py-2 text-xs text-danger shadow-sm ring-1 ring-border"
           >
             {d.stations[geoError]}
           </p>
@@ -486,7 +486,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         />
 
         <div className="pointer-events-none order-1 flex flex-col gap-2 sm:order-2">
-          <div className="pointer-events-auto hidden flex-col overflow-hidden rounded-2xl bg-surface/90 shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border backdrop-blur-xl sm:flex">
+          <div className="pointer-events-auto hidden flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border sm:flex">
             <RailButton label={t.zoomIn} onClick={() => mapApi.current?.zoomIn()}>
               <path strokeLinecap="round" d="M12 5v14M5 12h14" />
             </RailButton>
@@ -503,11 +503,11 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             aria-label={locating ? t.locating : t.locate}
             title={locating ? t.locating : t.locate}
             className={cn(
-              'pointer-events-auto grid size-11 place-items-center rounded-2xl backdrop-blur-xl transition',
+              'pointer-events-auto grid size-11 place-items-center rounded-2xl transition',
               'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 disabled:opacity-60',
               origin
                 ? 'bg-brand text-brand-contrast ring-brand'
-                : 'bg-surface/90 text-foreground ring-border hover:bg-surface',
+                : 'bg-surface text-foreground ring-border hover:bg-surface-muted',
             )}
           >
             {locating ? (
@@ -535,7 +535,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             onClick={resetView}
             aria-label={t.resetView}
             title={t.resetView}
-            className="pointer-events-auto grid size-11 place-items-center rounded-2xl bg-surface/90 text-foreground shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border backdrop-blur-xl transition hover:bg-surface"
+            className="pointer-events-auto grid size-11 place-items-center rounded-2xl bg-surface text-foreground shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border transition hover:bg-surface"
           >
             <svg
               aria-hidden
@@ -576,10 +576,10 @@ function FilterButton({
       aria-controls={`hero-filter-${group.key}`}
       className={cn(
         'flex h-14 w-[132px] shrink-0 items-center gap-2 rounded-2xl px-3 text-left',
-        'shadow-sm ring-1 backdrop-blur-xl transition',
+        'shadow-sm ring-1 transition',
         group.active
           ? 'bg-brand text-brand-contrast shadow-md ring-brand'
-          : 'bg-surface/90 text-foreground ring-border hover:bg-surface',
+          : 'bg-surface text-foreground ring-border hover:bg-surface-muted',
       )}
     >
       <span className="min-w-0 flex-1">
@@ -672,7 +672,7 @@ function Sheet({
   return (
     <div
       className={cn(
-        'pointer-events-auto w-full overflow-hidden rounded-3xl bg-surface/92 backdrop-blur-xl',
+        'pointer-events-auto w-full overflow-hidden rounded-3xl bg-surface',
         'shadow-[0_20px_60px_-24px_rgb(2_6_23/0.6)] ring-1 ring-border sm:w-[400px]',
         className,
       )}

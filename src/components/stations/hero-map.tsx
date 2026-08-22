@@ -542,9 +542,14 @@ export function HeroMap({
         maxZoom={19}
         // Tiles are only swapped once a gesture settles, and a ring of tiles is
         // kept around the viewport so panning reveals cached tiles, not gaps.
+        //
+        // `detectRetina` is deliberately off: it fetches a zoom level deeper and
+        // renders at half size, which is four times the tile requests, decodes
+        // and composited layers for a sharpness gain that is barely visible
+        // below 2x. Panning felt slow long before the frame budget was the
+        // problem, because the map was waiting on four times the network.
         updateWhenZooming={false}
         keepBuffer={2}
-        detectRetina
       />
       <MapApi onReady={onReady} />
       <WheelGuard />
