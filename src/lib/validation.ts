@@ -64,11 +64,54 @@ export const registerSchema = z
     path: ['confirmPassword'],
   });
 
-export const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, 'Нууц үгээ оруулна уу'),
-  remember: z.boolean().optional(),
-});
+/**
+ * Login accepts either an email address or a phone number, resolved the same way
+ * as forgot-password. `email` stays accepted so the web form, which only ever
+ * collects an address, keeps validating against this schema unchanged; the
+ * mobile app sends `identifier`. Either way the parsed output is one normalised
+ * `identifier` the route can dispatch on.
+ */
+export const loginSchema = z
+  .object({
+    email: z.string().trim().max(200).optional(),
+    identifier: z.string().trim().max(200).optional(),
+    password: z.string().min(1, 'Нууц үгээ оруулна уу'),
+    remember: z.boolean().optional(),
+  })
+  .superRefine((v, ctx) => {
+    const path = v.identifier !== undefined ? 'identifier' : 'email';
+    const raw = (v.identifier ?? v.email ?? '').trim();
+
+    if (!raw) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [path],
+        message: 'И-мэйл хаяг эсвэл утасны дугаараа оруулна уу',
+      });
+      return;
+    }
+    if (raw.includes('@')) {
+      if (!emailSchema.safeParse(raw).success) {
+        ctx.addIssue({ code: 'custom', path: [path], message: 'Зөв и-мэйл хаяг оруулна уу' });
+      }
+      return;
+    }
+    if (!normalizePhone(raw)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [path],
+        message: 'Зөв и-мэйл хаяг эсвэл утасны дугаар оруулна уу',
+      });
+    }
+  })
+  .transform((v) => {
+    const raw = (v.identifier ?? v.email ?? '').trim();
+    return {
+      identifier: raw.includes('@') ? raw.toLowerCase() : (normalizePhone(raw) ?? raw),
+      password: v.password,
+      remember: v.remember,
+    };
+  });
 
 /** Forgot-password accepts either an email address or a phone number. */
 export const forgotPasswordSchema = z.object({

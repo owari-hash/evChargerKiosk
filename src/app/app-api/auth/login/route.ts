@@ -5,7 +5,7 @@ import { setSessionCookie, toPublicUser } from '@/lib/auth/session';
 import { getStore } from '@/lib/db';
 import { loginSchema } from '@/lib/validation';
 
-const GENERIC = 'И-мэйл эсвэл нууц үг буруу байна';
+const GENERIC = 'И-мэйл/утасны дугаар эсвэл нууц үг буруу байна';
 
 /**
  * Compared against when no account matches, so an unknown email costs the same
@@ -19,10 +19,14 @@ function dummyHash(): Promise<string> {
 
 export const POST = route(async (req: Request) => {
   guard(req, 'auth:login', 10, 15 * MINUTE);
-  const { email, password } = await parseBody(req, loginSchema);
+  const { identifier, password } = await parseBody(req, loginSchema);
 
   const store = await getStore();
-  const user = await store.findUserByEmail(email);
+  // The schema has already normalised the identifier, so an address is lowercased
+  // and a phone number is in E.164 by the time it gets here.
+  const user = identifier.includes('@')
+    ? await store.findUserByEmail(identifier)
+    : await store.findUserByPhone(identifier);
   const matches = await verifyPassword(password, user?.passwordHash ?? (await dummyHash()));
 
   // Inactive accounts get the same wording so the endpoint reveals nothing.
