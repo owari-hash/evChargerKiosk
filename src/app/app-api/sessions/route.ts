@@ -12,10 +12,7 @@ export const GET = route(async (req: Request) => {
   const user = await requireUser();
   const { limit } = parseQuery(req, querySchema);
 
-  const idTags = user.idTags ?? [];
-  // An account with no linked tag simply has no history yet.
-  if (idTags.length === 0) return json({ sessions: [] });
-
-  const sessions = await decorateSessions(await listSessionsForIdTags(idTags, limit));
+  // An account whose tag has not been issued yet simply has no history.
+  const sessions = await decorateSessions(await listSessionsForIdTags(user.idTag, limit));
   return json({ sessions });
 });

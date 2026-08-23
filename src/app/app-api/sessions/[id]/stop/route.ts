@@ -13,8 +13,8 @@ export const POST = route(async (_req: Request, ctx: { params: Promise<{ id: str
   const session = await getTransaction(transactionId);
   if (!session) throw notFound('Тухайн цэнэглэлтийг олсонгүй');
 
-  // Only the account holding the tag that started the charge may stop it.
-  if (!(user.idTags ?? []).includes(session.idTag)) {
+  // Only the account whose tag started the charge may stop it.
+  if (!user.idTag || user.idTag !== session.idTag) {
     throw forbidden('Энэ цэнэглэлт өөр бүртгэлд хамаарна');
   }
 

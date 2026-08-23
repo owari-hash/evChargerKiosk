@@ -107,6 +107,16 @@ export const en = {
       failed: 'Could not change your password. Please try again.',
     },
 
+    chargeTag: {
+      title: 'Your charge card',
+      body: 'This is how a charger recognises you. It is created with your account and works at every station on the network.',
+      pending: 'Being issued — refresh in a moment.',
+      copy: 'Copy',
+      copied: 'Copied',
+      oneAtATime: 'One charge at a time.',
+      allStations: 'Works at every station.',
+      noAction: 'Nothing to set up — it is ready to use.',
+    },
     idTags: {
       title: 'Charge tags',
       body:
@@ -988,6 +998,16 @@ export const mn: Dictionary = {
       failed: 'Нууц үгийг тань солиж чадсангүй. Дахин оролдоно уу.',
     },
 
+    chargeTag: {
+      title: 'Таны цэнэглэх код',
+      body: 'Цэнэглэгч таныг үүгээр таних болно. Бүртгэл үүсэхэд автоматаар үүссэн бөгөөд сүлжээний бүх станц дээр ажиллана.',
+      pending: 'Үүсгэж байна — хэсэг хүлээгээд сэргээнэ үү.',
+      copy: 'Хуулах',
+      copied: 'Хуулагдлаа',
+      oneAtATime: 'Нэг дор нэг машин цэнэглэнэ.',
+      allStations: 'Бүх станц дээр ажиллана.',
+      noAction: 'Тохируулах зүйлгүй — шууд ашиглахад бэлэн.',
+    },
     idTags: {
       title: 'Цэнэглэх картууд',
       body:

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiError, HOUR, badRequest, forbidden, guard, json, requireUser, route } from '@/lib/api';
+import { ensureChargeTag } from '@/lib/csms/charge-tag';
 import { remoteStart } from '@/lib/csms/stations';
 import { serverEnv } from '@/lib/env';
 import { fieldErrors } from '@/lib/validation';
@@ -26,11 +27,11 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ id: stri
     throw new ApiError(400, 'Тэмдэглэсэн талбаруудаа шалгана уу', fieldErrors(parsed.error));
   }
 
-  const idTag = (user.idTags ?? [])[0];
+  // Accounts are issued a tag at sign-up; this only trips if the CSMS was down
+  // then, so the tag is issued now rather than turning the driver away.
+  const idTag = user.idTag ?? (await ensureChargeTag(user));
   if (!idTag) {
-    throw badRequest('Алсаас цэнэглэлт эхлүүлэхийн өмнө бүртгэлдээ цэнэглэх карт холбоно уу', {
-      idTag: 'Бүртгэлийн тохиргоондоо цэнэглэх карт нэмнэ үү',
-    });
+    throw badRequest('Цэнэглэх эрх олгож чадсангүй. Түр хүлээгээд дахин оролдоно уу.');
   }
 
   const { status } = await remoteStart(id, idTag, parsed.data.connectorId);

@@ -22,7 +22,7 @@ export default async function AccountSessionsPage() {
   let unavailable = false;
 
   try {
-    sessions = await decorateSessions(await listSessionsForIdTags(user.idTags ?? []));
+    sessions = await decorateSessions(await listSessionsForIdTags(user.idTag));
   } catch (err) {
     // A charging network outage must not take the whole account area down.
     console.warn('[account/sessions] could not load history', (err as Error).message);

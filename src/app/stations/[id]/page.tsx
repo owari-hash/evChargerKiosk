@@ -175,7 +175,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
             availability={station.availability}
             tariffPerKwh={station.tariffPerKwh}
             signedIn={Boolean(user)}
-            hasIdTag={(user?.idTags?.length ?? 0) > 0}
+            hasIdTag={Boolean(user?.idTag)}
             remoteStartEnabled={serverEnv.enableRemoteStart()}
           />
         </div>

@@ -159,25 +159,22 @@ function toSession(tx: CsmsTransaction): ChargingSession {
  * Charging history for the tags linked to an account. The CSMS filters by a single
  * idTag per call, so multiple tags are fetched in parallel and merged.
  */
+/** Sessions charged against one account's tag, newest first. */
 export async function listSessionsForIdTags(
-  idTags: string[],
+  idTag: string | undefined,
   limit = 50,
 ): Promise<ChargingSession[]> {
-  if (idTags.length === 0) return [];
+  // An account whose tag has not been issued yet has no history.
+  if (!idTag) return [];
 
-  const pages = await Promise.all(
-    idTags.map((idTag) =>
-      csmsFetch<Paginated<CsmsTransaction>>(
-        `/transactions?idTag=${encodeURIComponent(idTag)}&limit=${limit}`,
-      ).catch((err: unknown) => {
-        console.warn(`[sessions] failed to load transactions for ${idTag}`, (err as Error).message);
-        return { data: [] as CsmsTransaction[], total: 0, page: 1, limit };
-      }),
-    ),
-  );
+  const page = await csmsFetch<Paginated<CsmsTransaction>>(
+    `/transactions?idTag=${encodeURIComponent(idTag)}&limit=${limit}`,
+  ).catch((err: unknown) => {
+    console.warn(`[sessions] failed to load transactions for ${idTag}`, (err as Error).message);
+    return { data: [] as CsmsTransaction[], total: 0, page: 1, limit };
+  });
 
-  return pages
-    .flatMap((p) => p.data ?? [])
+  return (page.data ?? [])
     .map(toSession)
     .sort((a, b) => b.startTimestamp.localeCompare(a.startTimestamp))
     .slice(0, limit);

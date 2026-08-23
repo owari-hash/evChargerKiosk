@@ -23,11 +23,10 @@ export const GET = route(async (_req: Request, ctx: { params: Promise<{ id: stri
   // Signed out, the connector states are still worth showing — they are what
   // tells a driver whether it is worth stopping here at all.
   const user = await getCurrentUser();
-  const idTags = user?.idTags ?? [];
 
   let session: ChargingSession | null = null;
-  if (idTags.length > 0) {
-    const mine = await listSessionsForIdTags(idTags, 20);
+  if (user?.idTag) {
+    const mine = await listSessionsForIdTags(user.idTag, 20);
     // The station is matched on both identifiers: the CSMS reports the
     // transaction against its own id, while the page may have been opened by
     // the OCPP name.

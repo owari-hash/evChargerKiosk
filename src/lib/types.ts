@@ -83,7 +83,8 @@ export interface PublicUser {
   name?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
-  idTags: string[];
+  /** The account's charge tag; absent only until the CSMS has issued one. */
+  idTag?: string;
   locale: string;
   createdAt: string;
   lastLoginAt?: string;

@@ -92,7 +92,7 @@ export function toPublicUser(user: StoredUser): PublicUser {
     name: user.name,
     emailVerified: Boolean(user.emailVerifiedAt),
     phoneVerified: Boolean(user.phoneVerifiedAt),
-    idTags: user.idTags ?? [],
+    idTag: user.idTag,
     locale: user.locale ?? 'en',
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
