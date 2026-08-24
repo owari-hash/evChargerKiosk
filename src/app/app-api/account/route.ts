@@ -8,7 +8,7 @@ export const DELETE = route(async () => {
   // Deactivate account and clear sensitive identifiers
   const updated = await store.updateUser(user.id, {
     isActive: false,
-    idTags: [],
+    idTag: undefined,
     name: 'Deleted User',
   });
 
