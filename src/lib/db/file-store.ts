@@ -76,7 +76,7 @@ export const fileStore: UserStore = {
         name: input.name,
         passwordHash: input.passwordHash,
         isActive: true,
-        idTags: [],
+        idTag: input.idTag,
         locale: input.locale ?? 'en',
         tokenVersion: 0,
         createdAt: now(),

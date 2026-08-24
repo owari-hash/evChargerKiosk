@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3100",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "backfill:charge-tags": "tsx scripts/backfill-charge-tags.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

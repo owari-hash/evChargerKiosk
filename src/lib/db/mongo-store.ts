@@ -12,7 +12,7 @@ function toUser(doc: DriverUserDoc): StoredUser {
     emailVerifiedAt: doc.emailVerifiedAt?.toISOString(),
     phoneVerifiedAt: doc.phoneVerifiedAt?.toISOString(),
     isActive: doc.isActive !== false,
-    idTags: doc.idTags ?? [],
+    idTag: doc.idTag ?? undefined,
     locale: doc.locale ?? 'en',
     tokenVersion: doc.tokenVersion ?? 0,
     createdAt: doc.createdAt?.toISOString() ?? new Date().toISOString(),

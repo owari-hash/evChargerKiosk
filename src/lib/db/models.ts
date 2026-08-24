@@ -13,7 +13,7 @@ const driverUserSchema = new Schema(
     emailVerifiedAt: { type: Date },
     phoneVerifiedAt: { type: Date },
     isActive: { type: Boolean, default: true },
-    idTags: { type: [String], default: [] },
+    idTag: { type: String, index: true, sparse: true },
     locale: { type: String, default: 'en' },
     tokenVersion: { type: Number, default: 0 },
     lastLoginAt: { type: Date },
@@ -52,7 +52,7 @@ export interface DriverUserDoc {
   emailVerifiedAt?: Date;
   phoneVerifiedAt?: Date;
   isActive: boolean;
-  idTags: string[];
+  idTag?: string;
   locale: string;
   tokenVersion: number;
   lastLoginAt?: Date;

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { cache, type ReactNode } from 'react';
 import { AvailabilityStatus } from '@/components/stations/availability-dot';
 import { ConnectorList } from '@/components/stations/connector-list';
-import { StartCharging } from '@/components/stations/start-charging';
+import { ChargingFlow } from '@/components/stations/charging-flow';
 import { StationMapPanel } from '@/components/stations/station-finder';
 import { Alert, Badge, ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -152,7 +152,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
                     d.stations.notPublished}
                 </Detail>
                 <Detail label={d.stations.chargePoint}>
-                  <span className="font-mono text-xs">{station.id}</span>
+                  <span className="font-mono text-xs">{station.cpId ?? station.id}</span>
                 </Detail>
                 <Detail label={d.stations.lastSeen}>
                   {station.isOnline ? d.stations.onlineNow : formatDateTime(station.lastSeenAt, intl)}
@@ -169,12 +169,14 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
             </CardBody>
           </Card>
 
-          <StartCharging
+          <ChargingFlow
             stationId={station.id}
             connectors={station.connectors}
+            availability={station.availability}
+            tariffPerKwh={station.tariffPerKwh}
             signedIn={Boolean(user)}
+            hasIdTag={Boolean(user?.idTag)}
             remoteStartEnabled={serverEnv.enableRemoteStart()}
-            hasIdTag={(user?.idTags?.length ?? 0) > 0}
           />
         </div>
       </div>

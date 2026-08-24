@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { IdTagManager } from '@/components/account/id-tag-manager';
+import { ChargeCard } from '@/components/account/charge-card';
 import { ProfileForm } from '@/components/account/profile-form';
 import { Badge, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
@@ -74,7 +74,7 @@ export default async function AccountOverviewPage() {
       </Card>
 
       <ProfileForm user={publicUser} />
-      <IdTagManager user={publicUser} />
+      <ChargeCard user={publicUser} />
     </>
   );
 }

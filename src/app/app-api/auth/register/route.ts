@@ -1,4 +1,5 @@
 import { badRequest, conflict, guard, HOUR, json, parseBody, route } from '@/lib/api';
+import { ensureChargeTag } from '@/lib/csms/charge-tag';
 import { hashPassword } from '@/lib/auth/password';
 import { setSessionCookie, toPublicUser } from '@/lib/auth/session';
 import {
@@ -46,6 +47,11 @@ export const POST = route(async (req: Request) => {
     name: body.name,
     passwordHash: await hashPassword(body.password),
   });
+
+  // Every account gets its charge tag immediately, so a driver can charge
+  // without ever being asked to know what a tag is. A CSMS that is down here
+  // does not block sign-up; the tag is issued on the next visit instead.
+  await ensureChargeTag(user);
 
   await setSessionCookie(user);
 

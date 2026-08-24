@@ -34,7 +34,10 @@ export interface StationConnector {
 }
 
 export interface Station {
+  /** Stable identifier from the CSMS; survives the station being renamed. */
   id: string;
+  /** The OCPP identifier operators and engineers know the station by. */
+  cpId?: string;
   name: string;
   description?: string;
   address?: string;
@@ -80,7 +83,8 @@ export interface PublicUser {
   name?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
-  idTags: string[];
+  /** The account's charge tag; absent only until the CSMS has issued one. */
+  idTag?: string;
   locale: string;
   createdAt: string;
   lastLoginAt?: string;

@@ -1,9 +1,9 @@
 import { StationCard } from '@/components/stations/station-card';
-import { StationQuickSearch } from '@/components/stations/station-finder';
+import { HeroMapSection } from '@/components/stations/hero-map-section';
+import { toMapStations } from '@/components/stations/map-station';
 import { Alert, ButtonLink } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listStations, type StationResult } from '@/lib/csms/stations';
-import { publicEnv } from '@/lib/env';
 import { getTranslations } from '@/lib/i18n';
 
 export default async function HomePage() {
@@ -54,83 +54,30 @@ export default async function HomePage() {
     { title: d.home.step3Title, body: d.home.step3Body, badge: '03' },
   ];
 
+  // One load serves both the hero map and the featured cards below it.
   let result: StationResult = { stations: [], demo: false };
   let loadError: string | undefined;
   try {
-    result = await listStations({ limit: 6 });
+    result = await listStations({ limit: 200 });
   } catch (err) {
     console.error('[home] failed to load stations', err);
     loadError = d.errors.networkUnreachable;
   }
 
+  const mapStations = toMapStations(result.stations);
+  const featured = result.stations.slice(0, 6);
+
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-brand-soft/30 via-surface to-surface py-16 sm:py-24">
-        {/* Glow ambient decoration */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-40 left-1/2 -z-10 -translate-x-1/2 blur-3xl"
-        >
-          <div className="h-[400px] w-[700px] rounded-full bg-gradient-to-tr from-brand/20 via-brand-strong/10 to-transparent opacity-60" />
-        </div>
-
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75"></span>
-              <span className="relative inline-flex size-2 rounded-full bg-brand"></span>
-            </span>
-            <span>{publicEnv.brandName}</span>
-            <span className="text-muted">·</span>
-            <span>{d.home.heroBadge}</span>
-          </div>
-
-          <h1 className="mt-5 max-w-3xl text-3xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl leading-[1.15]">
-            {d.home.title}
-          </h1>
-          <p className="mt-5 max-w-2xl text-base text-muted sm:text-xl leading-relaxed">
-            {d.home.subtitle}
-          </p>
-
-          {/* Quick Search Widget Container */}
-          <div className="mt-8 max-w-3xl rounded-2xl bg-surface/90 p-3 ring-1 ring-border shadow-xl backdrop-blur-md">
-            <StationQuickSearch />
-          </div>
-
-          {/* Stat highlights */}
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 max-w-3xl">
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-surface/60 p-3.5 shadow-sm">
-              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand font-bold">
-                ⚡
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted font-medium truncate">{d.home.statFastTitle}</p>
-                <p className="text-sm font-bold text-foreground truncate">{d.home.statFastValue}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-surface/60 p-3.5 shadow-sm">
-              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand font-bold">
-                🟢
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted font-medium truncate">{d.home.statLiveTitle}</p>
-                <p className="text-sm font-bold text-foreground truncate">{d.home.statLiveValue}</p>
-              </div>
-            </div>
-
-            <div className="col-span-2 sm:col-span-1 flex items-center gap-3 rounded-xl border border-border bg-surface/60 p-3.5 shadow-sm">
-              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand font-bold">
-                💳
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted font-medium truncate">{d.home.statPayTitle}</p>
-                <p className="text-sm font-bold text-foreground truncate">{d.home.statPayValue}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Hero — the live network map is the landing surface */}
+      <section className="relative border-b border-border">
+        {/* The map carries the page visually, so the page heading lives here for
+            the document outline, screen readers and crawlers. */}
+        <h1 className="sr-only">{d.home.title}</h1>
+        <HeroMapSection
+          stations={mapStations}
+          className="h-[calc(100svh-4rem)] min-h-[520px]"
+        />
       </section>
 
       {/* Network Stations Section */}
@@ -140,7 +87,7 @@ export default async function HomePage() {
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               {d.home.networkTitle}
             </h2>
-            <p className="mt-1.5 text-sm text-muted max-w-xl">
+            <p className="mt-1.5 max-w-xl text-sm text-muted">
               {d.home.networkSubtitle}
             </p>
           </div>
@@ -161,9 +108,9 @@ export default async function HomePage() {
           </Alert>
         )}
 
-        {result.stations.length > 0 ? (
+        {featured.length > 0 ? (
           <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {result.stations.map((station) => (
+            {featured.map((station) => (
               <li key={station.id}>
                 <StationCard station={station} />
               </li>
@@ -179,7 +126,7 @@ export default async function HomePage() {
       {/* Features Showcase Section */}
       <section className="border-t border-border bg-surface-muted/40 py-16">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center max-w-2xl mx-auto">
+          <div className="mx-auto max-w-2xl text-center">
             <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
               {d.home.featuresBadge}
             </span>
@@ -192,13 +139,13 @@ export default async function HomePage() {
             {features.map((item) => (
               <div
                 key={item.title}
-                className="group relative rounded-2xl bg-surface p-6 ring-1 ring-border shadow-sm transition hover:shadow-md hover:ring-brand/40"
+                className="group relative rounded-2xl bg-surface p-6 shadow-sm ring-1 ring-border transition hover:shadow-md hover:ring-brand/40"
               >
-                <div className="grid size-12 place-items-center rounded-xl bg-brand-soft group-hover:scale-105 transition-transform">
+                <div className="grid size-12 place-items-center rounded-xl bg-brand-soft transition-transform group-hover:scale-105">
                   {item.icon}
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-1.5 text-sm text-muted leading-relaxed">{item.body}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{item.body}</p>
               </div>
             ))}
           </div>
@@ -208,7 +155,7 @@ export default async function HomePage() {
       {/* How it works Section */}
       <section className="border-t border-border bg-surface py-16">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
                 {d.home.howItWorksBadge}
@@ -223,14 +170,14 @@ export default async function HomePage() {
             {steps.map((step) => (
               <li
                 key={step.title}
-                className="relative rounded-2xl bg-surface-muted/50 p-6 ring-1 ring-border shadow-sm flex flex-col justify-between"
+                className="relative flex flex-col justify-between rounded-2xl bg-surface-muted/50 p-6 shadow-sm ring-1 ring-border"
               >
                 <div>
                   <span className="inline-block rounded-xl bg-brand-soft px-3 py-1 text-xs font-bold text-brand">
                     {step.badge}
                   </span>
                   <h3 className="mt-4 text-base font-bold text-foreground">{step.title}</h3>
-                  <p className="mt-2 text-sm text-muted leading-relaxed">{step.body}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
                 </div>
               </li>
             ))}
@@ -241,12 +188,12 @@ export default async function HomePage() {
       {/* CTA Banner */}
       {!user && (
         <section className="mx-auto max-w-6xl px-4 py-16">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand-soft via-surface to-brand-soft p-8 ring-1 ring-brand/20 shadow-xl sm:p-12">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand-soft via-surface to-brand-soft p-8 shadow-xl ring-1 ring-brand/20 sm:p-12">
             <div className="relative z-10 max-w-2xl">
               <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 {d.home.ctaTitle}
               </h2>
-              <p className="mt-3 text-sm text-muted sm:text-base leading-relaxed">
+              <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
                 {d.home.ctaBody}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -264,4 +211,3 @@ export default async function HomePage() {
     </>
   );
 }
-

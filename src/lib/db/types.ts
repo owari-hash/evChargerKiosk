@@ -9,8 +9,11 @@ export interface StoredUser {
   emailVerifiedAt?: string;
   phoneVerifiedAt?: string;
   isActive: boolean;
-  /** RFID / app tags in the CSMS that belong to this account. */
-  idTags: string[];
+  /**
+   * The account's charge tag — the identity OCPP authorises against. Generated
+   * at sign-up, one per account, and never shown as something to manage.
+   */
+  idTag?: string;
   locale: string;
   /** Bumped on password reset so existing session cookies stop validating. */
   tokenVersion: number;
@@ -43,6 +46,7 @@ export interface NewUser {
   name?: string;
   passwordHash: string;
   locale?: string;
+  idTag?: string;
 }
 
 export interface NewToken {
