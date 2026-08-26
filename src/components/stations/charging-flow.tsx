@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
 import { Alert, Button, ButtonLink, Card, CardBody, CardHeader, CardTitle, Field, Select } from '@/components/ui';
+import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import type { ChargingSession, StationAvailability, StationConnector } from '@/lib/types';
 import {
   cn,
@@ -14,20 +15,6 @@ import {
   formatPowerKw,
   intlLocale,
 } from '@/lib/utils';
-
-/**
- * The charging process, start to end, as one ordered list.
- *
- * Every step a driver goes through is always on screen, so nothing is hidden:
- * the ones already behind them are ticked, the one they are on is highlighted,
- * and the ones still to come are visible but dimmed. The steps the station
- * performs on its own are marked as such, because "nothing is happening" and
- * "the station is working on it" look identical otherwise.
- *
- * Which step is current is derived from live state rather than tracked here, so
- * a session started at the station itself — or on another device — shows up in
- * exactly the same place.
- */
 
 /** Poll interval while a session is running, in milliseconds. */
 const LIVE_MS = 2_000;
@@ -59,7 +46,6 @@ const STEPS: FlowStep[] = [
   'done',
 ];
 
-/** Steps the station drives; the driver has nothing to do while they run. */
 const AUTOMATIC: ReadonlySet<FlowStep> = new Set(['preparing', 'charging', 'stopping', 'done']);
 
 interface LiveState {
@@ -78,7 +64,6 @@ export interface ChargingFlowProps {
   tariffPerKwh?: number;
   signedIn: boolean;
   hasIdTag: boolean;
-  /** ENABLE_REMOTE_START on the server; when off, sessions begin at the unit. */
   remoteStartEnabled: boolean;
   onLiveUpdate?: (live: LiveState) => void;
 }
@@ -110,6 +95,7 @@ export function ChargingFlow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staleFeed, setStaleFeed] = useState(false);
+  const [showEbarimtModal, setShowEbarimtModal] = useState(false);
 
   const free = live.connectors.filter(
     (c) => c.status === 'Available' && c.availability === 'Operative',
@@ -119,14 +105,10 @@ export function ChargingFlow({
   const session = live.session;
   const active = session?.status === 'Active' ? session : null;
 
-  // The connector this driver's session is on, which is what reveals whether
-  // the station is still preparing or actually delivering energy.
   const sessionConnector = active
     ? live.connectors.find((c) => c.connectorId === active.connectorId)
     : undefined;
 
-  // The local "we asked" flag only matters until the station reports back;
-  // deriving that here avoids clearing state from an effect.
   const awaitingStation = requested && !active;
 
   const step = resolveStep({
@@ -150,13 +132,10 @@ export function ChargingFlow({
       onLiveUpdate?.(data);
       setStaleFeed(false);
     } catch {
-      // A dropped poll is not worth interrupting the driver over; the panel
-      // keeps the last good state and says the feed is catching up.
       setStaleFeed(true);
     }
   }, [stationId, onLiveUpdate]);
 
-  // Poll fast so real-time status changes (charging start, meter values, SoC) show up immediately.
   useEffect(() => {
     const interval = awaitingStation ? STARTING_MS : AUTOMATIC.has(step) ? LIVE_MS : IDLE_MS;
     const timer = setInterval(() => void refresh(), interval);
@@ -179,7 +158,6 @@ export function ChargingFlow({
       }
       setRequested(true);
       await refresh();
-      // Burst poll sequence to catch instant station state changes
       [500, 1200, 2200, 3500].forEach((delay) => setTimeout(() => void refresh(), delay));
     } catch (err) {
       setError(err instanceof Error ? err.message : d.start.requestFailed);
@@ -207,82 +185,120 @@ export function ChargingFlow({
   const stepIndex = STEPS.indexOf(step);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.title}</CardTitle>
-        <p className="mt-1 text-xs text-muted">
-          {format(t.stepOf, { n: stepIndex + 1, total: STEPS.length })}
-        </p>
-      </CardHeader>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.title}</CardTitle>
+          <p className="mt-1 text-xs text-muted">
+            {format(t.stepOf, { n: stepIndex + 1, total: STEPS.length })}
+          </p>
+        </CardHeader>
 
-      <CardBody className="space-y-4">
-        {!remoteStartEnabled && !active && (
-          <Alert tone="info" title={t.localOnlyTitle}>
-            {t.localOnlyBody}
-          </Alert>
-        )}
+        <CardBody className="space-y-4">
+          {!remoteStartEnabled && !active && (
+            <Alert tone="info" title={t.localOnlyTitle}>
+              {t.localOnlyBody}
+            </Alert>
+          )}
 
-        {live.availability === 'offline' && !active && (
-          <Alert tone="warning" title={d.status.availability.offline}>
-            {t.stationOffline}
-          </Alert>
-        )}
+          {live.availability === 'offline' && !active && (
+            <Alert tone="warning" title={d.status.availability.offline}>
+              {t.stationOffline}
+            </Alert>
+          )}
 
-        {active && <LiveReadout session={active} intl={intl} />}
-
-        <ol className="space-y-1">
-          {STEPS.map((key, index) => (
-            <StepRow
-              key={key}
-              step={key}
-              index={index}
-              currentIndex={stepIndex}
-              title={t[`s${index + 1}Title` as keyof typeof t] as string}
-              body={t[`s${index + 1}Body` as keyof typeof t] as string}
-            >
-              {/* The control for a step lives inside it, so the thing to do next
-                  is never somewhere else on the page. */}
-              {key === step && (
-                <StepAction
-                  step={key}
-                  stationId={stationId}
-                  free={free}
-                  connectorId={connectorId}
-                  onConnector={setConnectorId}
-                  onPlugged={() => setPlugged(true)}
-                  onStart={() => void start()}
-                  onStop={() => void stop()}
-                  busy={busy}
-                  session={session}
-                  intl={intl}
-                />
+          {session && (
+            <div className="space-y-3">
+              {active && <LiveReadout session={active} intl={intl} />}
+              {session.ebarimt && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-foreground flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 font-bold text-emerald-600 dark:text-emerald-400">
+                        ✓ И-Баримт үүссэн
+                      </span>
+                      {session.ebarimt.lottery && (
+                        <span className="font-mono font-bold">
+                          Сугалаа №: {session.ebarimt.lottery}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-muted">
+                      {session.ebarimt.type === 'B2B_RECEIPT' ? 'Байгууллагын баримт' : 'Хувь хүний баримт'}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
+                    onClick={() => setShowEbarimtModal(true)}
+                  >
+                    И-Баримт харах
+                  </Button>
+                </div>
               )}
-            </StepRow>
-          ))}
-        </ol>
+            </div>
+          )}
 
-        <p className="text-xs text-muted">{t.autoNote}</p>
+          <ol className="space-y-1">
+            {STEPS.map((key, index) => (
+              <StepRow
+                key={key}
+                step={key}
+                index={index}
+                currentIndex={stepIndex}
+                title={t[`s${index + 1}Title` as keyof typeof t] as string}
+                body={t[`s${index + 1}Body` as keyof typeof t] as string}
+              >
+                {key === step && (
+                  <StepAction
+                    step={key}
+                    stationId={stationId}
+                    free={free}
+                    connectorId={connectorId}
+                    onConnector={setConnectorId}
+                    onPlugged={() => setPlugged(true)}
+                    onStart={() => void start()}
+                    onStop={() => void stop()}
+                    onOpenEbarimt={() => setShowEbarimtModal(true)}
+                    busy={busy}
+                    session={session}
+                    intl={intl}
+                  />
+                )}
+              </StepRow>
+            ))}
+          </ol>
 
-        {free.length === 0 && !active && live.availability !== 'offline' && (
-          <p className="text-sm text-muted">{t.connectorBusy}</p>
-        )}
+          <p className="text-xs text-muted">{t.autoNote}</p>
 
-        {staleFeed && <p className="text-xs text-warning">{t.refreshFailed}</p>}
+          {free.length === 0 && !active && live.availability !== 'offline' && (
+            <p className="text-sm text-muted">{t.connectorBusy}</p>
+          )}
 
-        {error && (
-          <Alert tone="danger" title={d.start.couldNotStartTitle}>
-            {error}
-          </Alert>
-        )}
-      </CardBody>
-    </Card>
+          {staleFeed && <p className="text-xs text-warning">{t.refreshFailed}</p>}
+
+          {error && (
+            <Alert tone="danger" title={d.start.couldNotStartTitle}>
+              {error}
+            </Alert>
+          )}
+        </CardBody>
+      </Card>
+
+      {showEbarimtModal && session && (
+        <EbarimtModal
+          session={session}
+          onClose={() => setShowEbarimtModal(false)}
+          onSuccess={(updatedSession) => {
+            setLive((prev) => ({ ...prev, session: updatedSession }));
+          }}
+        />
+      )}
+    </>
   );
 }
 
-/**
- * Where the driver is, worked out from live state rather than remembered, so
- * the panel agrees with reality even when the session was started elsewhere.
- */
 function resolveStep(input: {
   signedIn: boolean;
   hasIdTag: boolean;
@@ -295,8 +311,6 @@ function resolveStep(input: {
   const { session, sessionConnector } = input;
 
   if (session?.status === 'Active') {
-    // Between StartTransaction and energy actually flowing the connector sits in
-    // Preparing, which is the gap drivers read as "nothing is happening".
     if (sessionConnector?.status === 'Finishing') return 'stopping';
     if (sessionConnector?.status === 'Preparing') return 'preparing';
     return 'charging';
@@ -305,8 +319,6 @@ function resolveStep(input: {
   if (!input.signedIn) return 'signin';
   if (!input.hasIdTag) return 'tag';
 
-  // Anything left here has already finished — the active case returned above —
-  // so the flow rests on its summary until the driver starts another.
   if (session) return 'done';
 
   if (input.requested) return 'preparing';
@@ -388,6 +400,7 @@ function StepAction({
   onPlugged,
   onStart,
   onStop,
+  onOpenEbarimt,
   busy,
   session,
   intl,
@@ -400,6 +413,7 @@ function StepAction({
   onPlugged: () => void;
   onStart: () => void;
   onStop: () => void;
+  onOpenEbarimt?: () => void;
   busy: boolean;
   session: ChargingSession | null;
   intl: string;
@@ -472,7 +486,17 @@ function StepAction({
 
     case 'done':
       return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          {session && (
+            <Button
+              type="button"
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
+              onClick={onOpenEbarimt}
+            >
+              И-Баримт харах / авах
+            </Button>
+          )}
           {session && (
             <Link
               href="/account/sessions"
@@ -492,7 +516,6 @@ function StepAction({
   }
 }
 
-/** The numbers a driver actually watches while the car is charging. */
 function LiveReadout({ session, intl }: { session: ChargingSession; intl: string }) {
   const { d } = useI18n();
   const t = d.flow;

@@ -1,5 +1,5 @@
 import { csmsFetch } from './client';
-import type { Paginated } from '@/lib/types';
+import type { EBarimtData, Paginated } from '@/lib/types';
 
 /**
  * Prepaid wallet, read from the CSMS in `../evChargerBack`.
@@ -40,8 +40,10 @@ export interface WalletEntry {
   paymentId?: string;
   transactionId?: number;
   chargePointId?: string;
+  connectorId?: number;
   idTag?: string;
   createdAt: string;
+  ebarimt?: EBarimtData;
 }
 
 export interface WalletConfig {
