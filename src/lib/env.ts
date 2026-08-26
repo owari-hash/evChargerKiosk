@@ -65,10 +65,12 @@ export const serverEnv = {
     secure: bool('SMTP_SECURE', false),
     user: str('SMTP_USER'),
     pass: str('SMTP_PASS'),
+    rejectUnauthorized: bool('SMTP_REJECT_UNAUTHORIZED', true),
+    pool: bool('SMTP_POOL', false),
   }),
 
   smsProvider: () => str('SMS_PROVIDER', 'console').toLowerCase(),
-  smsFrom: () => str('SMS_FROM', 'EVCHARGE'),
+  smsFrom: () => str('SMS_FROM', 'Eplug'),
   smsHttp: () => ({
     url: str('SMS_HTTP_URL'),
     method: str('SMS_HTTP_METHOD', 'GET').toUpperCase(),
@@ -80,6 +82,13 @@ export const serverEnv = {
     accountSid: str('TWILIO_ACCOUNT_SID'),
     authToken: str('TWILIO_AUTH_TOKEN'),
     from: str('TWILIO_FROM'),
+  }),
+  unitel: () => ({
+    tokenId: str('UNITEL_SMS_TOKEN'),
+    extensionNumber: str('UNITEL_SMS_EXTENSION', '11'),
+  }),
+  messagePro: () => ({
+    key: str('MESSAGEPRO_SMS_KEY'),
   }),
 
   /** Default country calling code used to normalise locally typed phone numbers. */

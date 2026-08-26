@@ -7,6 +7,12 @@ export interface EmailMessage {
   subject: string;
   text: string;
   html?: string;
+  attachments?: Array<{
+    filename: string;
+    path?: string;
+    content?: string | Buffer;
+    cid?: string;
+  }>;
 }
 
 export interface DeliveryResult {
@@ -43,12 +49,17 @@ async function sendViaSmtp(message: EmailMessage): Promise<DeliveryResult> {
 
   // Imported lazily so the SMTP client is not bundled unless it is actually used.
   const nodemailer = (await import('nodemailer')).default;
-  const transport = nodemailer.createTransport({
+  const transportOptions = {
+    pool: cfg.pool,
     host: cfg.host,
     port: cfg.port,
     secure: cfg.secure,
     auth: cfg.user ? { user: cfg.user, pass: cfg.pass } : undefined,
-  });
+    tls: {
+      rejectUnauthorized: cfg.rejectUnauthorized,
+    },
+  };
+  const transport = nodemailer.createTransport(transportOptions as any);
 
   const info = await transport.sendMail({
     from: serverEnv.emailFrom(),
@@ -56,6 +67,7 @@ async function sendViaSmtp(message: EmailMessage): Promise<DeliveryResult> {
     subject: message.subject,
     text: message.text,
     html: message.html,
+    attachments: message.attachments,
   });
 
   return { delivered: true, provider: 'smtp', id: info.messageId };
