@@ -30,9 +30,11 @@ import {
  */
 
 /** Poll interval while a session is running, in milliseconds. */
-const LIVE_MS = 5_000;
-/** Slower poll when nothing is happening yet. */
-const IDLE_MS = 20_000;
+const LIVE_MS = 2_000;
+/** Fast poll while waiting for station start handshake. */
+const STARTING_MS = 1_000;
+/** Regular station status poll interval. */
+const IDLE_MS = 3_000;
 
 export type FlowStep =
   | 'signin'
@@ -150,9 +152,9 @@ export function ChargingFlow({
     }
   }, [stationId]);
 
-  // Poll faster while something is actually happening.
+  // Poll fast so real-time status changes (charging start, meter values, SoC) show up immediately.
   useEffect(() => {
-    const interval = AUTOMATIC.has(step) || awaitingStation ? LIVE_MS : IDLE_MS;
+    const interval = awaitingStation ? STARTING_MS : AUTOMATIC.has(step) ? LIVE_MS : IDLE_MS;
     const timer = setInterval(() => void refresh(), interval);
     return () => clearInterval(timer);
   }, [refresh, step, awaitingStation]);
@@ -173,6 +175,8 @@ export function ChargingFlow({
       }
       setRequested(true);
       await refresh();
+      // Burst poll sequence to catch instant station state changes
+      [500, 1200, 2200, 3500].forEach((delay) => setTimeout(() => void refresh(), delay));
     } catch (err) {
       setError(err instanceof Error ? err.message : d.start.requestFailed);
     } finally {
