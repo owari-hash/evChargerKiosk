@@ -144,10 +144,36 @@ async function sendViaMessagePro(message: SmsMessage): Promise<DeliveryResult> {
   return { delivered: true, provider: 'messagepro', id: text.slice(0, 120) };
 }
 
+async function sendViaCallpro(message: SmsMessage): Promise<DeliveryResult> {
+  const cfg = serverEnv.callpro();
+  if (!cfg.key) {
+    return { delivered: false, provider: 'callpro', error: 'CALLPRO_SMS_KEY is not configured' };
+  }
+
+  const params = new URLSearchParams({
+    key: cfg.key,
+    from: serverEnv.smsFrom(),
+    to: message.to,
+    text: message.text,
+  });
+
+  const url = cfg.url || 'https://api.callpro.mn/send';
+  const res = await fetch(`${url}?${params.toString()}`);
+  const text = await res.text();
+
+  if (!res.ok) {
+    return { delivered: false, provider: 'callpro', error: `${res.status} ${text.slice(0, 200)}` };
+  }
+
+  return { delivered: true, provider: 'callpro', id: text.slice(0, 120) };
+}
+
 export async function sendSms(message: SmsMessage): Promise<DeliveryResult> {
   const provider = serverEnv.smsProvider();
   try {
     switch (provider) {
+      case 'callpro':
+        return await sendViaCallpro(message);
       case 'unitel':
         return await sendViaUnitel(message);
       case 'messagepro':

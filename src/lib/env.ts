@@ -90,6 +90,10 @@ export const serverEnv = {
   messagePro: () => ({
     key: str('MESSAGEPRO_SMS_KEY'),
   }),
+  callpro: () => ({
+    key: str('CALLPRO_SMS_KEY'),
+    url: str('CALLPRO_SMS_URL', 'https://api.callpro.mn/send'),
+  }),
 
   /** Default country calling code used to normalise locally typed phone numbers. */
   defaultCountryCode: () => str('DEFAULT_COUNTRY_CODE', '976'),
