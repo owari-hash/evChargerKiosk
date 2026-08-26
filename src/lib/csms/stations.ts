@@ -136,6 +136,7 @@ interface CsmsTransaction {
   lastPowerW?: number;
   lastSocPercent?: number;
   stopReason?: string;
+  ebarimt?: any;
 }
 
 function toSession(tx: CsmsTransaction): ChargingSession {
@@ -152,6 +153,7 @@ function toSession(tx: CsmsTransaction): ChargingSession {
     lastPowerW: tx.lastPowerW,
     lastSocPercent: tx.lastSocPercent,
     stopReason: tx.stopReason ?? undefined,
+    ebarimt: tx.ebarimt,
   };
 }
 
@@ -218,4 +220,15 @@ export async function getTransaction(id: number): Promise<ChargingSession | null
   } catch {
     return null;
   }
+}
+
+export async function requestEBarimt(
+  transactionId: number,
+  options: { type?: 'B2C_RECEIPT' | 'B2B_RECEIPT'; customerTin?: string },
+): Promise<ChargingSession> {
+  const tx = await csmsFetch<CsmsTransaction>(`/transactions/${transactionId}/ebarimt`, {
+    method: 'POST',
+    body: options,
+  });
+  return toSession(tx);
 }

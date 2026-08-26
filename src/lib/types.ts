@@ -60,6 +60,21 @@ export interface Station {
   distanceKm?: number;
 }
 
+export interface EBarimtData {
+  receiptId?: string;
+  type: 'B2C_RECEIPT' | 'B2B_RECEIPT';
+  qrData?: string;
+  lottery?: string;
+  merchantTin?: string;
+  customerNo?: string;
+  customerTin?: string;
+  totalAmount: number;
+  totalVAT: number;
+  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  issuedAt?: string;
+  error?: string;
+}
+
 export interface ChargingSession {
   transactionId: number;
   chargePointId: string;
@@ -74,6 +89,7 @@ export interface ChargingSession {
   lastPowerW?: number;
   lastSocPercent?: number;
   stopReason?: string;
+  ebarimt?: EBarimtData;
 }
 
 export interface PublicUser {

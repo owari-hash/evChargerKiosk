@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui';
 import { format, useI18n } from '@/components/i18n-provider';
+import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import type { ChargingSession } from '@/lib/types';
 import {
   connectorStatusTone,
@@ -56,6 +57,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [ebarimtSession, setEbarimtSession] = useState<ChargingSession | null>(null);
 
   const ordered = useMemo(
     () =>
@@ -234,7 +236,18 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                 )}
               </dl>
 
-              {stopControls(session)}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {stopControls(session)}
+                {session.status === 'Completed' && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEbarimtSession(session)}
+                  >
+                    {session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
+                  </Button>
+                )}
+              </div>
             </li>
           );
         })}
@@ -307,13 +320,37 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   <td className="px-5 py-3">
                     <Badge tone={meta.tone}>{d.account.sessions[meta.labelKey]}</Badge>
                   </td>
-                  <td className="px-5 py-3">{stopControls(session)}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      {stopControls(session)}
+                      {session.status === 'Completed' && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setEbarimtSession(session)}
+                        >
+                          {session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
+                        </Button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {ebarimtSession && (
+        <EbarimtModal
+          session={ebarimtSession}
+          onClose={() => setEbarimtSession(null)}
+          onSuccess={(updated) => {
+            setEbarimtSession(updated);
+            router.refresh();
+          }}
+        />
+      )}
     </Card>
   );
 }
