@@ -21,13 +21,13 @@ export const PATCH = route(async (req: Request) => {
       });
     }
     patch.email = body.email;
-    patch.emailVerifiedAt = undefined;
+    patch.emailVerifiedAt = null as any;
   }
 
   if (body.phone !== undefined) {
     if (body.phone === '') {
       patch.phone = undefined;
-      patch.phoneVerifiedAt = undefined;
+      patch.phoneVerifiedAt = null as any;
     } else {
       const phone = normalizePhone(body.phone);
       if (!phone) {
@@ -45,7 +45,7 @@ export const PATCH = route(async (req: Request) => {
         }
         patch.phone = phone;
         // A new number has not been proven yet, so it goes back to unverified.
-        patch.phoneVerifiedAt = undefined;
+        patch.phoneVerifiedAt = null as any;
       }
     }
   }

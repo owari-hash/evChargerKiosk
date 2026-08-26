@@ -39,10 +39,20 @@ function toToken(doc: VerificationTokenDoc): StoredToken {
 /** Maps a `StoredUser` patch onto the Mongo document shape. */
 function toUpdate(patch: Partial<StoredUser>): Record<string, unknown> {
   const update: Record<string, unknown> = {};
+  const unset: Record<string, 1> = {};
   const dates = ['emailVerifiedAt', 'phoneVerifiedAt', 'lastLoginAt'] as const;
+
   for (const [key, value] of Object.entries(patch)) {
-    if (key === 'id' || key === 'createdAt' || key === 'updatedAt' || value === undefined) continue;
+    if (key === 'id' || key === 'createdAt' || key === 'updatedAt') continue;
+    if (value === undefined || value === null) {
+      unset[key] = 1;
+      continue;
+    }
     update[key] = (dates as readonly string[]).includes(key) ? new Date(value as string) : value;
+  }
+
+  if (Object.keys(unset).length > 0) {
+    return { $set: update, $unset: unset };
   }
   return update;
 }

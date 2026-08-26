@@ -86,41 +86,6 @@ async function sendViaTwilio(message: SmsMessage): Promise<DeliveryResult> {
   return { delivered: true, provider: 'twilio', id: json.sid };
 }
 
-async function sendViaUnitel(message: SmsMessage): Promise<DeliveryResult> {
-  const cfg = serverEnv.unitel();
-  if (!cfg.tokenId) {
-    return { delivered: false, provider: 'unitel', error: 'UNITEL_SMS_TOKEN is not configured' };
-  }
-
-  const formData = new FormData();
-  formData.append('token_id', cfg.tokenId);
-  formData.append('extension_number', cfg.extensionNumber);
-  formData.append('sms_number', serverEnv.smsFrom());
-  formData.append('to', message.to);
-  formData.append('body', message.text);
-
-  const res = await fetch('https://pbxuc.unitel.mn/hodupbx_api/v1.4/sendSms', {
-    method: 'POST',
-    body: formData,
-  });
-
-  const text = await res.text();
-  let json: { status?: string; Result?: string } | undefined;
-  try {
-    json = JSON.parse(text);
-  } catch {}
-
-  if (!res.ok || (json && json.status !== 'SUCCESS' && json.Result !== 'SUCCESS')) {
-    return {
-      delivered: false,
-      provider: 'unitel',
-      error: text.slice(0, 200) || `HTTP ${res.status}`,
-    };
-  }
-
-  return { delivered: true, provider: 'unitel', id: text.slice(0, 120) };
-}
-
 async function sendViaMessagePro(message: SmsMessage): Promise<DeliveryResult> {
   const cfg = serverEnv.messagePro();
   if (!cfg.key) {
@@ -134,7 +99,7 @@ async function sendViaMessagePro(message: SmsMessage): Promise<DeliveryResult> {
     text: message.text,
   });
 
-  const res = await fetch(`https://api.messagepro.mn/send?${params.toString()}`);
+  const res = await fetch(`https://api-text.callpro.mn/v1/sms/send?${params.toString()}`);
   const text = await res.text();
 
   if (!res.ok) {
@@ -157,7 +122,7 @@ async function sendViaCallpro(message: SmsMessage): Promise<DeliveryResult> {
     text: message.text,
   });
 
-  const url = cfg.url || 'https://api.callpro.mn/send';
+  const url = cfg.url || 'https://api-text.callpro.mn/v1/sms/send';
   const res = await fetch(`${url}?${params.toString()}`);
   const text = await res.text();
 
@@ -174,8 +139,6 @@ export async function sendSms(message: SmsMessage): Promise<DeliveryResult> {
     switch (provider) {
       case 'callpro':
         return await sendViaCallpro(message);
-      case 'unitel':
-        return await sendViaUnitel(message);
       case 'messagepro':
         return await sendViaMessagePro(message);
       case 'http':

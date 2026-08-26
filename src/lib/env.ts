@@ -83,16 +83,12 @@ export const serverEnv = {
     authToken: str('TWILIO_AUTH_TOKEN'),
     from: str('TWILIO_FROM'),
   }),
-  unitel: () => ({
-    tokenId: str('UNITEL_SMS_TOKEN'),
-    extensionNumber: str('UNITEL_SMS_EXTENSION', '11'),
-  }),
   messagePro: () => ({
     key: str('MESSAGEPRO_SMS_KEY'),
   }),
   callpro: () => ({
     key: str('CALLPRO_SMS_KEY'),
-    url: str('CALLPRO_SMS_URL', 'https://api.callpro.mn/send'),
+    url: str('CALLPRO_SMS_URL', 'https://api-text.callpro.mn/v1/sms/send'),
   }),
 
   /** Default country calling code used to normalise locally typed phone numbers. */
