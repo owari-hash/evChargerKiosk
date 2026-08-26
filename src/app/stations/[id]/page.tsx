@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache, type ReactNode } from 'react';
 import { AvailabilityStatus } from '@/components/stations/availability-dot';
-import { ConnectorList } from '@/components/stations/connector-list';
-import { ChargingFlow } from '@/components/stations/charging-flow';
+import { StationLiveView } from '@/components/stations/station-live-view';
 import { StationMapPanel } from '@/components/stations/station-finder';
 import { Alert, Badge, ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -108,18 +107,18 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
 
       {station.description && <p className="mt-6 text-sm text-muted">{station.description}</p>}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>{d.stations.connectorsTitle}</CardTitle>
-            </CardHeader>
-            <CardBody>
-              <ConnectorList connectors={station.connectors} locale={locale} />
-            </CardBody>
-          </Card>
-
-          {hasCoordinates && (
+      <StationLiveView
+        stationId={station.id}
+        initialConnectors={station.connectors}
+        availability={station.availability}
+        tariffPerKwh={station.tariffPerKwh}
+        signedIn={Boolean(user)}
+        hasIdTag={Boolean(user?.idTag)}
+        remoteStartEnabled={serverEnv.enableRemoteStart()}
+        locale={locale}
+        connectorsTitle={d.stations.connectorsTitle}
+        mapSlot={
+          hasCoordinates ? (
             <div className="h-64 sm:h-80">
               <StationMapPanel
                 stations={[station]}
@@ -130,10 +129,9 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
                 ariaLabel={format(d.stations.mapOf, { name: station.name })}
               />
             </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
+          ) : undefined
+        }
+        detailsSlot={
           <Card>
             <CardHeader>
               <CardTitle>{d.stations.detailsTitle}</CardTitle>
@@ -168,18 +166,8 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
               )}
             </CardBody>
           </Card>
-
-          <ChargingFlow
-            stationId={station.id}
-            connectors={station.connectors}
-            availability={station.availability}
-            tariffPerKwh={station.tariffPerKwh}
-            signedIn={Boolean(user)}
-            hasIdTag={Boolean(user?.idTag)}
-            remoteStartEnabled={serverEnv.enableRemoteStart()}
-          />
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

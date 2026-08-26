@@ -80,6 +80,7 @@ export interface ChargingFlowProps {
   hasIdTag: boolean;
   /** ENABLE_REMOTE_START on the server; when off, sessions begin at the unit. */
   remoteStartEnabled: boolean;
+  onLiveUpdate?: (live: LiveState) => void;
 }
 
 export function ChargingFlow({
@@ -90,6 +91,7 @@ export function ChargingFlow({
   signedIn,
   hasIdTag,
   remoteStartEnabled,
+  onLiveUpdate,
 }: ChargingFlowProps) {
   const { d, locale } = useI18n();
   const intl = intlLocale(locale);
@@ -143,14 +145,16 @@ export function ChargingFlow({
         cache: 'no-store',
       });
       if (!res.ok) throw new Error('live feed unavailable');
-      setLive((await res.json()) as LiveState);
+      const data = (await res.json()) as LiveState;
+      setLive(data);
+      onLiveUpdate?.(data);
       setStaleFeed(false);
     } catch {
       // A dropped poll is not worth interrupting the driver over; the panel
       // keeps the last good state and says the feed is catching up.
       setStaleFeed(true);
     }
-  }, [stationId]);
+  }, [stationId, onLiveUpdate]);
 
   // Poll fast so real-time status changes (charging start, meter values, SoC) show up immediately.
   useEffect(() => {
