@@ -10,7 +10,7 @@ import { getStore } from '@/lib/db';
 import { serverEnv } from '@/lib/env';
 import { sendEmail, templates } from '@/lib/notify';
 
-const MAX_PER_HOUR = 5;
+const MAX_PER_HOUR = 10;
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
