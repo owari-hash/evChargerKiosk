@@ -6,6 +6,8 @@ import { Badge, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
 import { getDictionary, getTranslations } from '@/lib/i18n';
 
+import { ensureChargeTag } from '@/lib/csms/charge-tag';
+
 export const dynamic = 'force-dynamic';
 
 const VERIFIED_TONE = 'bg-brand-soft text-brand-strong ring-brand/30';
@@ -46,6 +48,11 @@ function StatusRow({ label, detail, verified, href, action }: StatusRowProps) {
 export default async function AccountOverviewPage() {
   const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
   if (!user) redirect('/login');
+
+  if (!user.idTag) {
+    const idTag = await ensureChargeTag(user);
+    if (idTag) user.idTag = idTag;
+  }
 
   const publicUser = toPublicUser(user);
 
