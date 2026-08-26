@@ -38,6 +38,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const { d } = useI18n();
   const router = useRouter();
   const [name, setName] = useState(user.name ?? '');
+  const [email, setEmail] = useState(user.email ?? '');
   const [phone, setPhone] = useState(user.phone ?? '');
   const [locale, setLocale] = useState<Locale>(user.locale === 'mn' ? 'mn' : 'en');
   const [saving, setSaving] = useState(false);
@@ -62,7 +63,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       const res = await fetch('/app-api/account/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), locale }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), locale }),
       });
       const data = (await res.json().catch(() => ({}))) as ProfileResponse;
 
@@ -73,6 +74,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       }
 
       setName(data.user.name ?? '');
+      setEmail(data.user.email ?? '');
       setPhone(data.user.phone ?? '');
       setLocale(data.user.locale === 'mn' ? 'mn' : 'en');
       setSaved(true);
@@ -87,6 +89,16 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const phoneHint = (
     <>
       A new number needs to be verified again on the{' '}
+      <Link href="/account/security" className="text-brand-strong underline underline-offset-4">
+        Security
+      </Link>{' '}
+      tab.
+    </>
+  );
+
+  const emailHint = (
+    <>
+      A new email address needs to be verified again on the{' '}
       <Link href="/account/security" className="text-brand-strong underline underline-offset-4">
         Security
       </Link>{' '}
@@ -115,6 +127,28 @@ export function ProfileForm({ user }: ProfileFormProps) {
               onChange={(event) => {
                 touched();
                 setName(event.target.value);
+              }}
+            />
+          </Field>
+
+          <Field
+            label={d.account.emailLabel}
+            htmlFor="profile-email"
+            hint={emailHint}
+            error={fields.email}
+          >
+            <Input
+              id="profile-email"
+              name="email"
+              type="email"
+              value={email}
+              autoComplete="email"
+              maxLength={200}
+              aria-invalid={fields.email ? true : undefined}
+              aria-describedby={describedBy('profile-email', fields.email, true)}
+              onChange={(event) => {
+                touched();
+                setEmail(event.target.value);
               }}
             />
           </Field>

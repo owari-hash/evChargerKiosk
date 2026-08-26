@@ -149,6 +149,7 @@ export const changePasswordSchema = z
 
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
+  email: emailSchema.optional(),
   phone: z.string().trim().max(20).optional().or(z.literal('')),
   locale: z.enum(['en', 'mn']).optional(),
 });

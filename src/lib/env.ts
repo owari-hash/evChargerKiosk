@@ -66,7 +66,7 @@ export const serverEnv = {
     user: str('SMTP_USER'),
     pass: str('SMTP_PASS'),
     rejectUnauthorized: bool('SMTP_REJECT_UNAUTHORIZED', true),
-    pool: bool('SMTP_POOL', false),
+    pool: bool('SMTP_POOL', true),
   }),
 
   smsProvider: () => str('SMS_PROVIDER', 'console').toLowerCase(),

@@ -12,6 +12,18 @@ export const PATCH = route(async (req: Request) => {
   if (body.name !== undefined) patch.name = body.name;
   if (body.locale !== undefined) patch.locale = body.locale;
 
+  if (body.email !== undefined && body.email !== user.email) {
+    const store = await getStore();
+    const existing = await store.findUserByEmail(body.email);
+    if (existing && existing.id !== user.id) {
+      throw conflict('Энэ и-мэйл хаяг аль хэдийн ашиглагдаж байна', {
+        email: 'Энэ и-мэйл хаяг өөр бүртгэлд холбогдсон байна',
+      });
+    }
+    patch.email = body.email;
+    patch.emailVerifiedAt = undefined;
+  }
+
   if (body.phone !== undefined) {
     if (body.phone === '') {
       patch.phone = undefined;

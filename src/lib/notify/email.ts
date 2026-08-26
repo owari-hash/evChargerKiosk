@@ -41,27 +41,37 @@ async function sendViaConsole(message: EmailMessage): Promise<DeliveryResult> {
   return { delivered: true, provider: 'console' };
 }
 
+let cachedTransport: { key: string; transport: any } | null = null;
+
 async function sendViaSmtp(message: EmailMessage): Promise<DeliveryResult> {
   const cfg = serverEnv.smtp();
   if (!cfg.host) {
     return { delivered: false, provider: 'smtp', error: 'SMTP_HOST is not configured' };
   }
 
-  // Imported lazily so the SMTP client is not bundled unless it is actually used.
   const nodemailer = (await import('nodemailer')).default;
-  const transportOptions = {
-    pool: cfg.pool,
-    host: cfg.host,
-    port: cfg.port,
-    secure: cfg.secure,
-    auth: cfg.user ? { user: cfg.user, pass: cfg.pass } : undefined,
-    tls: {
-      rejectUnauthorized: cfg.rejectUnauthorized,
-    },
-  };
-  const transport = nodemailer.createTransport(transportOptions as any);
+  const key = `${cfg.host}:${cfg.port}:${cfg.user}:${cfg.secure}:${cfg.rejectUnauthorized}:${cfg.pool}`;
 
-  const info = await transport.sendMail({
+  if (!cachedTransport || cachedTransport.key !== key) {
+    const transportOptions = {
+      pool: cfg.pool,
+      maxConnections: 5,
+      maxMessages: 100,
+      host: cfg.host,
+      port: cfg.port,
+      secure: cfg.secure,
+      auth: cfg.user ? { user: cfg.user, pass: cfg.pass } : undefined,
+      tls: {
+        rejectUnauthorized: cfg.rejectUnauthorized,
+      },
+    };
+    cachedTransport = {
+      key,
+      transport: nodemailer.createTransport(transportOptions as any),
+    };
+  }
+
+  const info = await cachedTransport.transport.sendMail({
     from: serverEnv.emailFrom(),
     to: message.to,
     subject: message.subject,

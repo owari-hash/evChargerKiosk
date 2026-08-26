@@ -96,9 +96,8 @@ export function VerificationPanel({ user }: VerificationPanelProps) {
         return;
       }
 
-      setEmailNotice(
-        `A new confirmation link is on its way to ${data.destination ?? account.email}. It is valid for 24 hours.`,
-      );
+      const dest = data.destination ?? account.email;
+      setEmailNotice(d.auth.verify.resentTo.replace('{destination}', dest));
       if (data.devToken) setEmailDevToken(data.devToken);
     } catch {
       setEmailError(d.account.verification.networkError);

@@ -104,7 +104,7 @@ export function VerifyEmailPanel() {
       setResend({
         tone: 'info',
         message: body.destination
-          ? `A new confirmation link is on its way to ${body.destination}.`
+          ? d.auth.verify.resentTo.replace('{destination}', body.destination)
           : d.auth.verify.resent,
         devToken: body.devToken,
       });

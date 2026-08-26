@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { badRequest, guard, HOUR, json, parseBody, route } from '@/lib/api';
 import { parseLinkToken, secretMatches } from '@/lib/auth/tokens';
-import { toPublicUser } from '@/lib/auth/session';
+import { setSessionCookie, toPublicUser } from '@/lib/auth/session';
 import { getStore } from '@/lib/db';
 
 const MAX_ATTEMPTS = 5;
@@ -42,6 +42,7 @@ export const POST = route(async (req: Request) => {
       emailVerifiedAt: user.emailVerifiedAt ?? new Date().toISOString(),
     })) ?? user;
   await store.markTokenUsed(token.id);
+  await setSessionCookie(updated);
 
   return json({ ok: true, user: toPublicUser(updated) });
 });

@@ -624,6 +624,7 @@ export const en = {
       signInFirst: 'We can only send a new link to a signed-in account. Sign in first, then ask again.',
       resendFailed: 'We could not send a new link just now. Try again shortly.',
       resent: 'A new confirmation link is on its way.',
+      resentTo: 'A new confirmation link is on its way to {destination}. It is valid for 24 hours.',
       retryShortly: 'We could not reach the server. Try again shortly.',
       resend: 'Send a new link',
       confirmedBody:
@@ -1516,6 +1517,7 @@ export const mn: Dictionary = {
       signInFirst: 'Шинэ холбоосыг зөвхөн нэвтэрсэн бүртгэл рүү илгээх боломжтой. Эхлээд нэвтэрч орно уу.',
       resendFailed: 'Одоохондоо шинэ холбоос илгээж чадсангүй. Хэсэг хугацааны дараа дахин оролдоно уу.',
       resent: 'Шинэ баталгаажуулах холбоос удахгүй очно.',
+      resentTo: 'Шинэ баталгаажуулах холбоосыг {destination} руу илгээлээ. 24 цагийн турш хүчинтэй.',
       retryShortly: 'Сервертэй холбогдож чадсангүй. Хэсэг хугацааны дараа дахин оролдоно уу.',
       resend: 'Шинэ холбоос илгээх',
       confirmedBody:
