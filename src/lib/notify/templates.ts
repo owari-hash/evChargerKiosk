@@ -59,5 +59,5 @@ export function passwordResetSms(code: string, minutes: number): string {
 }
 
 export function phoneVerifySms(code: string, minutes: number): string {
-  return `${brand}: баталгаажуулах код ${code}. ${minutes} минутын дараа хүчингүй болно.`;
+  return `${brand}: Batalgaajuulakh code ${code}. ${minutes} minutyn daraa khuchingui bolno.`;
 }
