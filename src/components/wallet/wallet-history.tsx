@@ -5,8 +5,8 @@ import { Card, CardBody, CardHeader, CardTitle, Button } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import type { WalletEntry } from '@/lib/csms/wallet';
 import type { ChargingSession } from '@/lib/types';
-import type { Dictionary } from '@/lib/i18n';
-import { format } from '@/lib/i18n';
+import type { Dictionary } from '@/lib/i18n/dictionaries';
+import { format } from '@/components/i18n-provider';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';
 
 interface WalletHistoryProps {

@@ -1,7 +1,7 @@
 import { Alert, Badge, Card, CardBody } from '@/components/ui';
 import type { Wallet, WalletConfig } from '@/lib/csms/wallet';
-import type { Dictionary } from '@/lib/i18n';
-import { format } from '@/lib/i18n';
+import type { Dictionary } from '@/lib/i18n/dictionaries';
+import { format } from '@/components/i18n-provider';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';
 
 /**
