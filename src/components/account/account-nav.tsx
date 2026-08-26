@@ -14,6 +14,7 @@ export function AccountNav() {
     { href: '/account/wallet', label: d.account.nav.wallet },
     { href: '/account/security', label: d.account.nav.security },
     { href: '/account/sessions', label: d.account.nav.sessions },
+    { href: '/account/ebarimt', label: (d.account.nav as any).ebarimt || 'И-Баримтын түүх' },
   ];
 
   const isActive = (href: string) =>
