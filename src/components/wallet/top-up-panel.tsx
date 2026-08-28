@@ -406,7 +406,7 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
             </Button>
 
             <div className="flex items-center gap-2 rounded-2xl bg-surface-muted/80 px-3 py-1.5 ring-1 ring-border shadow-xs">
-              <span className="text-xs font-semibold text-muted">Дэмжигдэх:</span>
+              <span className="text-xs font-semibold text-muted">Бусад:</span>
               <div className="flex items-center gap-2">
                 <div title="Toki" className="grid size-9 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-xs ring-1 ring-black/10 transition hover:scale-110">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
