@@ -396,13 +396,37 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
             />
           </Field>
 
-          <Button type="submit" size="lg" loading={creating} disabled={!Number.isFinite(amount)}>
-            {creating
-              ? t.submitting
-              : Number.isFinite(amount) && amount > 0
-                ? `${t.submit} · ${money(amount)}`
-                : t.submit}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Button type="submit" size="lg" loading={creating} disabled={!Number.isFinite(amount)}>
+              {creating
+                ? t.submitting
+                : Number.isFinite(amount) && amount > 0
+                  ? `${t.submit} · ${money(amount)}`
+                  : t.submit}
+            </Button>
+
+            <div className="flex items-center gap-2 rounded-2xl bg-surface-muted/80 px-3 py-1.5 ring-1 ring-border shadow-xs">
+              <span className="text-xs font-semibold text-muted">Дэмжигдэх:</span>
+              <div className="flex items-center gap-2">
+                <div title="Toki" className="grid size-9 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-xs ring-1 ring-black/10 transition hover:scale-110">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/toki.png" alt="Toki" className="h-full w-full object-contain" />
+                </div>
+                <div title="Tino (Dino)" className="grid size-9 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-xs ring-1 ring-black/10 transition hover:scale-110">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/tino.webp" alt="Tino" className="h-full w-full object-contain" />
+                </div>
+                <div title="HiPay" className="grid size-9 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-xs ring-1 ring-black/10 transition hover:scale-110">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/hipay%20logo.png" alt="HiPay" className="h-full w-full object-contain" />
+                </div>
+                <div title="SocialPay" className="grid size-9 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-xs ring-1 ring-black/10 transition hover:scale-110">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/social%20pay.png" alt="SocialPay" className="h-full w-full object-contain" />
+                </div>
+              </div>
+            </div>
+          </div>
         </form>
       </CardBody>
     </Card>
