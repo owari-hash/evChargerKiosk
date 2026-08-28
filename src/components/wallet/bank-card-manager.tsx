@@ -130,6 +130,27 @@ export function BankCardManager() {
     }
   }, []);
 
+  // Lock background body scroll when modal is open
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen]);
+
   // Save cards helper
   function updateAndSaveCards(newCards: BankCardItem[]) {
     setCards(newCards);
@@ -350,8 +371,13 @@ export function BankCardManager() {
 
       {/* Modal: Банкны карт холбох */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-surface p-6 shadow-2xl ring-1 ring-border">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsModalOpen(false);
+          }}
+        >
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-surface p-6 shadow-2xl ring-1 ring-border">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
