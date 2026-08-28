@@ -446,11 +446,13 @@ export function BankCardManager() {
                   <Input
                     id="cardNumber"
                     type="text"
+                    autoComplete="cc-number"
                     placeholder="4000 0000 0000 0000"
                     value={cardNumber}
                     onChange={(e) => handleCardNumberChange(e.target.value)}
                     maxLength={19}
                     required
+                    className="bg-surface text-foreground"
                   />
                   <div className="absolute right-3 top-2.5 flex items-center gap-1">
                     {brand === 'VISA' ? (
@@ -466,10 +468,12 @@ export function BankCardManager() {
                 <Input
                   id="holderName"
                   type="text"
+                  autoComplete="cc-name"
                   placeholder="BAT-ERDENE B"
                   value={holderName}
                   onChange={(e) => setHolderName(e.target.value)}
                   required
+                  className="bg-surface text-foreground"
                 />
               </Field>
 
@@ -478,33 +482,39 @@ export function BankCardManager() {
                   <Input
                     id="expMonth"
                     type="text"
+                    autoComplete="cc-exp-month"
                     placeholder="08"
                     maxLength={2}
                     value={expMonth}
                     onChange={(e) => setExpMonth(e.target.value.replace(/\D/g, ''))}
                     required
+                    className="bg-surface text-foreground"
                   />
                 </Field>
                 <Field label="Оноор" htmlFor="expYear">
                   <Input
                     id="expYear"
                     type="text"
+                    autoComplete="cc-exp-year"
                     placeholder="28"
                     maxLength={2}
                     value={expYear}
                     onChange={(e) => setExpYear(e.target.value.replace(/\D/g, ''))}
                     required
+                    className="bg-surface text-foreground"
                   />
                 </Field>
                 <Field label="CVC/CVV" htmlFor="cvc">
                   <Input
                     id="cvc"
                     type="password"
+                    autoComplete="cc-csc"
                     placeholder="•••"
                     maxLength={3}
                     value={cvc}
                     onChange={(e) => setCvc(e.target.value.replace(/\D/g, ''))}
                     required
+                    className="bg-surface text-foreground"
                   />
                 </Field>
               </div>

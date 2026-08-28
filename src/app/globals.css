@@ -85,6 +85,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Fix Chrome / Safari autofill white background override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--foreground) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface) inset !important;
+  box-shadow: 0 0 0px 1000px var(--surface) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Consistent focus ring across buttons, inputs and links. */
 :focus-visible {
   outline: 2px solid var(--brand);
