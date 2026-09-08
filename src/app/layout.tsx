@@ -6,15 +6,18 @@ import { SiteFooter } from '@/components/site-footer';
 import { I18nProvider } from '@/components/i18n-provider';
 import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
 import { getLocale } from '@/lib/i18n';
-import { publicEnv } from '@/lib/env';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
+/** The product name shown in the header and browser tab; the footer/legal pages
+ *  use the registered company name from `publicEnv.brandName` instead. */
+const PRODUCT_NAME = 'Eplug';
+
 export const metadata: Metadata = {
   title: {
-    default: `${publicEnv.brandName} — цахилгаан машины цэнэглэх сүлжээ`,
-    template: `%s · ${publicEnv.brandName}`,
+    default: `${PRODUCT_NAME} — цахилгаан машины цэнэглэх сүлжээ`,
+    template: `%s · ${PRODUCT_NAME}`,
   },
   description:
     'Ойролцоох цэнэглэх станцуудыг хайж, холбогчийн сул байдлыг шууд харж, цэнэглэлтийн бүртгэлээ удирдаарай.',

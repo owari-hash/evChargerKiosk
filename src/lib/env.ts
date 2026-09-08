@@ -97,7 +97,7 @@ export const serverEnv = {
 
 /** Values that are safe to expose to the browser (must be NEXT_PUBLIC_*). */
 export const publicEnv = {
-  brandName: process.env.NEXT_PUBLIC_BRAND_NAME || 'Zevtabs',
+  brandName: process.env.NEXT_PUBLIC_BRAND_NAME || 'Жиркто ххк',
   mapTileUrl:
     process.env.NEXT_PUBLIC_MAP_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   mapAttribution:
