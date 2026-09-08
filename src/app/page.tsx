@@ -7,7 +7,7 @@ import { listStations, type StationResult } from '@/lib/csms/stations';
 import { getTranslations } from '@/lib/i18n';
 
 export default async function HomePage() {
-  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
+  const [user, { d, locale }] = await Promise.all([getCurrentUser(), getTranslations()]);
 
   const features = [
     {
@@ -78,10 +78,23 @@ export default async function HomePage() {
           stations={mapStations}
           className="h-[calc(100svh-4rem)] min-h-[520px]"
         />
+
+        <a
+          href="#network-stations"
+          aria-label={d.home.scrollDown}
+          title={d.home.scrollDown}
+          className="absolute inset-x-0 -bottom-6 z-30 flex justify-center"
+        >
+          <span className="grid size-12 animate-bounce place-items-center rounded-full bg-surface text-foreground shadow-[0_10px_28px_-10px_rgb(2_6_23/0.5)] ring-1 ring-border transition hover:bg-surface-muted">
+            <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+        </a>
       </section>
 
       {/* Network Stations Section */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section id="network-stations" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -96,12 +109,6 @@ export default async function HomePage() {
           </ButtonLink>
         </div>
 
-        {result.demo && result.warning && (
-          <Alert tone="warning" title={d.errors.sampleData} className="mt-6">
-            {result.warning}
-          </Alert>
-        )}
-
         {loadError && (
           <Alert tone="danger" title={d.errors.stationsFailed} className="mt-6">
             {loadError}
@@ -112,7 +119,7 @@ export default async function HomePage() {
           <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((station) => (
               <li key={station.id}>
-                <StationCard station={station} />
+                <StationCard station={station} locale={locale} />
               </li>
             ))}
           </ul>

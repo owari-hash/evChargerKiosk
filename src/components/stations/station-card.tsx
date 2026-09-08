@@ -62,15 +62,15 @@ export function StationCard({ station, selected = false, className, locale }: St
       )}
 
       <dl className="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 pt-4 text-sm">
-        <div className="flex items-baseline justify-between gap-2 border-t border-border pt-3">
-          <dt className="text-muted">{d.stations.maxPower}</dt>
-          <dd className="font-medium text-foreground">
+        <div className="min-w-0 border-t border-border pt-3">
+          <dt className="text-xs text-muted">{d.stations.maxPower}</dt>
+          <dd className="mt-0.5 whitespace-nowrap font-semibold text-foreground">
             {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
           </dd>
         </div>
-        <div className="flex items-baseline justify-between gap-2 border-t border-border pt-3">
-          <dt className="text-muted">{d.stations.price}</dt>
-          <dd className="font-medium text-foreground">
+        <div className="min-w-0 border-t border-border pt-3">
+          <dt className="text-xs text-muted">{d.stations.price}</dt>
+          <dd className="mt-0.5 whitespace-nowrap font-semibold text-foreground">
             {formatTariff(station.tariffPerKwh, intl)}
           </dd>
         </div>

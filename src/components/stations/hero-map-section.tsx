@@ -369,96 +369,110 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         className="ev-map absolute inset-0 h-full w-full"
       />
 
-      {/* Every filter is the same pill, so the row reads as one control strip and
-          a new filter can be added without redesigning anything around it. */}
+      {/* A vertical icon rail, same visual language as the zoom/locate rail: one
+          compact control instead of a row that has to wrap or scroll. */}
       <div
         ref={controlsRef}
-        className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3 sm:p-4"
+        className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-end gap-2 p-3 sm:p-4"
       >
-        <div
-          role="group"
-          aria-label={t.filterLabel}
-          className="pointer-events-auto flex max-w-full gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {activeCount > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setFilters(NO_FILTERS);
-                setOpenGroup(null);
-              }}
-              title={t.clearAllHint}
+        <div className="pointer-events-auto relative flex flex-col items-end gap-2">
+          <div
+            role="group"
+            aria-label={t.filterLabel}
+            className="flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border"
+          >
+            {activeCount > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters(NO_FILTERS);
+                    setOpenGroup(null);
+                  }}
+                  title={t.clearAllHint}
+                  className="relative grid size-11 place-items-center text-foreground transition hover:bg-surface-muted"
+                >
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="size-5"
+                  >
+                    <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                  <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-brand text-[10px] font-bold text-brand-contrast">
+                    {activeCount}
+                  </span>
+                </button>
+                <span aria-hidden className="h-px bg-border" />
+              </>
+            )}
+            {groups.map((group, index) => (
+              <FilterIconButton
+                key={group.key}
+                group={group}
+                open={openGroup === group.key}
+                divider={index > 0}
+                onToggle={() =>
+                  setOpenGroup((current) => (current === group.key ? null : group.key))
+                }
+              />
+            ))}
+          </div>
+
+          {/* Flyout anchored beside the icon that opened it, not below the whole
+              rail — each row is a fixed 45px (button + divider) so the offset is
+              just index math, no measuring needed. */}
+          {open && (
+            <div
+              id={`hero-filter-${open.key}`}
+              role="listbox"
+              aria-label={open.label}
+              style={{ top: (activeCount > 0 ? 45 : 0) + groups.findIndex((g) => g.key === open.key) * 45 }}
               className={cn(
-                'flex h-14 w-[132px] shrink-0 items-center justify-center gap-1.5 rounded-2xl px-3',
-                'bg-surface text-sm font-semibold text-foreground shadow-sm ring-1 ring-border',
-                'transition hover:bg-surface',
+                'absolute right-[calc(100%+0.5rem)] w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3',
+                'shadow-[0_16px_44px_-18px_rgb(2_6_23/0.6)] ring-1 ring-border',
               )}
             >
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="size-4"
-              >
-                <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
-              </svg>
-              {t.clearAll}
-              <span className="rounded-full bg-brand-soft px-1.5 text-xs font-bold text-brand">
-                {activeCount}
-              </span>
-            </button>
-          )}
-          {groups.map((group) => (
-            <FilterButton
-              key={group.key}
-              group={group}
-              open={openGroup === group.key}
-              onToggle={() =>
-                setOpenGroup((current) => (current === group.key ? null : group.key))
-              }
-            />
-          ))}
-
-        </div>
-
-        {/* One shared drop-down under the strip: a popover anchored to each pill
-            would be clipped by the strip's own horizontal scrolling. */}
-        {open && (
-          <div
-            id={`hero-filter-${open.key}`}
-            role="listbox"
-            aria-label={open.label}
-            className={cn(
-              'pointer-events-auto w-full max-w-xl rounded-2xl bg-surface p-3',
-              'shadow-[0_16px_44px_-18px_rgb(2_6_23/0.6)] ring-1 ring-border',
-            )}
-          >
-            <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-              {open.label}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {open.options.map((option) => (
+              <div className="flex items-center justify-between px-1 pb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {open.label}
+                </p>
                 <button
-                  key={option.id}
                   type="button"
-                  role="option"
-                  aria-selected={option.selected}
-                  onClick={option.apply}
-                  className={cn(
-                    'h-9 rounded-full px-4 text-xs font-semibold ring-1 transition',
-                    option.selected
-                      ? 'bg-brand text-brand-contrast ring-brand'
-                      : 'bg-surface-muted text-muted ring-border hover:text-foreground',
-                  )}
+                  onClick={() => setOpenGroup(null)}
+                  aria-label={d.common.close}
+                  className="grid size-6 place-items-center rounded-full text-muted transition hover:bg-surface-muted hover:text-foreground"
                 >
-                  {option.label}
+                  <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5">
+                    <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+                  </svg>
                 </button>
-              ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {open.options.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="option"
+                    aria-selected={option.selected}
+                    onClick={option.apply}
+                    className={cn(
+                      'h-9 rounded-full px-3 text-xs font-semibold ring-1 transition',
+                      option.selected
+                        ? 'bg-brand text-brand-contrast ring-brand'
+                        : 'bg-surface-muted text-muted ring-border hover:text-foreground',
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {geoError && (
           <p
@@ -558,52 +572,83 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   );
 }
 
-/** Every filter renders through this, so they stay the same size and shape. */
-function FilterButton({
+const GROUP_ICON_PATHS: Record<GroupKey, ReactNode> = {
+  power: <path strokeLinecap="round" strokeLinejoin="round" d="M13 3 4 14h6l-1 7 9-11h-6z" />,
+  current: (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h3l2-6 4 12 2-6h3M19 12h2" />
+  ),
+  connector: (
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 2.5v4M15 2.5v4M7 6.5h10V11a5 5 0 0 1-5 5 5 5 0 0 1-5-5V6.5ZM12 16v5.5"
+    />
+  ),
+  status: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m8.5 12.2 2.4 2.4 4.6-5" />
+    </>
+  ),
+  price: (
+    <>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M11.6 3H19a2 2 0 0 1 2 2v7.4a2 2 0 0 1-.6 1.4l-8 8a2 2 0 0 1-2.8 0l-6-6a2 2 0 0 1 0-2.8l8-8A2 2 0 0 1 11.6 3Z"
+      />
+      <circle cx="16" cy="8" r="1.15" fill="currentColor" stroke="none" />
+    </>
+  ),
+};
+
+/** Every filter renders through this, so they stay the same size and shape as the zoom rail. */
+function FilterIconButton({
   group,
   open,
+  divider,
   onToggle,
 }: {
   group: FilterGroup;
   open: boolean;
+  divider: boolean;
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={open}
-      aria-controls={`hero-filter-${group.key}`}
-      className={cn(
-        'flex h-14 w-[132px] shrink-0 items-center gap-2 rounded-2xl px-3 text-left',
-        'shadow-sm ring-1 transition',
-        group.active
-          ? 'bg-brand text-brand-contrast shadow-md ring-brand'
-          : 'bg-surface text-foreground ring-border hover:bg-surface-muted',
-      )}
-    >
-      <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            'block truncate text-[10px] font-semibold uppercase tracking-wide',
-            group.active ? 'opacity-80' : 'text-muted',
-          )}
-        >
-          {group.label}
-        </span>
-        <span className="block truncate text-sm font-bold">{group.value}</span>
-      </span>
-      <svg
-        aria-hidden
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className={cn('size-4 shrink-0 transition-transform', open && 'rotate-180')}
+    <>
+      {divider && <span aria-hidden className="h-px bg-border" />}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={`hero-filter-${group.key}`}
+        aria-label={`${group.label} — ${group.value}`}
+        title={`${group.label}: ${group.value}`}
+        className={cn(
+          'relative grid size-11 place-items-center transition',
+          group.active
+            ? 'bg-brand text-brand-contrast'
+            : 'text-foreground hover:bg-surface-muted',
+        )}
       >
-        <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-      </svg>
-    </button>
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="size-5"
+        >
+          {GROUP_ICON_PATHS[group.key]}
+        </svg>
+        {group.active && (
+          <span
+            aria-hidden
+            className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-brand-contrast"
+          />
+        )}
+      </button>
+    </>
   );
 }
 
@@ -668,11 +713,30 @@ function Sheet({
 }: SheetProps) {
   const { d } = useI18n();
   const t = d.home.map;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    setCanScrollDown(!!el && el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll, selected]);
 
   return (
     <div
       className={cn(
-        'pointer-events-auto w-full overflow-hidden rounded-3xl bg-surface',
+        'pointer-events-auto relative w-full overflow-hidden rounded-3xl bg-surface',
         'shadow-[0_20px_60px_-24px_rgb(2_6_23/0.6)] ring-1 ring-border sm:w-[400px]',
         className,
       )}
@@ -684,32 +748,54 @@ function Sheet({
 
       {selected ? (
         <>
-          <div className="flex items-start gap-2 px-3 pb-1 pt-3">
-            <button
-              type="button"
-              onClick={onClearSelection}
-              aria-label={d.common.back}
-              className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-surface-muted hover:text-foreground"
-            >
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="size-5"
+          <div ref={scrollRef} className="max-h-[72svh] overflow-y-auto sm:max-h-[75vh]">
+            <div className="flex items-start gap-2 px-3 pb-1 pt-3">
+              <button
+                type="button"
+                onClick={onClearSelection}
+                aria-label={d.common.back}
+                className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-surface-muted hover:text-foreground"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
-              </svg>
-            </button>
-            <div className="min-w-0 flex-1 pt-0.5">
-              <h3 className="truncate text-base font-bold text-foreground">{selected.name}</h3>
-              <p className="truncate text-xs text-muted">
-                {selected.address || d.stations.addressMissing}
-              </p>
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="size-5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <h3 className="truncate text-base font-bold text-foreground">{selected.name}</h3>
+                <p className="truncate text-xs text-muted">
+                  {selected.address || d.stations.addressMissing}
+                </p>
+              </div>
             </div>
+            <StationDetail station={selected} intl={intl} locale={locale} />
           </div>
-          <StationDetail station={selected} intl={intl} locale={locale} />
+
+          {canScrollDown && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-surface via-surface/80 to-transparent pb-1.5 pt-6"
+            >
+              <span className="grid size-6 animate-bounce place-items-center rounded-full bg-surface text-muted ring-1 ring-border">
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="size-3.5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -894,15 +980,15 @@ function StationDetail({
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
-        <div>
-          <dt className="text-xs text-muted">{d.stations.maxPower}</dt>
-          <dd className="font-semibold text-foreground">
+        <div className="min-w-0">
+          <dt className="truncate text-xs text-muted">{d.stations.maxPower}</dt>
+          <dd className="truncate whitespace-nowrap font-semibold text-foreground">
             {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
           </dd>
         </div>
-        <div>
-          <dt className="text-xs text-muted">{d.stations.price}</dt>
-          <dd className="font-semibold text-foreground">
+        <div className="min-w-0">
+          <dt className="truncate text-xs text-muted">{d.stations.price}</dt>
+          <dd className="truncate whitespace-nowrap font-semibold text-foreground">
             {formatTariff(station.tariffPerKwh, intl)}
           </dd>
         </div>

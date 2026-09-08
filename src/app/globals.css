@@ -103,6 +103,33 @@ select:-webkit-autofill {
   outline-offset: 2px;
 }
 
+/* Themed scrollbars — Firefox via scrollbar-color, WebKit via the pseudo-elements.
+   Kept thin and low-contrast so it reads as chrome, not decoration. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--brand) 45%, transparent) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--brand) 40%, transparent);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--brand) 65%, transparent);
+}
+
 /* Leaflet renders its own DOM; these keep it inside the app's visual language. */
 .leaflet-container {
   background: var(--surface-muted);

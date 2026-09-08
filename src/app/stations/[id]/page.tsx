@@ -41,7 +41,7 @@ export async function generateMetadata(props: PageProps<'/stations/[id]'>): Prom
 
 export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   const { id } = await props.params;
-  const [{ station, demo, unreachable }, { locale, d }] = await Promise.all([
+  const [{ station, unreachable }, { locale, d }] = await Promise.all([
     loadStation(id),
     getTranslations(),
   ]);
@@ -98,12 +98,6 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
           </ButtonLink>
         )}
       </header>
-
-      {demo && (
-        <Alert tone="warning" title={d.errors.sampleData} className="mt-6">
-          {d.stations.demoBody}
-        </Alert>
-      )}
 
       {station.description && <p className="mt-6 text-sm text-muted">{station.description}</p>}
 

@@ -18,7 +18,7 @@ import { format, useI18n } from '@/components/i18n-provider';
 import type { PublicUser } from '@/lib/types';
 
 const VERIFIED_TONE = 'bg-brand-soft text-brand-strong ring-brand/30';
-const PENDING_TONE = 'bg-amber-500/15 text-amber-700 ring-amber-500/30 dark:text-amber-300';
+const PENDING_TONE = 'bg-emerald-800 text-emerald-50 ring-emerald-950';
 
 /** Resolved from the dictionary at render time; see `d.account.verification.devCaveat`. */
 

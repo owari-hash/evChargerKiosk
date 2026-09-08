@@ -6,7 +6,7 @@ export type AlertTone = 'info' | 'success' | 'warning' | 'danger';
 const TONES: Record<AlertTone, string> = {
   info: 'bg-surface-muted text-foreground ring-border',
   success: 'bg-brand-soft text-brand-strong ring-brand/30',
-  warning: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
+  warning: 'bg-brand-soft text-brand-strong ring-brand/30',
   danger: 'bg-red-500/10 text-red-700 ring-red-500/30 dark:text-red-300',
 };
 

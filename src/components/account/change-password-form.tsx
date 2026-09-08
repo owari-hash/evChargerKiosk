@@ -76,9 +76,7 @@ export function ChangePasswordForm() {
       </CardHeader>
       <CardBody>
         <form onSubmit={onSubmit} noValidate className="space-y-4">
-          <p className="text-sm text-muted">
-            Changing your password signs out every other device that is still using this account.
-          </p>
+          <p className="text-sm text-muted">{d.account.password.signOutHint}</p>
 
           {done && <Alert tone="success">{d.account.password.changed}</Alert>}
           {error && <Alert tone="danger">{error}</Alert>}
@@ -105,53 +103,55 @@ export function ChangePasswordForm() {
             />
           </Field>
 
-          <Field
-            label={d.account.password.newLabel}
-            htmlFor="new-password"
-            required
-            hint={d.auth.passwordHint}
-            error={fields.password}
-          >
-            <Input
-              id="new-password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label={d.account.password.newLabel}
+              htmlFor="new-password"
               required
-              aria-invalid={fields.password ? true : undefined}
-              aria-describedby={fields.password ? 'new-password-error' : 'new-password-hint'}
-              onChange={(event) => {
-                touched();
-                setPassword(event.target.value);
-              }}
-            />
-          </Field>
+              hint={d.auth.passwordHint}
+              error={fields.password}
+            >
+              <Input
+                id="new-password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                required
+                aria-invalid={fields.password ? true : undefined}
+                aria-describedby={fields.password ? 'new-password-error' : 'new-password-hint'}
+                onChange={(event) => {
+                  touched();
+                  setPassword(event.target.value);
+                }}
+              />
+            </Field>
 
-          <Field
-            label={d.account.password.confirmLabel}
-            htmlFor="confirm-password"
-            required
-            error={fields.confirmPassword}
-          >
-            <Input
-              id="confirm-password"
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
+            <Field
+              label={d.account.password.confirmLabel}
+              htmlFor="confirm-password"
               required
-              aria-invalid={fields.confirmPassword ? true : undefined}
-              aria-describedby={fields.confirmPassword ? 'confirm-password-error' : undefined}
-              onChange={(event) => {
-                touched();
-                setConfirmPassword(event.target.value);
-              }}
-            />
-          </Field>
+              error={fields.confirmPassword}
+            >
+              <Input
+                id="confirm-password"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                required
+                aria-invalid={fields.confirmPassword ? true : undefined}
+                aria-describedby={fields.confirmPassword ? 'confirm-password-error' : undefined}
+                onChange={(event) => {
+                  touched();
+                  setConfirmPassword(event.target.value);
+                }}
+              />
+            </Field>
+          </div>
 
           <Button type="submit" loading={saving}>
-            Change password
+            {d.account.password.submitButton}
           </Button>
         </form>
       </CardBody>

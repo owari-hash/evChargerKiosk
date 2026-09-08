@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
+import { format, useI18n } from '@/components/i18n-provider';
 import type { ChargingSession } from '@/lib/types';
 import type { WalletEntry } from '@/lib/csms/wallet';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';
@@ -25,12 +26,12 @@ interface EbarimtRecordItem {
 export function EbarimtHistoryTable({
   walletEntries,
   sessions,
-  locale = 'mn',
 }: {
   walletEntries: WalletEntry[];
   sessions: ChargingSession[];
-  locale?: string;
 }) {
+  const { d, locale } = useI18n();
+  const t = d.account.ebarimt;
   const intl = intlLocale(locale);
   const [selectedSession, setSelectedSession] = useState<ChargingSession | null>(null);
 
@@ -44,7 +45,7 @@ export function EbarimtHistoryTable({
     records.push({
       id: `w-${entry.id}`,
       source: 'WALLET',
-      title: entry.description || 'Хэтэвч цэнэглэлт',
+      title: entry.description || t.walletTopup,
       amount,
       vatAmount: eb?.totalVAT ?? Math.round((amount - amount / 1.1) * 100) / 100,
       lottery: eb?.lottery || `EB${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -85,7 +86,10 @@ export function EbarimtHistoryTable({
       records.push({
         id: `s-${s.transactionId}`,
         source: 'SESSION',
-        title: `Цэнэглэлт #${s.transactionId} · ${s.stationName || s.chargePointId}`,
+        title: format(t.sessionTitle, {
+          id: s.transactionId,
+          station: s.stationName || s.chargePointId,
+        }),
         amount,
         vatAmount: s.ebarimt.totalVAT ?? Math.round((amount - amount / 1.1) * 100) / 100,
         lottery: s.ebarimt.lottery || '—',
@@ -106,19 +110,15 @@ export function EbarimtHistoryTable({
     <>
       <Card>
         <CardHeader>
-          <CardTitle>И-Баримтын түүх</CardTitle>
-          <p className="text-xs text-muted mt-1">
-            QPay хэтэвч цэнэглэлт болон цэнэглэх станцад олгогдсон НӨАТ-ын баримтын бүртгэл
-          </p>
+          <CardTitle>{t.title}</CardTitle>
+          <p className="text-xs text-muted mt-1">{t.subtitle}</p>
         </CardHeader>
 
         <CardBody className="px-0 py-0">
           {records.length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-muted">
-              Одоогоор олгогдсон И-Баримт байхгүй байна.
-            </p>
+            <p className="px-5 py-8 text-center text-sm text-muted">{t.empty}</p>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="max-h-[70vh] divide-y divide-border overflow-y-auto">
               {records.map((r) => (
                 <li
                   key={r.id}
@@ -130,14 +130,14 @@ export function EbarimtHistoryTable({
                         {r.title}
                       </span>
                       <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
-                        Сугалаа №: {r.lottery}
+                        {format(t.lotteryLabel, { id: r.lottery })}
                       </span>
                     </div>
 
                     <p className="text-xs text-muted">
                       {r.type === 'B2B_RECEIPT'
-                        ? `Байгууллагын баримт (TIN: ${r.customerTin || '—'})`
-                        : 'Хувь хүний баримт (B2C)'}{' '}
+                        ? format(t.b2bLabel, { tin: r.customerTin || '—' })
+                        : t.b2cLabel}{' '}
                       · {formatDateTime(r.createdAt, intl)}
                     </p>
                   </div>
@@ -148,7 +148,7 @@ export function EbarimtHistoryTable({
                         {formatMoney(r.amount, intl)}
                       </p>
                       <p className="text-xs text-muted tabular-nums">
-                        НӨАТ: {formatMoney(r.vatAmount, intl)}
+                        {format(t.vatLabel, { amount: formatMoney(r.vatAmount, intl) })}
                       </p>
                     </div>
 
@@ -158,7 +158,7 @@ export function EbarimtHistoryTable({
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm"
                       onClick={() => setSelectedSession(r.sessionObj)}
                     >
-                      И-Баримт харах
+                      {t.viewButton}
                     </Button>
                   </div>
                 </li>

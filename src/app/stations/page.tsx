@@ -75,8 +75,6 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
         <StationFinder
           initialStations={result.stations}
           initialFilters={initialFilters}
-          initialDemo={result.demo}
-          initialWarning={result.warning}
           initialError={loadError}
         />
       </Suspense>

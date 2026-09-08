@@ -1,7 +1,7 @@
 import { serverEnv } from '@/lib/env';
 import type { ChargingSession, Paginated, Station } from '@/lib/types';
 import { haversineKm } from '@/lib/utils';
-import { CsmsUnavailableError, csmsFetch } from './client';
+import { csmsFetch } from './client';
 import { DEMO_CHARGE_POINTS } from './demo-data';
 import { toStation, type CsmsChargePoint } from './mapping';
 
@@ -29,15 +29,12 @@ async function loadChargePoints(): Promise<{ raw: CsmsChargePoint[]; demo: boole
     return { raw: res.data ?? [], demo: false };
   } catch (err) {
     const message = (err as Error).message;
-    const unreachable = err instanceof CsmsUnavailableError;
     if (serverEnv.demoData()) {
       console.warn(`[stations] serving demo data — ${message}`);
       return {
         raw: DEMO_CHARGE_POINTS,
         demo: true,
-        warning: unreachable
-          ? 'Шууд мэдээлэл одоогоор боломжгүй байна — жишээ сүлжээг харуулж байна.'
-          : `Шууд мэдээлэл боломжгүй байна (${message}) — жишээ сүлжээг харуулж байна.`,
+        warning: 'Шууд мэдээлэл одоогоор боломжгүй байна — жишээ сүлжээг харуулж байна.',
       };
     }
     throw err;

@@ -45,7 +45,7 @@ export const en = {
   },
 
   footer: {
-    rights: '© {year} {brand}. Charging network powered by OCPP 1.6J.',
+    rights: '© {year} {brand}',
     terms: 'Terms',
     privacy: 'Privacy',
   },
@@ -97,13 +97,20 @@ export const en = {
       languageHint: 'Used for emails and text messages we send you.',
       saveFailed: 'Could not save your details. Please try again.',
       networkError: 'Could not reach the server. Please check your connection and try again.',
+      phoneHintPrefix: 'Verify your new number on the',
+      emailHintPrefix: 'Verify your new email on the',
+      hintSuffix: 'tab.',
+      saveButton: 'Save changes',
+      savedLabel: 'Saved.',
     },
 
     password: {
       title: 'Password',
+      signOutHint: 'Changing your password signs out every other device that is still using this account.',
       currentLabel: 'Current password',
       newLabel: 'New password',
       confirmLabel: 'Confirm new password',
+      submitButton: 'Change password',
       changed: 'Your password has been changed. Other devices are now signed out.',
       failed: 'Could not change your password. Please try again.',
     },
@@ -151,7 +158,6 @@ export const en = {
       phoneTitle: 'Phone number',
       phoneConfirmed:
         '{phone} is confirmed, so we can text you about a charge that needs attention. To use a different number, change it on the Overview tab and verify it here.',
-      overview: 'Overview',
       phonePending:
         'Verify a mobile number so we can text you about a charge that needs attention, and so you can reset your password by SMS.',
       phoneHint: 'Enter a different number here to verify that one instead.',
@@ -199,6 +205,22 @@ export const en = {
       caption: 'Your charging sessions, most recent first',
       stopAnswered:
         'The charger answered “{status}”. If the session keeps running, stop it at the station.',
+    },
+
+    ebarimt: {
+      metaTitle: 'E-Barimt history',
+      title: 'E-Barimt history',
+      subtitle: 'VAT receipt records for QPay wallet top-ups and charging sessions',
+      empty: 'No e-Barimt has been issued yet.',
+      walletTopup: 'Wallet top-up',
+      sessionTitle: 'Session #{id} · {station}',
+      lotteryLabel: 'Lottery No: {id}',
+      b2bLabel: 'Business receipt (TIN: {tin})',
+      b2cLabel: 'Individual receipt (B2C)',
+      vatLabel: 'VAT: {amount}',
+      viewButton: 'View e-Barimt',
+      unavailableTitle: 'Could not load your data',
+      unavailableBody: 'We could not load your e-Barimt history. Please try again later.',
     },
   },
 
@@ -310,6 +332,7 @@ export const en = {
     networkTitle: 'Featured Charging Stations',
     networkSubtitle:
       'Real-time status of stations across our network. Filter by connector type, charging power, or distance.',
+    scrollDown: 'Scroll down',
     seeAll: 'View all stations',
     noStations: 'No charging stations are currently online. Please try again shortly.',
     featuresBadge: 'Why Choose Us',
@@ -938,7 +961,7 @@ export const mn: Dictionary = {
   },
 
   footer: {
-    rights: '© {year} {brand}. OCPP 1.6J дээр суурилсан цэнэглэх сүлжээ.',
+    rights: '© {year} {brand}',
     terms: 'Үйлчилгээний нөхцөл',
     privacy: 'Нууцлалын бодлого',
   },
@@ -964,7 +987,7 @@ export const mn: Dictionary = {
   },
   account: {
     nav: {
-      overview: 'Ерөнхий',
+      overview: 'Хувийн мэдээлэл',
       wallet: 'Хэтэвч',
       security: 'Аюулгүй байдал',
       sessions: 'Цэнэглэлтийн түүх',
@@ -990,13 +1013,20 @@ export const mn: Dictionary = {
       languageHint: 'Танд илгээх и-мэйл, мессежид ашиглана.',
       saveFailed: 'Мэдээллийг тань хадгалж чадсангүй. Дахин оролдоно уу.',
       networkError: 'Сервертэй холбогдож чадсангүй. Холболтоо шалгаад дахин оролдоно уу.',
+      phoneHintPrefix: 'Шинэ дугаараа',
+      emailHintPrefix: 'Шинэ и-мэйлээ',
+      hintSuffix: 'хэсэгт баталгаажуулна уу.',
+      saveButton: 'Хадгалах',
+      savedLabel: 'Хадгалагдлаа.',
     },
 
     password: {
       title: 'Нууц үг',
+      signOutHint: 'Нууц үгээ солиход энэ бүртгэлийг ашиглаж буй бусад бүх төхөөрөмжөөс автоматаар гарна.',
       currentLabel: 'Одоогийн нууц үг',
       newLabel: 'Шинэ нууц үг',
       confirmLabel: 'Шинэ нууц үгээ давтах',
+      submitButton: 'Нууц үг солих',
       changed: 'Нууц үг тань солигдлоо. Бусад төхөөрөмжөөс гарсан байна.',
       failed: 'Нууц үгийг тань солиж чадсангүй. Дахин оролдоно уу.',
     },
@@ -1018,7 +1048,7 @@ export const mn: Dictionary = {
       none: 'Одоогоор холбосон карт алга байна.',
       addLabel: 'Цэнэглэх карт нэмэх',
       addHint: 'Карт дээр хэвлэгдсэн кодыг яг байгаагаар нь оруулна уу.',
-      addSubmit: 'Банкны карт холбох',
+      addSubmit: 'Карт холбох',
       enterCode: 'Цэнэглэх картныхаа кодыг оруулна уу',
       linkFailed: 'Тухайн картыг холбож чадсангүй. Дахин оролдоно уу.',
       unlinkFailed: 'Тухайн картын холбоосыг салгаж чадсангүй. Дахин оролдоно уу.',
@@ -1043,8 +1073,7 @@ export const mn: Dictionary = {
       devCaveat: 'Хөгжүүлэлтийн горим — мессеж илгээх тохиргоо хийгдээгүй тул энд харуулав.',
       phoneTitle: 'Утасны дугаар',
       phoneConfirmed:
-        '{phone} баталгаажсан тул анхаарал шаардсан цэнэглэлтийн талаар танд мессеж илгээх боломжтой. Өөр дугаар ашиглах бол «Ерөнхий» хэсэгт солиод эндээс баталгаажуулна уу.',
-      overview: 'Ерөнхий',
+        '{phone} баталгаажсан тул анхаарал шаардсан цэнэглэлтийн талаар танд мессеж илгээх боломжтой. Өөр дугаар ашиглах бол «Хувийн мэдээлэл» хэсэгт солиод эндээс баталгаажуулна уу.',
       phonePending:
         'Анхаарал шаардсан цэнэглэлтийн талаар мессеж хүлээн авах, мөн SMS-ээр нууц үгээ сэргээхийн тулд гар утасны дугаараа баталгаажуулна уу.',
       phoneHint: 'Өөр дугаар баталгаажуулах бол энд тэр дугаараа оруулна уу.',
@@ -1093,6 +1122,23 @@ export const mn: Dictionary = {
       stopAnswered:
         'Цэнэглэгч «{status}» гэж хариулав. Цэнэглэлт үргэлжилсээр байвал станц дээр нь зогсооно уу.',
     },
+
+    ebarimt: {
+      metaTitle: 'И-Баримтын түүх',
+      title: 'И-Баримтын түүх',
+      subtitle:
+        'QPay хэтэвч цэнэглэлт болон цэнэглэх станцад олгогдсон НӨАТ-ын баримтын бүртгэл',
+      empty: 'Одоогоор олгогдсон И-Баримт байхгүй байна.',
+      walletTopup: 'Хэтэвч цэнэглэлт',
+      sessionTitle: 'Цэнэглэлт #{id} · {station}',
+      lotteryLabel: 'Сугалаа №: {id}',
+      b2bLabel: 'Байгууллагын баримт (TIN: {tin})',
+      b2cLabel: 'Хувь хүний баримт (B2C)',
+      vatLabel: 'НӨАТ: {amount}',
+      viewButton: 'И-Баримт харах',
+      unavailableTitle: 'Мэдээлэл татахад алдаа гарлаа',
+      unavailableBody: 'И-Баримтын мэдээлэл татахад алдаа гарлаа. Та дараа дахин оролдоно уу.',
+    },
   },
 
   wallet: {
@@ -1106,7 +1152,7 @@ export const mn: Dictionary = {
     toppedUp: 'Нийт цэнэглэсэн',
     spent: 'Нийт зарцуулсан',
     linkedTags: 'Энэ үлдэгдлийг ашиглах картууд',
-    noLinkedTags: 'Холбосон банкны карт алга байна. Банкны карт холбох хэсгээс Виза, Мастер картаа холбоно уу.',
+    noLinkedTags: 'Цэнэглэх карт холбогдоогүй байна. «Хувийн мэдээлэл» хэсгээс картаа холбоно уу.',
     lowBalance: 'Таны үлдэгдэл {amount}-өөс бага байна. Цэнэглэхийн өмнө хэтэвчээ цэнэглэнэ үү.',
     unavailable: 'Хэтэвчийн үйлчилгээ түр боломжгүй байна. Хэсэг хугацааны дараа дахин оролдоно уу.',
 
@@ -1203,6 +1249,7 @@ export const mn: Dictionary = {
     networkTitle: 'Сүлжээний цэнэглэх станцууд',
     networkSubtitle:
       'Манай сүлжээнд холбогдсон станцуудын одоогийн төлөв байдал. Холбогчийн төрөл, хүчин чадал, зайнаас хамааруулан шүүх боломжтой.',
+    scrollDown: 'Доош гүйлгэх',
     seeAll: 'Бүх станцыг харах',
     noStations: 'Одоогоор идэвхтэй цэнэглэх станцын мэдээлэл олдсонгүй. Та түр хүлээгээд дахин оролдоно уу.',
     featuresBadge: 'Давуу талууд',
@@ -1327,7 +1374,7 @@ export const mn: Dictionary = {
     // --- the ordered steps ---
     s1Title: 'Нэвтрэх',
     s1Body: 'Цэнэглэлтийн төлбөр таны бүртгэлээс хасагдах тул эхлээд нэвтэрнэ үү.',
-    s2Title: 'Банкны карт холбох',
+    s2Title: 'Карт холбох',
     s2Body: 'RFID картан дээрх дугаараа бүртгэлдээ нэмнэ үү. Станц таныг үүгээр таних болно.',
     s3Title: 'Холбогчоо сонгох',
     s3Body: 'Машиндаа тохирох сул холбогчийг сонгоно уу.',
@@ -1393,7 +1440,7 @@ export const mn: Dictionary = {
     signInCta: 'Нэвтэрч эхлүүлэх',
     linkTagBody:
       'RFID карт дээрээ бичигдсэн дугаарыг бүртгэлдээ холбовол эндээс цэнэглэлт эхлүүлэх боломжтой.',
-    linkTagCta: 'Банкны карт холбох',
+    linkTagCta: 'Карт холбох',
     allBusy:
       'Энд байгаа бүх холбогч завгүй эсвэл ашиглалтад байхгүй байна. Станц мэдээлэл илгээх бүрд энэ хуудас шинэчлэгдэнэ.',
     connectorOption: '{id}-р холбогч',

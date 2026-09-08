@@ -185,7 +185,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
         </div>
       )}
 
-      <ul className="divide-y divide-border md:hidden">
+      <ul className="max-h-[70vh] divide-y divide-border overflow-y-auto md:hidden">
         {ordered.map((session) => {
           const meta = STATUS_META[session.status];
           const active = session.status === 'Active';
@@ -253,10 +253,10 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
         })}
       </ul>
 
-      <div className="hidden overflow-x-auto md:block">
+      <div className="hidden max-h-[70vh] overflow-auto md:block">
         <table className="w-full min-w-[48rem] text-left text-sm">
           <caption className="sr-only">{d.account.sessions.caption}</caption>
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface">
             <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted">
               <th scope="col" className="px-5 py-3">
                 {d.account.sessions.station}

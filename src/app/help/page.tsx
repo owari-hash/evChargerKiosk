@@ -39,16 +39,29 @@ function plugs(d: Dictionary): Entry[] {
   ];
 }
 
-function DefinitionList({ entries }: { entries: Entry[] }) {
+/** Collapsed by default so the whole FAQ fits on screen; each entry opens on its own. */
+function AccordionList({ entries }: { entries: Entry[] }) {
   return (
-    <dl className="divide-y divide-border">
+    <div className="divide-y divide-border">
       {entries.map((entry) => (
-        <div key={entry.term} className="py-4 first:pt-0 last:pb-0">
-          <dt className="text-sm font-semibold text-foreground">{entry.term}</dt>
-          <dd className="mt-1.5 text-sm leading-relaxed text-muted">{entry.answer}</dd>
-        </div>
+        <details key={entry.term} className="group py-3 first:pt-0 last:pb-0">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+            {entry.term}
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <div className="mt-1.5 text-sm leading-relaxed text-muted">{entry.answer}</div>
+        </details>
       ))}
-    </dl>
+    </div>
   );
 }
 
@@ -56,7 +69,7 @@ export default async function HelpPage() {
   const { d } = await getTranslations();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+    <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-14 sm:pt-8">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           {d.help.title}
@@ -73,7 +86,7 @@ export default async function HelpPage() {
               <CardTitle>{d.help.faqTitle}</CardTitle>
             </CardHeader>
             <CardBody>
-              <DefinitionList entries={faq(d)} />
+              <AccordionList entries={faq(d)} />
             </CardBody>
           </Card>
 
@@ -83,12 +96,12 @@ export default async function HelpPage() {
             </CardHeader>
             <CardBody>
               <p className="mb-4 text-sm text-muted">{d.help.plugsIntro}</p>
-              <DefinitionList entries={plugs(d)} />
+              <AccordionList entries={plugs(d)} />
             </CardBody>
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6 lg:h-full">
           <Card>
             <CardHeader>
               <CardTitle>{d.help.contactTitle}</CardTitle>
@@ -115,11 +128,11 @@ export default async function HelpPage() {
             </CardBody>
           </Card>
 
-          <Card>
+          <Card className="flex flex-1 flex-col">
             <CardHeader>
               <CardTitle>{d.help.moreTitle}</CardTitle>
             </CardHeader>
-            <CardBody className="space-y-2">
+            <CardBody className="flex flex-1 flex-col justify-center space-y-2">
               <ButtonLink href="/account/wallet" variant="secondary" size="md" className="w-full">
                 {d.wallet.title}
               </ButtonLink>

@@ -88,21 +88,21 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
   const phoneHint = (
     <>
-      A new number needs to be verified again on the{' '}
+      {d.account.profile.phoneHintPrefix}{' '}
       <Link href="/account/security" className="text-brand-strong underline underline-offset-4">
-        Security
+        {d.account.nav.security}
       </Link>{' '}
-      tab.
+      {d.account.profile.hintSuffix}
     </>
   );
 
   const emailHint = (
     <>
-      A new email address needs to be verified again on the{' '}
+      {d.account.profile.emailHintPrefix}{' '}
       <Link href="/account/security" className="text-brand-strong underline underline-offset-4">
-        Security
+        {d.account.nav.security}
       </Link>{' '}
-      tab.
+      {d.account.profile.hintSuffix}
     </>
   );
 
@@ -115,95 +115,97 @@ export function ProfileForm({ user }: ProfileFormProps) {
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           {error && <Alert tone="danger">{error}</Alert>}
 
-          <Field label={d.account.profile.nameLabel} htmlFor="profile-name" error={fields.name}>
-            <Input
-              id="profile-name"
-              name="name"
-              value={name}
-              autoComplete="name"
-              maxLength={80}
-              aria-invalid={fields.name ? true : undefined}
-              aria-describedby={describedBy('profile-name', fields.name, false)}
-              onChange={(event) => {
-                touched();
-                setName(event.target.value);
-              }}
-            />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={d.account.profile.nameLabel} htmlFor="profile-name" error={fields.name}>
+              <Input
+                id="profile-name"
+                name="name"
+                value={name}
+                autoComplete="name"
+                maxLength={80}
+                aria-invalid={fields.name ? true : undefined}
+                aria-describedby={describedBy('profile-name', fields.name, false)}
+                onChange={(event) => {
+                  touched();
+                  setName(event.target.value);
+                }}
+              />
+            </Field>
 
-          <Field
-            label={d.account.emailLabel}
-            htmlFor="profile-email"
-            hint={emailHint}
-            error={fields.email}
-          >
-            <Input
-              id="profile-email"
-              name="email"
-              type="email"
-              value={email}
-              autoComplete="email"
-              maxLength={200}
-              aria-invalid={fields.email ? true : undefined}
-              aria-describedby={describedBy('profile-email', fields.email, true)}
-              onChange={(event) => {
-                touched();
-                setEmail(event.target.value);
-              }}
-            />
-          </Field>
-
-          <Field
-            label={d.account.mobileLabel}
-            htmlFor="profile-phone"
-            hint={phoneHint}
-            error={fields.phone}
-          >
-            <Input
-              id="profile-phone"
-              name="phone"
-              type="tel"
-              inputMode="tel"
-              value={phone}
-              autoComplete="tel"
-              placeholder={d.account.profile.phonePlaceholder}
-              aria-invalid={fields.phone ? true : undefined}
-              aria-describedby={describedBy('profile-phone', fields.phone, true)}
-              onChange={(event) => {
-                touched();
-                setPhone(event.target.value);
-              }}
-            />
-          </Field>
-
-          <Field
-            label={d.account.profile.languageLabel}
-            htmlFor="profile-locale"
-            hint={d.account.profile.languageHint}
-            error={fields.locale}
-          >
-            <Select
-              id="profile-locale"
-              name="locale"
-              value={locale}
-              aria-invalid={fields.locale ? true : undefined}
-              aria-describedby={describedBy('profile-locale', fields.locale, true)}
-              onChange={(event) => {
-                touched();
-                setLocale(event.target.value === 'mn' ? 'mn' : 'en');
-              }}
+            <Field
+              label={d.account.emailLabel}
+              htmlFor="profile-email"
+              hint={emailHint}
+              error={fields.email}
             >
-              <option value="en">English</option>
-              <option value="mn">Монгол</option>
-            </Select>
-          </Field>
+              <Input
+                id="profile-email"
+                name="email"
+                type="email"
+                value={email}
+                autoComplete="email"
+                maxLength={200}
+                aria-invalid={fields.email ? true : undefined}
+                aria-describedby={describedBy('profile-email', fields.email, true)}
+                onChange={(event) => {
+                  touched();
+                  setEmail(event.target.value);
+                }}
+              />
+            </Field>
+
+            <Field
+              label={d.account.mobileLabel}
+              htmlFor="profile-phone"
+              hint={phoneHint}
+              error={fields.phone}
+            >
+              <Input
+                id="profile-phone"
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                autoComplete="tel"
+                placeholder={d.account.profile.phonePlaceholder}
+                aria-invalid={fields.phone ? true : undefined}
+                aria-describedby={describedBy('profile-phone', fields.phone, true)}
+                onChange={(event) => {
+                  touched();
+                  setPhone(event.target.value);
+                }}
+              />
+            </Field>
+
+            <Field
+              label={d.account.profile.languageLabel}
+              htmlFor="profile-locale"
+              hint={d.account.profile.languageHint}
+              error={fields.locale}
+            >
+              <Select
+                id="profile-locale"
+                name="locale"
+                value={locale}
+                aria-invalid={fields.locale ? true : undefined}
+                aria-describedby={describedBy('profile-locale', fields.locale, true)}
+                onChange={(event) => {
+                  touched();
+                  setLocale(event.target.value === 'mn' ? 'mn' : 'en');
+                }}
+              >
+                <option value="en">English</option>
+                <option value="mn">Монгол</option>
+              </Select>
+            </Field>
+          </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" loading={saving}>
-              Save changes
+              {d.account.profile.saveButton}
             </Button>
             <p aria-live="polite" className="text-sm font-medium text-brand-strong">
-              {saved ? 'Saved.' : ''}
+              {saved ? d.account.profile.savedLabel : ''}
             </p>
           </div>
         </form>

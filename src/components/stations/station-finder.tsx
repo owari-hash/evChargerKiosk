@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Field, Input, Select } from '@/components/ui';
+import { Alert, Button, Field, Input, SelectMenu } from '@/components/ui';
 import { format, useI18n } from '@/components/i18n-provider';
 import { CONNECTOR_TYPES, type Station } from '@/lib/types';
 import { cn, formatPowerKw, intlLocale } from '@/lib/utils';
@@ -82,24 +82,18 @@ function geolocationMessage(error: GeolocationPositionError): GeoErrorKey {
 
 interface StationsResponse {
   stations?: Station[];
-  demo?: boolean;
-  warning?: string;
   error?: string;
 }
 
 interface StationFinderProps {
   initialStations: Station[];
   initialFilters: StationFilters;
-  initialDemo?: boolean;
-  initialWarning?: string;
   initialError?: string;
 }
 
 export function StationFinder({
   initialStations,
   initialFilters,
-  initialDemo = false,
-  initialWarning,
   initialError,
 }: StationFinderProps) {
   const router = useRouter();
@@ -111,8 +105,6 @@ export function StationFinder({
 
   const [filters, setFilters] = useState<StationFilters>(initialFilters);
   const [stations, setStations] = useState<Station[]>(initialStations);
-  const [demo, setDemo] = useState(initialDemo);
-  const [warning, setWarning] = useState<string | undefined>(initialWarning);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -161,8 +153,6 @@ export function StationFinder({
         .then((payload) => {
           loadedQuery.current = query;
           setStations(payload.stations ?? []);
-          setDemo(Boolean(payload.demo));
-          setWarning(payload.warning);
           setLoading(false);
         })
         .catch((err: unknown) => {
@@ -239,57 +229,54 @@ export function StationFinder({
           </Field>
 
           <Field label={d.stations.statusLabel} htmlFor="station-status">
-            <Select
+            <SelectMenu
               id="station-status"
+              label={d.stations.statusLabel}
               value={filters.status}
-              onChange={(event) =>
+              onChange={(value) =>
                 setFilters((current) => ({
                   ...current,
-                  status: event.target.value as StationStatusFilter,
+                  status: value as StationStatusFilter,
                 }))
               }
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option === 'all' ? d.stations.anyStatus : d.status.availability[option]}
-                </option>
-              ))}
-            </Select>
+              options={STATUS_OPTIONS.map((option) => ({
+                value: option,
+                label: option === 'all' ? d.stations.anyStatus : d.status.availability[option],
+              }))}
+            />
           </Field>
 
           <Field label={d.stations.connectorLabel} htmlFor="station-connector">
-            <Select
+            <SelectMenu
               id="station-connector"
+              label={d.stations.connectorLabel}
               value={filters.connectorType}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, connectorType: event.target.value }))
+              onChange={(value) =>
+                setFilters((current) => ({ ...current, connectorType: value }))
               }
-            >
-              <option value="">{d.stations.anyConnector}</option>
-              {CONNECTOR_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </Select>
+              options={[
+                { value: '', label: d.stations.anyConnector },
+                ...CONNECTOR_TYPES.map((type) => ({ value: type, label: type })),
+              ]}
+            />
           </Field>
 
           <Field label={d.stations.minPowerLabel} htmlFor="station-power">
-            <Select
+            <SelectMenu
               id="station-power"
+              label={d.stations.minPowerLabel}
               value={String(filters.minPowerKw)}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, minPowerKw: Number(event.target.value) }))
+              onChange={(value) =>
+                setFilters((current) => ({ ...current, minPowerKw: Number(value) }))
               }
-            >
-              {POWER_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option === 0
+              options={POWER_OPTIONS.map((option) => ({
+                value: String(option),
+                label:
+                  option === 0
                     ? d.stations.anyPower
-                    : format(d.stations.powerOrMore, { power: formatPowerKw(option, intl) })}
-                </option>
-              ))}
-            </Select>
+                    : format(d.stations.powerOrMore, { power: formatPowerKw(option, intl) }),
+              }))}
+            />
           </Field>
         </div>
 
@@ -326,12 +313,6 @@ export function StationFinder({
           </p>
         )}
       </form>
-
-      {demo && warning && (
-        <Alert tone="warning" title={d.errors.sampleData}>
-          {warning}
-        </Alert>
-      )}
 
       {error && (
         <Alert tone="danger" title={d.errors.stationsFailed}>
@@ -391,7 +372,7 @@ export function StationFinder({
             stations={stations}
             selectedId={selectedId}
             onHighlight={setSelectedId}
-            className="gap-3 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1"
+            className="gap-3 lg:max-h-[70vh] lg:snap-y lg:snap-proximity lg:overflow-y-auto lg:scroll-pt-1 lg:pr-1"
           />
         </div>
       ) : (
@@ -421,6 +402,7 @@ function StationList({ stations, selectedId, onHighlight, className }: StationLi
       {stations.map((station) => (
         <li
           key={station.id}
+          className="snap-start scroll-mt-1"
           // Hover and keyboard focus pan the map; the click itself opens the station.
           onMouseEnter={() => onHighlight(station.id)}
           onFocus={() => onHighlight(station.id)}

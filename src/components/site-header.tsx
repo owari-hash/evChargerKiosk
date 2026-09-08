@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { PublicUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { publicEnv } from '@/lib/env';
 import { useI18n } from './i18n-provider';
 import { LocaleSwitcher } from './locale-switcher';
 import { ThemeToggle } from './theme-toggle';
+import { UserMenu } from './user-menu';
 import { buttonClass } from './ui/button';
 
 export function SiteHeader({ user }: { user: PublicUser | null }) {
@@ -20,7 +20,6 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
 
   const nav = [
     { href: '/', label: d.nav.home },
-    { href: '/stations', label: d.nav.stations },
     { href: '/pricing', label: d.nav.pricing },
     { href: '/help', label: d.nav.help },
   ];
@@ -37,7 +36,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 shadow-[0_1px_0_0_rgb(15_23_42/0.03),0_8px_24px_-16px_rgb(15_23_42/0.15)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 font-bold text-foreground">
           <span
@@ -48,7 +47,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
             </svg>
           </span>
-          <span className="text-[15px] tracking-tight">{publicEnv.brandName}</span>
+          <span className="text-[15px] tracking-tight">Eplug</span>
         </Link>
 
         <nav className="ml-2 hidden items-center gap-1 md:flex">
@@ -69,33 +68,25 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <LocaleSwitcher className="hidden sm:inline-flex" />
-          <ThemeToggle />
+          <div className="hidden items-center gap-0.5 rounded-xl bg-surface-muted p-0.5 ring-1 ring-border sm:flex">
+            <LocaleSwitcher bare />
+            <span aria-hidden className="h-5 w-px bg-border" />
+            <ThemeToggle className="grid size-8 place-items-center rounded-[10px] text-muted transition hover:bg-surface hover:text-foreground" />
+          </div>
+          <ThemeToggle className="grid size-9 place-items-center rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground sm:hidden" />
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center md:flex">
             {user ? (
-              <>
-                <Link href="/account" className={buttonClass('secondary', 'sm')} title={user.email}>
-                  {user.name?.split(' ')[0] ?? d.common.myAccount}
-                </Link>
-                <button
-                  type="button"
-                  onClick={signOut}
-                  disabled={signingOut}
-                  className={buttonClass('ghost', 'sm')}
-                >
-                  {d.common.signOut}
-                </button>
-              </>
+              <UserMenu user={user} />
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Link href="/login" className={buttonClass('ghost', 'sm')}>
                   {d.common.signIn}
                 </Link>
                 <Link href="/register" className={buttonClass('primary', 'sm')}>
                   {d.common.createAccount}
                 </Link>
-              </>
+              </div>
             )}
           </div>
 

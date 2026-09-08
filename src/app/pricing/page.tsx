@@ -32,7 +32,7 @@ async function loadTariffs(): Promise<TariffData> {
 }
 
 export default async function PricingPage() {
-  const [{ stations, demo, warning, failed }, { locale, d }] = await Promise.all([
+  const [{ stations, failed }, { locale, d }] = await Promise.all([
     loadTariffs(),
     getTranslations(),
   ]);
@@ -40,7 +40,7 @@ export default async function PricingPage() {
   const priced = stations.filter((s) => typeof s.tariffPerKwh === 'number');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+    <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-14 sm:pt-8">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           {d.pricing.title}
@@ -113,12 +113,6 @@ export default async function PricingPage() {
           </ButtonLink>
         </div>
 
-        {demo && (
-          <Alert tone="warning" title={d.errors.sampleData} className="mt-4">
-            {warning ?? d.pricing.demoBody}
-          </Alert>
-        )}
-
         {failed && (
           <Alert tone="danger" title={d.pricing.failedTitle} className="mt-4">
             {d.pricing.failedBody}
@@ -133,10 +127,10 @@ export default async function PricingPage() {
 
         {stations.length > 0 && (
           <Card className="mt-4 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="max-h-[70vh] overflow-auto">
               <table className="w-full min-w-[34rem] border-collapse text-sm">
                 <caption className="sr-only">{d.pricing.caption}</caption>
-                <thead>
+                <thead className="sticky top-0 z-10">
                   <tr className="border-b border-border bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <th scope="col" className="px-4 py-3">
                       {d.pricing.colChargePoint}

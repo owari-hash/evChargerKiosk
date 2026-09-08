@@ -96,11 +96,13 @@ export function formatMoney(
   locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
 ): string {
   if (value === undefined || value === null || Number.isNaN(value)) return '—';
-  return new Intl.NumberFormat(safeLocale(locale), {
-    style: 'currency',
-    currency: 'MNT',
+  // Node's and the browser's ICU data disagree on the MNT currency symbol
+  // ("₮" vs "MNT"), which desyncs SSR and hydration. Formatting the number
+  // plainly and prefixing the symbol ourselves keeps it identical everywhere.
+  const amount = new Intl.NumberFormat(safeLocale(locale), {
     maximumFractionDigits: 0,
   }).format(value);
+  return `₮ ${amount}`;
 }
 
 /** Tariffs read as a rate: "₮ 550/кВт·ц". */

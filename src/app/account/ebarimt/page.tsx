@@ -12,11 +12,12 @@ import type { WalletEntry } from '@/lib/csms/wallet';
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: 'И-Баримтын түүх' };
+  const { d } = await getTranslations();
+  return { title: d.account.ebarimt.metaTitle };
 }
 
 export default async function AccountEbarimtPage() {
-  const [user, { d, locale }] = await Promise.all([getCurrentUser(), getTranslations()]);
+  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
   if (!user) redirect('/login');
 
   let sessions: ChargingSession[] = [];
@@ -38,17 +39,11 @@ export default async function AccountEbarimtPage() {
 
   if (unavailable) {
     return (
-      <Alert tone="warning" title="Мэдээлэл татахад алдаа гарлаа">
-        И-Баримтын мэдээлэл татахад алдаа гарлаа. Та дараа дахин оролдоно уу.
+      <Alert tone="warning" title={d.account.ebarimt.unavailableTitle}>
+        {d.account.ebarimt.unavailableBody}
       </Alert>
     );
   }
 
-  return (
-    <EbarimtHistoryTable
-      walletEntries={walletEntries}
-      sessions={sessions}
-      locale={locale}
-    />
-  );
+  return <EbarimtHistoryTable walletEntries={walletEntries} sessions={sessions} />;
 }
