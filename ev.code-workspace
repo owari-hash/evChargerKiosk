@@ -1,0 +1,16 @@
+{
+    "folders": [
+        {
+            "path": "../evChargerBack"
+        },
+        {
+            "path": "../evChargerAdmin"
+        },
+        {
+            "path": "."
+        },
+        {
+            "path": "../evChargerApp"
+        }
+    ]
+}

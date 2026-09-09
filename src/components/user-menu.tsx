@@ -8,7 +8,14 @@ import { cn } from '@/lib/utils';
 import { useI18n } from './i18n-provider';
 
 /** Avatar button showing the user's initial; opens a small menu with account + sign out. */
-export function UserMenu({ user }: { user: PublicUser }) {
+export function UserMenu({
+  user,
+  bare = false,
+}: {
+  user: PublicUser;
+  /** Shrink to fit inside the header's control pill, which supplies the chrome. */
+  bare?: boolean;
+}) {
   const { d } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -52,9 +59,10 @@ export function UserMenu({ user }: { user: PublicUser }) {
         aria-label={displayName}
         title={displayName}
         className={cn(
-          'grid size-9 place-items-center rounded-full bg-gradient-to-br from-brand to-brand-strong',
-          'text-sm font-bold text-brand-contrast ring-2 ring-transparent transition',
+          'grid place-items-center rounded-full bg-gradient-to-br from-brand to-brand-strong',
+          'font-bold text-brand-contrast ring-2 ring-transparent transition',
           'hover:ring-brand/30',
+          bare ? 'size-8 text-xs' : 'size-9 text-sm',
           open && 'ring-brand/40',
         )}
       >

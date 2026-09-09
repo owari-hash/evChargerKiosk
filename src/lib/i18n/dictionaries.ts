@@ -1482,7 +1482,7 @@ export const mn: Dictionary = {
       passwordChanged: 'Нууц үг солигдлоо',
       forgotPassword: 'Нууц үгээ мартсан уу?',
       noAccount: 'Бүртгэл байхгүй юу?',
-      keepSignedIn: 'Намайг нэвтэрсэн хэвээр байлга',
+      keepSignedIn: 'Намайг сана',
       submit: 'Нэвтрэх',
       newHere: 'Шинэ хэрэглэгч үү?',
       createAccount: 'Бүртгэл үүсгэх',
