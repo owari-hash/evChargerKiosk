@@ -586,6 +586,10 @@ export const en = {
       agreePrefix: 'I agree to the',
       agreeMiddle: 'and the',
       agreeSuffix: '.',
+      verificationSent: 'We sent a confirmation link to {destination}. Open it to confirm your email address.',
+      verificationFailed: 'We could not send the confirmation email to {destination} just now. You can ask for a new link from your account page.',
+      alreadySignedInNotice: 'You are signed in already. Confirming your email is what lets us send charging receipts and account notices.',
+      continueToAccount: 'Continue to your account',
     },
 
     forgot: {
@@ -1503,6 +1507,10 @@ export const mn: Dictionary = {
       agreePrefix: 'Би',
       agreeMiddle: 'болон',
       agreeSuffix: '-ыг зөвшөөрч байна.',
+      verificationSent: 'Бид {destination} хаяг руу баталгаажуулах холбоос илгээлээ. И-мэйлээ нээн хаягаа баталгаажуулна уу.',
+      verificationFailed: 'Бид {destination} хаяг руу баталгаажуулах и-мэйлийг одоогоор илгээж чадсангүй. Та хувийн бүртгэлийн хуудаснаасаа шинэ холбоос авах боломжтой.',
+      alreadySignedInNotice: 'Та аль хэдийн нэвтэрсэн байна. И-мэйлээ баталгаажуулснаар цэнэглэлтийн баримт болон бүртгэлийн мэдэгдлүүд очих болно.',
+      continueToAccount: 'Хувийн бүртгэл рүүгээ үргэлжлүүлэх',
     },
 
     forgot: {

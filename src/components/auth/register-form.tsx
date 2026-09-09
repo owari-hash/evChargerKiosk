@@ -95,32 +95,31 @@ export function RegisterForm() {
   }
 
   if (verification) {
+    const sentParts = d.auth.register.verificationSent.split('{destination}');
+    const failedParts = d.auth.register.verificationFailed.split('{destination}');
+
     return (
       <div className="space-y-5">
         <Alert tone="success" title={d.auth.login.accountReady}>
           {verification.sent ? (
-            <>
-              We sent a confirmation link to <strong>{verification.destination}</strong>. Open it to
-              confirm your email address.
-            </>
+            <span>
+              {sentParts[0]}<strong>{verification.destination}</strong>{sentParts[1] ?? ''}
+            </span>
           ) : (
-            <>
-              We could not send the confirmation email to{' '}
-              <strong>{verification.destination}</strong> just now. You can ask for a new link from
-              your account page.
-            </>
+            <span>
+              {failedParts[0]}<strong>{verification.destination}</strong>{failedParts[1] ?? ''}
+            </span>
           )}
         </Alert>
 
         <p className="text-sm text-muted">
-          You are signed in already. Confirming your email is what lets us send charging receipts
-          and account notices.
+          {d.auth.register.alreadySignedInNotice}
         </p>
 
         <DevHint token={verification.devToken} linkPath="/verify-email" />
 
         <Button type="button" size="lg" className="w-full" onClick={goToAccount}>
-          Continue to your account
+          {d.auth.register.continueToAccount}
         </Button>
       </div>
     );
