@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
@@ -370,17 +369,17 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         className="ev-map absolute inset-0 h-full w-full"
       />
 
-      {/* A single row of icons, same visual language as the zoom/locate rail: one
-          compact control instead of a column that eats the height of the map. */}
+      {/* A vertical icon rail, same visual language as the zoom/locate rail: one
+          compact control instead of a row that has to wrap or scroll. */}
       <div
         ref={controlsRef}
-        className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-end gap-2 p-3 sm:p-4 lg:p-6"
+        className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-end gap-2 p-3 sm:p-4"
       >
         <div className="pointer-events-auto relative flex flex-col items-end gap-2">
           <div
             role="group"
             aria-label={t.filterLabel}
-            className="flex overflow-hidden rounded-2xl bg-surface shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border"
+            className="flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border"
           >
             {activeCount > 0 && (
               <>
@@ -407,7 +406,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                     {activeCount}
                   </span>
                 </button>
-                <span aria-hidden className="w-px bg-border" />
+                <span aria-hidden className="h-px bg-border" />
               </>
             )}
             {groups.map((group, index) => (
@@ -423,24 +422,17 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             ))}
           </div>
 
-          {/* Flyout anchored under the icon that opened it, not under the middle
-              of the rail — each column is a fixed 45px (button + divider), so the
-              offset from the rail's right edge is just index math, no measuring
-              needed. Narrow screens have no room for that and pin it flush right
-              instead, where the panel is nearly as wide as the viewport anyway. */}
+          {/* Flyout anchored beside the icon that opened it, not below the whole
+              rail — each row is a fixed 45px (button + divider) so the offset is
+              just index math, no measuring needed. */}
           {open && (
             <div
               id={`hero-filter-${open.key}`}
               role="listbox"
               aria-label={open.label}
-              style={
-                {
-                  '--flyout-right': `${(groups.length - 1 - groups.findIndex((g) => g.key === open.key)) * 45}px`,
-                } as CSSProperties
-              }
+              style={{ top: (activeCount > 0 ? 45 : 0) + groups.findIndex((g) => g.key === open.key) * 45 }}
               className={cn(
-                'absolute right-0 top-[calc(100%+0.5rem)] sm:right-[var(--flyout-right)]',
-                'w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3',
+                'absolute right-[calc(100%+0.5rem)] w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3',
                 'shadow-[0_16px_44px_-18px_rgb(2_6_23/0.6)] ring-1 ring-border',
               )}
             >
@@ -624,7 +616,7 @@ function FilterIconButton({
 }) {
   return (
     <>
-      {divider && <span aria-hidden className="w-px bg-border" />}
+      {divider && <span aria-hidden className="h-px bg-border" />}
       <button
         type="button"
         onClick={onToggle}

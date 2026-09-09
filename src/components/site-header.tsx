@@ -68,31 +68,27 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Language, theme and the avatar read as one control: a single pill,
-              hairline dividers between them, no gaps for the eye to cross. */}
-          <div className="hidden items-center gap-0.5 rounded-xl bg-surface-muted p-0.5 ring-1 ring-border md:flex">
+          <div className="hidden items-center gap-0.5 rounded-xl bg-surface-muted p-0.5 ring-1 ring-border sm:flex">
             <LocaleSwitcher bare />
             <span aria-hidden className="h-5 w-px bg-border" />
             <ThemeToggle className="grid size-8 place-items-center rounded-[10px] text-muted transition hover:bg-surface hover:text-foreground" />
-            {user && (
-              <>
-                <span aria-hidden className="h-5 w-px bg-border" />
-                <UserMenu user={user} bare />
-              </>
+          </div>
+          <ThemeToggle className="grid size-9 place-items-center rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground sm:hidden" />
+
+          <div className="hidden items-center md:flex">
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/login" className={buttonClass('ghost', 'sm')}>
+                  {d.common.signIn}
+                </Link>
+                <Link href="/register" className={buttonClass('primary', 'sm')}>
+                  {d.common.createAccount}
+                </Link>
+              </div>
             )}
           </div>
-          <ThemeToggle className="grid size-9 place-items-center rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground md:hidden" />
-
-          {!user && (
-            <div className="hidden items-center gap-2 md:flex">
-              <Link href="/login" className={buttonClass('ghost', 'sm')}>
-                {d.common.signIn}
-              </Link>
-              <Link href="/register" className={buttonClass('primary', 'sm')}>
-                {d.common.createAccount}
-              </Link>
-            </div>
-          )}
 
           <button
             type="button"
@@ -168,7 +164,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
                   </Link>
                 </>
               )}
-              <LocaleSwitcher className="self-start md:hidden" />
+              <LocaleSwitcher className="self-start sm:hidden" />
             </div>
           </nav>
         </div>
