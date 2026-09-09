@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
+import { getCurrentUser } from '@/lib/auth/session';
 import { getTranslations } from '@/lib/i18n';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getTranslations();
@@ -10,7 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ForgotPasswordPage() {
-  const { d } = await getTranslations();
+  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
+  if (user) redirect('/account');
 
   return (
     <AuthShell

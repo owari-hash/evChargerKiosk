@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { AuthFormFallback, AuthShell } from '@/components/auth/auth-shell';
 import { RegisterForm } from '@/components/auth/register-form';
+import { getCurrentUser } from '@/lib/auth/session';
 import { getTranslations } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RegisterPage() {
-  const { d } = await getTranslations();
+  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
+  if (user) redirect('/account');
 
   return (
     <AuthShell
