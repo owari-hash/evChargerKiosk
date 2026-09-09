@@ -1,13 +1,12 @@
-import { StationCard } from '@/components/stations/station-card';
 import { HeroMapSection } from '@/components/stations/hero-map-section';
 import { toMapStations } from '@/components/stations/map-station';
-import { Alert, ButtonLink } from '@/components/ui';
+import { ButtonLink } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listStations, type StationResult } from '@/lib/csms/stations';
 import { getTranslations } from '@/lib/i18n';
 
 export default async function HomePage() {
-  const [user, { d, locale }] = await Promise.all([getCurrentUser(), getTranslations()]);
+  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
 
   const features = [
     {
@@ -54,18 +53,14 @@ export default async function HomePage() {
     { title: d.home.step3Title, body: d.home.step3Body, badge: '03' },
   ];
 
-  // One load serves both the hero map and the featured cards below it.
   let result: StationResult = { stations: [], demo: false };
-  let loadError: string | undefined;
   try {
     result = await listStations({ limit: 200 });
   } catch (err) {
     console.error('[home] failed to load stations', err);
-    loadError = d.errors.networkUnreachable;
   }
 
   const mapStations = toMapStations(result.stations);
-  const featured = result.stations.slice(0, 6);
 
   return (
     <>
@@ -80,7 +75,7 @@ export default async function HomePage() {
         />
 
         <a
-          href="#network-stations"
+          href="#features"
           aria-label={d.home.scrollDown}
           title={d.home.scrollDown}
           className="absolute inset-x-0 -bottom-6 z-30 flex justify-center"
@@ -93,45 +88,8 @@ export default async function HomePage() {
         </a>
       </section>
 
-      {/* Network Stations Section */}
-      <section id="network-stations" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {d.home.networkTitle}
-            </h2>
-            <p className="mt-1.5 max-w-xl text-sm text-muted">
-              {d.home.networkSubtitle}
-            </p>
-          </div>
-          <ButtonLink href="/stations" variant="secondary" size="md">
-            {d.home.seeAll} →
-          </ButtonLink>
-        </div>
-
-        {loadError && (
-          <Alert tone="danger" title={d.errors.stationsFailed} className="mt-6">
-            {loadError}
-          </Alert>
-        )}
-
-        {featured.length > 0 ? (
-          <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((station) => (
-              <li key={station.id}>
-                <StationCard station={station} locale={locale} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          !loadError && (
-            <p className="mt-6 text-sm text-muted">{d.home.noStations}</p>
-          )
-        )}
-      </section>
-
       {/* Features Showcase Section */}
-      <section className="border-t border-border bg-surface-muted/40 py-16">
+      <section id="features" className="border-t border-border bg-surface-muted/40 py-16 scroll-mt-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mx-auto max-w-2xl text-center">
             <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
