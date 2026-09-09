@@ -45,7 +45,7 @@ export const en = {
   },
 
   footer: {
-    rights: '© {year} Жиркто ХХК',
+    rights: '© Жиркто ХХК ©  {year} Бүх эрх хуулиар баталгаажсан. Version 1.0.9',
     terms: 'Terms',
     privacy: 'Privacy',
   },
@@ -961,7 +961,7 @@ export const mn: Dictionary = {
   },
 
   footer: {
-    rights: '© {year} Жиркто ХХК',
+    rights: '© Жиркто ХХК ©  {year} Бүх эрх хуулиар баталгаажсан. Version 1.0.9',
     terms: 'Үйлчилгээний нөхцөл',
     privacy: 'Нууцлалын бодлого',
   },

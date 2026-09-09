@@ -5,6 +5,8 @@ import { AuthFormFallback, AuthShell } from '@/components/auth/auth-shell';
 import { RegisterForm } from '@/components/auth/register-form';
 import { getTranslations } from '@/lib/i18n';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getTranslations();
   return { title: d.auth.register.metaTitle, description: d.auth.register.metaDescription };

@@ -4,6 +4,8 @@ import { AccountNav } from '@/components/account/account-nav';
 import { getCurrentUser } from '@/lib/auth/session';
 import { format, getTranslations } from '@/lib/i18n';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getTranslations();
   return { title: d.account.title };
