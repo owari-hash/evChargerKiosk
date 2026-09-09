@@ -190,6 +190,17 @@ html {
   contain: paint;
 }
 
+/* The filter chips scroll sideways once they outgrow the screen. The bar itself
+   would sit over the map, so it is hidden and the half-cut chip at the edge is
+   what says there is more to the right. */
+.ev-chip-row {
+  scrollbar-width: none;
+}
+
+.ev-chip-row::-webkit-scrollbar {
+  display: none;
+}
+
 .ev-map-skeleton {
   background:
     linear-gradient(120deg, transparent 40%, rgb(255 255 255 / 0.06) 50%, transparent 60%),

@@ -305,6 +305,7 @@ export const en = {
       priceUpTo: 'Max {price}',
       clearAll: 'Clear',
       clearAllHint: 'Reset every filter',
+      clearFilter: 'Clear {name}',
       count: '{count} stations',
       showList: 'List · {count}',
       hideList: 'Hide list',
@@ -1226,6 +1227,7 @@ export const mn: Dictionary = {
       priceUpTo: '{price} хүртэл',
       clearAll: 'Цэвэрлэх',
       clearAllHint: 'Бүх шүүлтүүрийг цэвэрлэх',
+      clearFilter: '{name} шүүлтүүрийг цэвэрлэх',
       count: '{count} станц',
       showList: 'Жагсаалт · {count}',
       hideList: 'Жагсаалтыг хаах',
@@ -1697,10 +1699,10 @@ export const mn: Dictionary = {
   terms: {
     metaTitle: 'Үйлчилгээний нөхцөл (төсөл)',
     metaDescription:
-      'Цэнэглэлтийн аппын үйлчилгээний нөхцөлийн төсөл. Нээхээс өмнө операторын өөрийн эрх зүйн бичвэрээр солигдоно.',
-    draftTitle: 'Төсөл — хараахан хууль зүйн хүчин төгөлдөр бус',
+      '',
+    draftTitle: '',
     draftBody:
-      'Энэ бол аппад бүрэн хуудсууд байлгах зорилгоор бичсэн түр бичвэр юм. Үйлчилгээг олон нийтэд нээхээс өмнө операторын өөрийн, хуульчаар хянуулсан үйлчилгээний нөхцөлөөр солих ёстой.',
+      '',
     title: 'Үйлчилгээний нөхцөл',
     intro: '{brand} вэбсайт болон түүнд тодорхойлсон цэнэглэх сүлжээг ашиглах журам.',
     seeAlsoPrefix: 'Мөн энэ апп таны талаар юу хадгалдгийг тайлбарласан',

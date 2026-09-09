@@ -99,11 +99,16 @@ interface FilterOption {
 interface FilterGroup {
   key: GroupKey;
   label: string;
-  /** What the button shows underneath the label. */
+  /** The current selection; the chip shows this in place of the name once set. */
   value: string;
   active: boolean;
+  /** Returns this one filter to "any", leaving the others alone. */
+  clear: () => void;
   options: FilterOption[];
 }
+
+/** Matches the flyout's `w-64`, so its offset can be clamped before it paints. */
+const FLYOUT_WIDTH = 256;
 
 export interface HeroMapSectionProps {
   stations: MapStation[];
@@ -118,14 +123,20 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   const [stations, setStations] = useState(initialStations);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
+  const [flyoutLeft, setFlyoutLeft] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  // The phone's sheet starts collapsed because it is a summary bar over the
+  // map; the column has the room to start open, so it is its own state rather
+  // than a shared one the breakpoint would have to reinterpret.
+  const [columnOpen, setColumnOpen] = useState(true);
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<GeoErrorKey | null>(null);
   const [fitNonce, setFitNonce] = useState(0);
 
   const controlsRef = useRef<HTMLDivElement>(null);
+  const chipRowRef = useRef<HTMLDivElement>(null);
 
   // The zoom buttons sit in this page's own control rail rather than in
   // Leaflet's, so the map hands its controls over once it has mounted.
@@ -161,22 +172,27 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   }, []);
 
   // An open drop-down closes on Escape or on a click anywhere else — including
-  // on the map, which would otherwise be steered from behind the panel.
+  // on the map, which would otherwise be steered from behind the panel — and on
+  // a scroll of the chip row, which would leave it pointing at the wrong chip.
   useEffect(() => {
     if (!openGroup) return;
 
+    const close = () => setOpenGroup(null);
     const onPointerDown = (event: PointerEvent) => {
-      if (!controlsRef.current?.contains(event.target as Node)) setOpenGroup(null);
+      if (!controlsRef.current?.contains(event.target as Node)) close();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenGroup(null);
+      if (event.key === 'Escape') close();
     };
 
+    const row = chipRowRef.current;
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    row?.addEventListener('scroll', close);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
+      row?.removeEventListener('scroll', close);
     };
   }, [openGroup]);
 
@@ -233,6 +249,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             ? format(t.powerAtLeast, { power: formatPowerKw(filters.minPowerKw, intl) })
             : t.optionAny,
         active: filters.minPowerKw > 0,
+        clear: () => set('minPowerKw', 0),
         options: [
           anyOption(filters.minPowerKw === 0, () => set('minPowerKw', 0)),
           ...POWER_STEPS.map((kw) => ({
@@ -253,6 +270,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
               ? t.currentAc
               : t.optionAny,
         active: filters.currentType !== 'any',
+        clear: () => set('currentType', 'any'),
         options: [
           anyOption(filters.currentType === 'any', () => set('currentType', 'any')),
           {
@@ -274,6 +292,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         label: t.groupConnector,
         value: filters.connector || t.optionAny,
         active: filters.connector !== '',
+        clear: () => set('connector', ''),
         options: [
           anyOption(filters.connector === '', () => set('connector', '')),
           ...CONNECTOR_TYPES.map((type) => ({
@@ -290,6 +309,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         value:
           filters.status === 'any' ? t.optionAny : availabilityLabel(filters.status, locale),
         active: filters.status !== 'any',
+        clear: () => set('status', 'any'),
         options: [
           anyOption(filters.status === 'any', () => set('status', 'any')),
           ...STATUS_STEPS.map((status) => ({
@@ -308,6 +328,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             ? format(t.priceUpTo, { price: formatMoney(filters.maxTariff, intl) })
             : t.optionAny,
         active: filters.maxTariff > 0,
+        clear: () => set('maxTariff', 0),
         options: [
           anyOption(filters.maxTariff === 0, () => set('maxTariff', 0)),
           ...PRICE_STEPS.map((price) => ({
@@ -331,6 +352,26 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   const activeId = selected?.id ?? null;
 
   const select = useCallback((id: string | null) => setSelectedId(id), []);
+
+  // The flyout is a sibling of the chip row rather than a child, because a
+  // sideways-scrolling row clips anything hanging out of it. So its offset is
+  // read off the chip once, on open, and clamped to keep the panel on screen.
+  const toggleFilter = useCallback(
+    (key: GroupKey) => {
+      if (openGroup === key) {
+        setOpenGroup(null);
+        return;
+      }
+      const row = chipRowRef.current;
+      const chip = row?.querySelector<HTMLElement>(`[data-group="${key}"]`);
+      if (row && chip) {
+        const limit = Math.max(0, row.clientWidth - FLYOUT_WIDTH);
+        setFlyoutLeft(Math.min(Math.max(0, chip.offsetLeft - row.scrollLeft), limit));
+      }
+      setOpenGroup(key);
+    },
+    [openGroup],
+  );
 
   function locate() {
     setGeoError(null);
@@ -369,20 +410,33 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         className="ev-map absolute inset-0 h-full w-full"
       />
 
-      {/* A vertical icon rail, same visual language as the zoom/locate rail: one
-          compact control instead of a row that has to wrap or scroll. */}
-      <div
-        ref={controlsRef}
-        className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-end gap-2 p-3 sm:p-4"
-      >
-        <div className="pointer-events-auto relative flex flex-col items-end gap-2">
+      {/* One column holds everything that floats over the map: the filter chips
+          across the top, then the results and the map rail sharing the space
+          underneath. Keeping them in a single flow means the panel never has to
+          guess how tall the chip row ended up. */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex flex-col gap-2 p-3 pb-7 sm:gap-3 sm:p-4 sm:pb-7 lg:p-6 lg:pb-8">
+        {/* Filters read as labelled chips rather than bare icons: the name — and
+            the chosen value once there is one — stays on screen, so nothing
+            depends on a hover tooltip that a touchscreen never shows. The row
+            scrolls sideways when it outgrows a narrow phone. */}
+        <div ref={controlsRef} className="relative z-10 w-full shrink-0">
           <div
+            ref={chipRowRef}
             role="group"
             aria-label={t.filterLabel}
-            className="flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border"
+            className="ev-chip-row pointer-events-auto w-full overflow-x-auto pb-1"
           >
-            {activeCount > 0 && (
-              <>
+            <div className="mx-auto flex w-max gap-2">
+              {groups.map((group) => (
+                <FilterChip
+                  key={group.key}
+                  group={group}
+                  open={openGroup === group.key}
+                  onToggle={() => toggleFilter(group.key)}
+                />
+              ))}
+
+                {activeCount > 0 && (
                 <button
                   type="button"
                   onClick={() => {
@@ -390,7 +444,11 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                     setOpenGroup(null);
                   }}
                   title={t.clearAllHint}
-                  className="relative grid size-11 place-items-center text-foreground transition hover:bg-surface-muted"
+                  className={cn(
+                    'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface px-4',
+                    'text-sm font-semibold text-muted ring-1 ring-border transition hover:text-foreground',
+                    'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)]',
+                  )}
                 >
                   <svg
                     aria-hidden
@@ -398,41 +456,24 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="size-5"
+                    className="size-4"
                   >
                     <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
                   </svg>
-                  <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-brand text-[10px] font-bold text-brand-contrast">
-                    {activeCount}
-                  </span>
+                  {t.clearAll}
                 </button>
-                <span aria-hidden className="h-px bg-border" />
-              </>
-            )}
-            {groups.map((group, index) => (
-              <FilterIconButton
-                key={group.key}
-                group={group}
-                open={openGroup === group.key}
-                divider={index > 0}
-                onToggle={() =>
-                  setOpenGroup((current) => (current === group.key ? null : group.key))
-                }
-              />
-            ))}
+              )}
+            </div>
           </div>
 
-          {/* Flyout anchored beside the icon that opened it, not below the whole
-              rail — each row is a fixed 45px (button + divider) so the offset is
-              just index math, no measuring needed. */}
           {open && (
             <div
               id={`hero-filter-${open.key}`}
               role="listbox"
               aria-label={open.label}
-              style={{ top: (activeCount > 0 ? 45 : 0) + groups.findIndex((g) => g.key === open.key) * 45 }}
+              style={{ left: flyoutLeft }}
               className={cn(
-                'absolute right-[calc(100%+0.5rem)] w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3',
+                'pointer-events-auto absolute top-full mt-1 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3',
                 'shadow-[0_16px_44px_-18px_rgb(2_6_23/0.6)] ring-1 ring-border',
               )}
             >
@@ -477,59 +518,83 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         {geoError && (
           <p
             role="alert"
-            className="pointer-events-auto rounded-full bg-surface px-4 py-2 text-xs text-danger shadow-sm ring-1 ring-border"
+            className="pointer-events-auto w-fit shrink-0 self-center rounded-full bg-surface px-4 py-2 text-xs text-danger shadow-sm ring-1 ring-border"
           >
             {d.stations[geoError]}
           </p>
         )}
-      </div>
 
-      {/* The sheet and the control rail share the bottom edge: stacked on a phone
-          so the rail stays clear of the sheet, side by side from `sm` up. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-end gap-3 p-3 pb-7 sm:flex-row sm:items-end sm:justify-between sm:p-4 sm:pb-7 lg:p-6 lg:pb-8">
-        <Sheet
-          stations={visible}
-          selected={selected}
-          open={listOpen}
-          onToggle={() => setListOpen((value) => !value)}
-          onSelect={select}
-          onClearSelection={() => setSelectedId(null)}
-          intl={intl}
-          locale={locale}
-          className="order-2 sm:order-1"
-        />
+        {/* From `sm` up the results stand in a column down the right edge, under
+            the chips, and the map rail takes the bottom-left corner. A phone has
+            no room for that, so the two stack against the bottom edge instead,
+            the rail above the sheet. */}
+        <div className="flex min-h-0 flex-1 flex-col items-end justify-end gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <Sheet
+            stations={visible}
+            selected={selected}
+            open={listOpen}
+            onToggle={() => setListOpen((value) => !value)}
+            columnOpen={columnOpen}
+            onToggleColumn={() => setColumnOpen((value) => !value)}
+            onSelect={select}
+            onClearSelection={() => setSelectedId(null)}
+            intl={intl}
+            locale={locale}
+            className="order-2 sm:order-2 sm:self-start"
+          />
 
-        <div className="pointer-events-none order-1 flex flex-col gap-2 sm:order-2">
-          <div className="pointer-events-auto hidden flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border sm:flex">
-            <RailButton label={t.zoomIn} onClick={() => mapApi.current?.zoomIn()}>
-              <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-            </RailButton>
-            <span aria-hidden className="h-px bg-border" />
-            <RailButton label={t.zoomOut} onClick={() => mapApi.current?.zoomOut()}>
-              <path strokeLinecap="round" d="M5 12h14" />
-            </RailButton>
-          </div>
+          <div className="pointer-events-none order-1 flex flex-col gap-2 sm:order-1">
+            <div className="pointer-events-auto hidden flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border sm:flex">
+              <RailButton label={t.zoomIn} onClick={() => mapApi.current?.zoomIn()}>
+                <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+              </RailButton>
+              <span aria-hidden className="h-px bg-border" />
+              <RailButton label={t.zoomOut} onClick={() => mapApi.current?.zoomOut()}>
+                <path strokeLinecap="round" d="M5 12h14" />
+              </RailButton>
+            </div>
 
-          <button
-            type="button"
-            onClick={locate}
-            disabled={locating}
-            aria-label={locating ? t.locating : t.locate}
-            title={locating ? t.locating : t.locate}
-            className={cn(
-              'pointer-events-auto grid size-11 place-items-center rounded-2xl transition',
-              'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 disabled:opacity-60',
-              origin
-                ? 'bg-brand text-brand-contrast ring-brand'
-                : 'bg-surface text-foreground ring-border hover:bg-surface-muted',
-            )}
-          >
-            {locating ? (
-              <span
-                aria-hidden
-                className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-              />
-            ) : (
+            <button
+              type="button"
+              onClick={locate}
+              disabled={locating}
+              aria-label={locating ? t.locating : t.locate}
+              title={locating ? t.locating : t.locate}
+              className={cn(
+                'pointer-events-auto grid size-11 place-items-center rounded-2xl transition',
+                'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 disabled:opacity-60',
+                origin
+                  ? 'bg-brand text-brand-contrast ring-brand'
+                  : 'bg-surface text-foreground ring-border hover:bg-surface-muted',
+              )}
+            >
+              {locating ? (
+                <span
+                  aria-hidden
+                  className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                />
+              ) : (
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="size-5"
+                >
+                  <circle cx="12" cy="12" r="3.2" />
+                  <path strokeLinecap="round" d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+                </svg>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={resetView}
+              aria-label={t.resetView}
+              title={t.resetView}
+              className="pointer-events-auto grid size-11 place-items-center rounded-2xl bg-surface text-foreground shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border transition hover:bg-surface"
+            >
               <svg
                 aria-hidden
                 viewBox="0 0 24 24"
@@ -538,34 +603,14 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                 strokeWidth="2"
                 className="size-5"
               >
-                <circle cx="12" cy="12" r="3.2" />
-                <path strokeLinecap="round" d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 9V5h4M20 9V5h-4M4 15v4h4m12-4v4h-4"
+                />
               </svg>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={resetView}
-            aria-label={t.resetView}
-            title={t.resetView}
-            className="pointer-events-auto grid size-11 place-items-center rounded-2xl bg-surface text-foreground shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)] ring-1 ring-border transition hover:bg-surface"
-          >
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="size-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 9V5h4M20 9V5h-4M4 15v4h4m12-4v4h-4"
-              />
-            </svg>
-          </button>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -602,33 +647,41 @@ const GROUP_ICON_PATHS: Record<GroupKey, ReactNode> = {
   ),
 };
 
-/** Every filter renders through this, so they stay the same size and shape as the zoom rail. */
-function FilterIconButton({
+/**
+ * A filter reads as a pill: its icon, then its name — or, once it is set, the
+ * value itself with an ✕ that clears just this one. The clear button sits beside
+ * the trigger rather than inside it, since a button cannot nest in a button.
+ */
+function FilterChip({
   group,
   open,
-  divider,
   onToggle,
 }: {
   group: FilterGroup;
   open: boolean;
-  divider: boolean;
   onToggle: () => void;
 }) {
+  const { d } = useI18n();
+
   return (
-    <>
-      {divider && <span aria-hidden className="h-px bg-border" />}
+    <div
+      className={cn(
+        'flex shrink-0 items-center rounded-full ring-1 transition',
+        'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)]',
+        group.active
+          ? 'bg-brand text-brand-contrast ring-brand'
+          : 'bg-surface text-foreground ring-border',
+      )}
+    >
       <button
         type="button"
+        data-group={group.key}
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={`hero-filter-${group.key}`}
-        aria-label={`${group.label} — ${group.value}`}
-        title={`${group.label}: ${group.value}`}
         className={cn(
-          'relative grid size-11 place-items-center transition',
-          group.active
-            ? 'bg-brand text-brand-contrast'
-            : 'text-foreground hover:bg-surface-muted',
+          'flex h-11 items-center gap-2 rounded-full pl-3.5 text-sm font-semibold transition',
+          group.active ? 'pr-1.5' : 'pr-3.5 hover:bg-surface-muted',
         )}
       >
         <svg
@@ -637,18 +690,45 @@ function FilterIconButton({
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="size-5"
+          className="size-[18px] shrink-0"
         >
           {GROUP_ICON_PATHS[group.key]}
         </svg>
-        {group.active && (
-          <span
+        <span className="whitespace-nowrap">{group.active ? group.value : group.label}</span>
+        {!group.active && (
+          <svg
             aria-hidden
-            className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-brand-contrast"
-          />
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className={cn('size-4 shrink-0 text-muted transition-transform', open && 'rotate-180')}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+          </svg>
         )}
       </button>
-    </>
+
+      {group.active && (
+        <button
+          type="button"
+          onClick={group.clear}
+          aria-label={format(d.home.map.clearFilter, { name: group.label })}
+          className="mr-1.5 grid size-8 shrink-0 place-items-center rounded-full transition hover:bg-brand-strong"
+        >
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="size-4"
+          >
+            <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -688,6 +768,8 @@ interface SheetProps {
   selected: MapStation | null;
   open: boolean;
   onToggle: () => void;
+  columnOpen: boolean;
+  onToggleColumn: () => void;
   onSelect: (id: string) => void;
   onClearSelection: () => void;
   intl: string;
@@ -696,15 +778,20 @@ interface SheetProps {
 }
 
 /**
- * One surface at the bottom edge: a compact summary bar that expands into the
- * result list, and swaps to the station detail when a pin is picked. Keeping
- * both in the same place means the map is never covered by two panels at once.
+ * One surface for the results, standing as a column beside the map from `sm` up
+ * and collapsing to a sheet on the bottom edge below it. The two are the same
+ * markup switched by breakpoint rather than two components, so the list has a
+ * single definition; what changes is that the column has nothing to collapse,
+ * so its summary bar is a heading instead of a toggle. Picking a pin swaps the
+ * surface to that station's detail, so the map is never under two panels.
  */
 function Sheet({
   stations,
   selected,
   open,
   onToggle,
+  columnOpen,
+  onToggleColumn,
   onSelect,
   onClearSelection,
   intl,
@@ -737,7 +824,8 @@ function Sheet({
     <div
       className={cn(
         'pointer-events-auto relative w-full overflow-hidden rounded-3xl bg-surface',
-        'shadow-[0_20px_60px_-24px_rgb(2_6_23/0.6)] ring-1 ring-border sm:w-[400px]',
+        'shadow-[0_20px_60px_-24px_rgb(2_6_23/0.6)] ring-1 ring-border',
+        'sm:flex sm:max-h-full sm:w-[320px] sm:flex-col',
         className,
       )}
     >
@@ -748,7 +836,10 @@ function Sheet({
 
       {selected ? (
         <>
-          <div ref={scrollRef} className="max-h-[72svh] overflow-y-auto sm:max-h-[75vh]">
+          <div
+            ref={scrollRef}
+            className="max-h-[72svh] overflow-y-auto sm:max-h-none sm:min-h-0 sm:flex-auto"
+          >
             <div className="flex items-start gap-2 px-3 pb-1 pt-3">
               <button
                 type="button"
@@ -805,7 +896,7 @@ function Sheet({
             aria-expanded={open}
             aria-controls="hero-map-list"
             title={open ? t.hideList : format(t.showList, { count: stations.length })}
-            className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-muted/50"
+            className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-muted/50 sm:hidden"
           >
             <span
               aria-hidden
@@ -833,18 +924,66 @@ function Sheet({
             </svg>
           </button>
 
-          {open && (
-            <div className="px-3 pb-3">
-              <StationRows
-                id="hero-map-list"
-                stations={stations}
-                onSelect={onSelect}
-                emptyLabel={t.noResults}
-                intl={intl}
-              />
-              <Legend />
-            </div>
-          )}
+          {/* The same summary line, as the column's own toggle — it tracks
+              `columnOpen` rather than the sheet's state, so collapsing one does
+              not collapse the other when the window crosses the breakpoint. */}
+          <button
+            type="button"
+            onClick={onToggleColumn}
+            aria-expanded={columnOpen}
+            aria-controls="hero-map-list"
+            title={columnOpen ? t.hideList : format(t.showList, { count: stations.length })}
+            className="hidden w-full shrink-0 items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-muted/50 sm:flex"
+          >
+            <span
+              aria-hidden
+              className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"
+            >
+              <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">
+                <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
+              </svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-foreground">
+                {format(t.count, { count: stations.length })}
+              </span>
+              <span className="block truncate text-xs text-muted">{t.subtitle}</span>
+            </span>
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className={cn(
+                'size-5 shrink-0 text-muted transition-transform',
+                columnOpen && 'rotate-180',
+              )}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+
+          {/* One copy of the list, shown or hidden per breakpoint by whichever
+              toggle owns that breakpoint. It is rendered even while the phone's
+              sheet is shut, since the column usually wants it and the row count
+              is capped at LIST_LIMIT either way. */}
+          <div
+            className={cn(
+              'px-3 pb-3 sm:min-h-0 sm:flex-auto sm:flex-col',
+              !open && 'hidden',
+              columnOpen ? 'sm:flex' : 'sm:hidden',
+            )}
+          >
+            <StationRows
+              id="hero-map-list"
+              stations={stations}
+              onSelect={onSelect}
+              emptyLabel={t.noResults}
+              intl={intl}
+            />
+            <Legend />
+          </div>
         </>
       )}
     </div>
@@ -855,7 +994,7 @@ function Legend() {
   const { d } = useI18n();
 
   return (
-    <ul className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-1 pt-2.5 text-[11px] text-muted">
+    <ul className="mt-2 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-1 pt-2.5 text-[11px] text-muted">
       {(['available', 'busy', 'offline'] as const).map((tone) => (
         <li key={tone} className="inline-flex items-center gap-1.5">
           <span
@@ -890,7 +1029,10 @@ function StationRows({ id, stations, onSelect, emptyLabel, intl }: StationRowsPr
   }
 
   return (
-    <ul id={id} className="-mr-1 max-h-[38svh] space-y-1.5 overflow-y-auto pr-1 sm:max-h-[42vh]">
+    <ul
+      id={id}
+      className="-mr-1 max-h-[38svh] space-y-1.5 overflow-y-auto pr-1 sm:max-h-none sm:min-h-0 sm:flex-auto"
+    >
       {shown.map((station) => (
         <li key={station.id}>
           <button

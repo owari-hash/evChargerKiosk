@@ -21,7 +21,7 @@ export function Alert({ tone = 'info', title, children, className }: AlertProps)
   return (
     <div
       role={tone === 'danger' ? 'alert' : 'status'}
-      className={cn('rounded-xl px-4 py-3 text-sm ring-1', TONES[tone], className)}
+      
     >
       {title && <p className="font-semibold">{title}</p>}
       {children && <div className={cn(title && 'mt-1')}>{children}</div>}
