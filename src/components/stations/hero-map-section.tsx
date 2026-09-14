@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
@@ -23,8 +24,8 @@ import {
   haversineKm,
   intlLocale,
 } from '@/lib/utils';
-import type { HeroMapApi } from './hero-map';
-import { toMapStations, type MapStation } from './map-station';
+import type { HeroMapApi, ViewBounds } from './hero-map';
+import { toMapStations, type MapStation, type StationFreshness } from './map-station';
 
 /**
  * Leaflet touches `window` while it is being imported, so the map is only ever
@@ -53,6 +54,14 @@ const PRICE_STEPS = [1000, 700, 500];
 
 const STATUS_STEPS = ['available', 'busy', 'offline'] as const;
 
+/** Browser storage: favourites and the driver's car ports survive a reload. */
+const FAVORITES_KEY = 'eplug.favorites.v1';
+const CAR_PORTS_KEY = 'eplug.car-ports.v1';
+const STORAGE_EVENT = 'eplug:storage';
+
+/** How long a short confirmation stays on screen. */
+const NOTICE_MS = 3500;
+
 const GEO_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
   timeout: 10_000,
@@ -67,7 +76,58 @@ function geolocationMessage(error: GeolocationPositionError): GeoErrorKey {
   return 'geoFailed';
 }
 
-type GroupKey = 'power' | 'current' | 'connector' | 'status' | 'price';
+function subscribeToStorage(callback: () => void) {
+  window.addEventListener('storage', callback);
+  window.addEventListener(STORAGE_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(STORAGE_EVENT, callback);
+  };
+}
+
+/**
+ * A list of strings kept in localStorage. Read through an external store, so the
+ * server render and hydration agree (both see an empty list) and another tab's
+ * change shows up here too. A browser that refuses storage simply forgets.
+ */
+function useStoredList(key: string): [string[], (next: string[]) => void] {
+  const raw = useSyncExternalStore(
+    subscribeToStorage,
+    () => {
+      try {
+        return localStorage.getItem(key) ?? '';
+      } catch {
+        return '';
+      }
+    },
+    () => '',
+  );
+
+  const list = useMemo(() => {
+    try {
+      const parsed: unknown = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+    } catch {
+      return [];
+    }
+  }, [raw]);
+
+  const save = useCallback(
+    (next: string[]) => {
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {
+        // Storage is blocked; the change lasts until the page is left.
+      }
+      window.dispatchEvent(new Event(STORAGE_EVENT));
+    },
+    [key],
+  );
+
+  return [list, save];
+}
+
+type GroupKey = 'car' | 'power' | 'current' | 'connector' | 'status' | 'price';
 
 interface Filters {
   /** 0 means any rating. */
@@ -87,6 +147,49 @@ const NO_FILTERS: Filters = {
   status: 'any',
   maxTariff: 0,
 };
+
+/** Everything that decides whether a station is on the map. */
+interface Criteria {
+  filters: Filters;
+  query: string;
+  carPorts: ConnectorType[];
+  favoritesOnly: boolean;
+  favorites: ReadonlySet<string>;
+}
+
+function matches(station: MapStation, criteria: Criteria): boolean {
+  const { filters } = criteria;
+  if (filters.minPowerKw > 0 && (station.maxPowerKw ?? 0) < filters.minPowerKw) return false;
+  if (filters.currentType !== 'any' && station.speed !== filters.currentType) return false;
+  if (filters.connector && !station.connectorTypes.includes(filters.connector)) return false;
+  if (filters.status !== 'any' && station.availability !== filters.status) return false;
+  // A station with no published tariff cannot be shown to be under a ceiling.
+  if (filters.maxTariff > 0 && (station.tariffPerKwh ?? Infinity) > filters.maxTariff) {
+    return false;
+  }
+
+  const needle = criteria.query.trim().toLowerCase();
+  if (
+    needle &&
+    !station.name.toLowerCase().includes(needle) &&
+    !(station.address ?? '').toLowerCase().includes(needle)
+  ) {
+    return false;
+  }
+
+  // A station that publishes no plug types stays, marked unverified: missing
+  // data is not the same as an incompatible charger.
+  if (
+    criteria.carPorts.length > 0 &&
+    station.connectorTypes.length > 0 &&
+    !station.connectorTypes.some((type) => criteria.carPorts.includes(type))
+  ) {
+    return false;
+  }
+
+  if (criteria.favoritesOnly && !criteria.favorites.has(station.id)) return false;
+  return true;
+}
 
 /** One option inside a filter's drop-down. */
 interface FilterOption {
@@ -110,6 +213,8 @@ interface FilterGroup {
 /** Matches the flyout's `w-64`, so its offset can be clamped before it paints. */
 const FLYOUT_WIDTH = 256;
 
+const CHIP_SHADOW = 'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)]';
+
 export interface HeroMapSectionProps {
   stations: MapStation[];
   className?: string;
@@ -122,6 +227,8 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
 
   const [stations, setStations] = useState(initialStations);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [query, setQuery] = useState('');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
   const [flyoutLeft, setFlyoutLeft] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -133,7 +240,20 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<GeoErrorKey | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [fitNonce, setFitNonce] = useState(0);
+  const [view, setView] = useState<ViewBounds | null>(null);
+
+  const [favoriteIds, saveFavorites] = useStoredList(FAVORITES_KEY);
+  const [storedPorts, saveCarPorts] = useStoredList(CAR_PORTS_KEY);
+  const favorites = useMemo(() => new Set(favoriteIds), [favoriteIds]);
+  const carPorts = useMemo(
+    () =>
+      storedPorts.filter((port): port is ConnectorType =>
+        (CONNECTOR_TYPES as readonly string[]).includes(port),
+      ),
+    [storedPorts],
+  );
 
   const controlsRef = useRef<HTMLDivElement>(null);
   const chipRowRef = useRef<HTMLDivElement>(null);
@@ -144,6 +264,8 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   const handleMapReady = useCallback((api: HeroMapApi) => {
     mapApi.current = api;
   }, []);
+
+  const handleViewChange = useCallback((next: ViewBounds) => setView(next), []);
 
   // A station added in the admin console shows up here without a page reload.
   useEffect(() => {
@@ -171,6 +293,13 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
     };
   }, []);
 
+  // A confirmation clears itself.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   // An open drop-down closes on Escape or on a click anywhere else — including
   // on the map, which would otherwise be steered from behind the panel — and on
   // a scroll of the chip row, which would leave it pointing at the wrong chip.
@@ -196,6 +325,11 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
     };
   }, [openGroup]);
 
+  const criteria = useMemo<Criteria>(
+    () => ({ filters, query, carPorts, favoritesOnly, favorites }),
+    [filters, query, carPorts, favoritesOnly, favorites],
+  );
+
   const located = useMemo(() => {
     if (!origin) return stations;
     return stations.map((station) => ({
@@ -205,17 +339,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   }, [stations, origin]);
 
   const visible = useMemo(() => {
-    const matched = located.filter((station) => {
-      if (filters.minPowerKw > 0 && (station.maxPowerKw ?? 0) < filters.minPowerKw) return false;
-      if (filters.currentType !== 'any' && station.speed !== filters.currentType) return false;
-      if (filters.connector && !station.connectorTypes.includes(filters.connector)) return false;
-      if (filters.status !== 'any' && station.availability !== filters.status) return false;
-      // A station with no published tariff cannot be shown to be under a ceiling.
-      if (filters.maxTariff > 0 && (station.tariffPerKwh ?? Infinity) > filters.maxTariff) {
-        return false;
-      }
-      return true;
-    });
+    const matched = located.filter((station) => matches(station, criteria));
 
     return matched.sort((a, b) => {
       if (origin) return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
@@ -225,7 +349,19 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
       }
       return a.name.localeCompare(b.name);
     });
-  }, [located, filters, origin]);
+  }, [located, criteria, origin]);
+
+  // The panel lists what is on screen, so panning the map narrows the list.
+  const inView = useMemo(() => {
+    if (!view) return visible;
+    return visible.filter(
+      (station) =>
+        station.lat >= view.south &&
+        station.lat <= view.north &&
+        station.lng >= view.west &&
+        station.lng <= view.east,
+    );
+  }, [visible, view]);
 
   const set = useCallback(<K extends keyof Filters>(key: K, value: Filters[K]) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -241,6 +377,32 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
     });
 
     return [
+      {
+        key: 'car',
+        label: t.groupCar,
+        value: carPorts.join(' · ') || t.optionAny,
+        active: carPorts.length > 0,
+        clear: () => {
+          saveCarPorts([]);
+          setOpenGroup(null);
+        },
+        // A car can have more than one port, so these toggle and the panel stays
+        // open while the driver picks.
+        options: [
+          anyOption(carPorts.length === 0, () => saveCarPorts([])),
+          ...CONNECTOR_TYPES.map((type) => ({
+            id: type,
+            label: type,
+            selected: carPorts.includes(type),
+            apply: () =>
+              saveCarPorts(
+                carPorts.includes(type)
+                  ? carPorts.filter((port) => port !== type)
+                  : [...carPorts, type],
+              ),
+          })),
+        ],
+      },
       {
         key: 'power',
         label: t.groupPower,
@@ -340,9 +502,10 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         ],
       },
     ];
-  }, [filters, t, intl, locale, set]);
+  }, [filters, carPorts, saveCarPorts, t, intl, locale, set]);
 
-  const activeCount = groups.filter((group) => group.active).length;
+  const activeCount =
+    groups.filter((group) => group.active).length + (query ? 1 : 0) + (favoritesOnly ? 1 : 0);
   const open = groups.find((group) => group.key === openGroup) ?? null;
 
   // A station filtered out from under the selection stops counting as selected.
@@ -352,6 +515,23 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   const activeId = selected?.id ?? null;
 
   const select = useCallback((id: string | null) => setSelectedId(id), []);
+
+  const toggleFavorite = useCallback(
+    (id: string) => {
+      const saved = favorites.has(id);
+      saveFavorites(saved ? favoriteIds.filter((favorite) => favorite !== id) : [...favoriteIds, id]);
+      setNotice(saved ? t.favoriteRemoved : t.favoriteSaved);
+    },
+    [favorites, favoriteIds, saveFavorites, t],
+  );
+
+  function clearAll() {
+    setFilters(NO_FILTERS);
+    saveCarPorts([]);
+    setQuery('');
+    setFavoritesOnly(false);
+    setOpenGroup(null);
+  }
 
   // The flyout is a sibling of the chip row rather than a child, because a
   // sideways-scrolling row clips anything hanging out of it. So its offset is
@@ -383,7 +563,22 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocating(false);
-        setOrigin({ lat: position.coords.latitude, lng: position.coords.longitude });
+        const here = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setOrigin(here);
+
+        // Knowing where the driver is, open the nearest station they could use.
+        let nearest: MapStation | null = null;
+        let best = Infinity;
+        for (const station of stations) {
+          if (!matches(station, criteria)) continue;
+          const km = haversineKm(here, { lat: station.lat, lng: station.lng });
+          if (km < best) {
+            best = km;
+            nearest = station;
+          }
+        }
+        if (nearest) setSelectedId(nearest.id);
+        setNotice(nearest ? t.nearestSelected : t.distanceUpdated);
       },
       (err) => {
         setLocating(false);
@@ -404,6 +599,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         stations={visible}
         selectedId={activeId}
         onSelect={select}
+        onViewChange={handleViewChange}
         origin={origin}
         fitNonce={fitNonce}
         onReady={handleMapReady}
@@ -427,6 +623,45 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             className="ev-chip-row pointer-events-auto w-full overflow-x-auto pb-1"
           >
             <div className="mx-auto flex w-max gap-2">
+              <label
+                className={cn(
+                  'flex h-11 w-48 shrink-0 items-center gap-2 rounded-full bg-surface pl-3.5 pr-1.5 ring-1 ring-border transition focus-within:ring-2 focus-within:ring-brand sm:w-56',
+                  CHIP_SHADOW,
+                )}
+              >
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="size-[18px] shrink-0 text-muted"
+                >
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path strokeLinecap="round" d="m20 20-4.2-4.2" />
+                </svg>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t.searchPlaceholder}
+                  aria-label={t.searchPlaceholder}
+                  className="auth-plain-input min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted/80 [&::-webkit-search-cancel-button]:hidden"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    aria-label={t.clearSearch}
+                    className="grid size-8 shrink-0 place-items-center rounded-full text-muted transition hover:bg-surface-muted hover:text-foreground"
+                  >
+                    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+                      <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+                    </svg>
+                  </button>
+                )}
+              </label>
+
               {groups.map((group) => (
                 <FilterChip
                   key={group.key}
@@ -436,18 +671,41 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                 />
               ))}
 
-                {activeCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setFavoritesOnly((value) => !value)}
+                aria-pressed={favoritesOnly}
+                className={cn(
+                  'inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-semibold ring-1 transition',
+                  CHIP_SHADOW,
+                  favoritesOnly
+                    ? 'bg-brand text-brand-contrast ring-brand'
+                    : 'bg-surface text-foreground ring-border hover:bg-surface-muted',
+                )}
+              >
+                <StarIcon filled={favoritesOnly} className="size-[18px] shrink-0" />
+                <span className="whitespace-nowrap">{t.favorites}</span>
+                {favoriteIds.length > 0 && (
+                  <span
+                    className={cn(
+                      'rounded-full px-1.5 text-xs tabular-nums',
+                      favoritesOnly ? 'bg-brand-contrast/20' : 'bg-surface-muted text-muted',
+                    )}
+                  >
+                    {favoriteIds.length}
+                  </span>
+                )}
+              </button>
+
+              {activeCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setFilters(NO_FILTERS);
-                    setOpenGroup(null);
-                  }}
+                  onClick={clearAll}
                   title={t.clearAllHint}
                   className={cn(
                     'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface px-4',
                     'text-sm font-semibold text-muted ring-1 ring-border transition hover:text-foreground',
-                    'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)]',
+                    CHIP_SHADOW,
                   )}
                 >
                   <svg
@@ -471,6 +729,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
               id={`hero-filter-${open.key}`}
               role="listbox"
               aria-label={open.label}
+              aria-multiselectable={open.key === 'car' || undefined}
               style={{ left: flyoutLeft }}
               className={cn(
                 'pointer-events-auto absolute top-full mt-1 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3',
@@ -492,6 +751,9 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                   </svg>
                 </button>
               </div>
+              {open.key === 'car' && (
+                <p className="px-1 pb-2.5 text-xs leading-relaxed text-muted">{t.carHint}</p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 {open.options.map((option) => (
                   <button
@@ -524,13 +786,23 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
           </p>
         )}
 
+        {notice && (
+          <p
+            role="status"
+            className="pointer-events-auto w-fit shrink-0 self-center rounded-full bg-surface px-4 py-2 text-xs font-medium text-foreground shadow-sm ring-1 ring-border"
+          >
+            {notice}
+          </p>
+        )}
+
         {/* From `sm` up the results stand in a column down the right edge, under
             the chips, and the map rail takes the bottom-left corner. A phone has
             no room for that, so the two stack against the bottom edge instead,
             the rail above the sheet. */}
         <div className="flex min-h-0 flex-1 flex-col items-end justify-end gap-3 sm:flex-row sm:items-end sm:justify-between">
           <Sheet
-            stations={visible}
+            stations={inView}
+            total={visible.length}
             selected={selected}
             open={listOpen}
             onToggle={() => setListOpen((value) => !value)}
@@ -538,6 +810,9 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             onToggleColumn={() => setColumnOpen((value) => !value)}
             onSelect={select}
             onClearSelection={() => setSelectedId(null)}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            carPorts={carPorts}
             intl={intl}
             locale={locale}
             className="order-2 sm:order-2 sm:self-start"
@@ -618,6 +893,17 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
 }
 
 const GROUP_ICON_PATHS: Record<GroupKey, ReactNode> = {
+  car: (
+    <>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 16.5V13l1.8-4.6A2 2 0 0 1 7.7 7h8.6a2 2 0 0 1 1.9 1.4L20 13v3.5M4 13h16M6 16.5V19M18 16.5V19M4 16.5h16"
+      />
+      <circle cx="7.5" cy="13.8" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="16.5" cy="13.8" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
   power: <path strokeLinecap="round" strokeLinejoin="round" d="M13 3 4 14h6l-1 7 9-11h-6z" />,
   current: (
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h3l2-6 4 12 2-6h3M19 12h2" />
@@ -647,6 +933,22 @@ const GROUP_ICON_PATHS: Record<GroupKey, ReactNode> = {
   ),
 };
 
+function StarIcon({ filled, className = 'size-5' }: { filled: boolean; className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z" />
+    </svg>
+  );
+}
+
 /**
  * A filter reads as a pill: its icon, then its name — or, once it is set, the
  * value itself with an ✕ that clears just this one. The clear button sits beside
@@ -667,7 +969,7 @@ function FilterChip({
     <div
       className={cn(
         'flex shrink-0 items-center rounded-full ring-1 transition',
-        'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)]',
+        CHIP_SHADOW,
         group.active
           ? 'bg-brand text-brand-contrast ring-brand'
           : 'bg-surface text-foreground ring-border',
@@ -764,7 +1066,10 @@ function RailButton({
 }
 
 interface SheetProps {
+  /** The matching stations inside the visible map area. */
   stations: MapStation[];
+  /** Every matching station, on screen or not. */
+  total: number;
   selected: MapStation | null;
   open: boolean;
   onToggle: () => void;
@@ -772,6 +1077,9 @@ interface SheetProps {
   onToggleColumn: () => void;
   onSelect: (id: string) => void;
   onClearSelection: () => void;
+  favorites: ReadonlySet<string>;
+  onToggleFavorite: (id: string) => void;
+  carPorts: ConnectorType[];
   intl: string;
   locale: string;
   className?: string;
@@ -787,6 +1095,7 @@ interface SheetProps {
  */
 function Sheet({
   stations,
+  total,
   selected,
   open,
   onToggle,
@@ -794,6 +1103,9 @@ function Sheet({
   onToggleColumn,
   onSelect,
   onClearSelection,
+  favorites,
+  onToggleFavorite,
+  carPorts,
   intl,
   locale,
   className,
@@ -819,6 +1131,25 @@ function Sheet({
       window.removeEventListener('resize', checkScroll);
     };
   }, [checkScroll, selected]);
+
+  const summary = (
+    <>
+      <span
+        aria-hidden
+        className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"
+      >
+        <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">
+          <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold text-foreground">
+          {format(t.inArea, { count: stations.length })}
+        </span>
+        <span className="block truncate text-xs text-muted">{format(t.ofTotal, { total })}</span>
+      </span>
+    </>
+  );
 
   return (
     <div
@@ -864,8 +1195,21 @@ function Sheet({
                   {selected.address || d.stations.addressMissing}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => onToggleFavorite(selected.id)}
+                aria-pressed={favorites.has(selected.id)}
+                aria-label={favorites.has(selected.id) ? t.removeFavorite : t.addFavorite}
+                title={favorites.has(selected.id) ? t.removeFavorite : t.addFavorite}
+                className={cn(
+                  'grid size-9 shrink-0 place-items-center rounded-xl transition hover:bg-surface-muted',
+                  favorites.has(selected.id) ? 'text-amber-400' : 'text-muted hover:text-foreground',
+                )}
+              >
+                <StarIcon filled={favorites.has(selected.id)} />
+              </button>
             </div>
-            <StationDetail station={selected} intl={intl} locale={locale} />
+            <StationDetail station={selected} carPorts={carPorts} intl={intl} locale={locale} />
           </div>
 
           {canScrollDown && (
@@ -898,20 +1242,7 @@ function Sheet({
             title={open ? t.hideList : format(t.showList, { count: stations.length })}
             className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-muted/50 sm:hidden"
           >
-            <span
-              aria-hidden
-              className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"
-            >
-              <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">
-                <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
-              </svg>
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-foreground">
-                {format(t.count, { count: stations.length })}
-              </span>
-              <span className="block truncate text-xs text-muted">{t.subtitle}</span>
-            </span>
+            {summary}
             <svg
               aria-hidden
               viewBox="0 0 24 24"
@@ -935,20 +1266,7 @@ function Sheet({
             title={columnOpen ? t.hideList : format(t.showList, { count: stations.length })}
             className="hidden w-full shrink-0 items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-muted/50 sm:flex"
           >
-            <span
-              aria-hidden
-              className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"
-            >
-              <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">
-                <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
-              </svg>
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-foreground">
-                {format(t.count, { count: stations.length })}
-              </span>
-              <span className="block truncate text-xs text-muted">{t.subtitle}</span>
-            </span>
+            {summary}
             <svg
               aria-hidden
               viewBox="0 0 24 24"
@@ -978,6 +1296,7 @@ function Sheet({
             <StationRows
               id="hero-map-list"
               stations={stations}
+              favorites={favorites}
               onSelect={onSelect}
               emptyLabel={t.noResults}
               intl={intl}
@@ -1011,12 +1330,13 @@ function Legend() {
 interface StationRowsProps {
   id: string;
   stations: MapStation[];
+  favorites: ReadonlySet<string>;
   onSelect: (id: string) => void;
   emptyLabel: string;
   intl: string;
 }
 
-function StationRows({ id, stations, onSelect, emptyLabel, intl }: StationRowsProps) {
+function StationRows({ id, stations, favorites, onSelect, emptyLabel, intl }: StationRowsProps) {
   const { d } = useI18n();
   const shown = stations.length > LIST_LIMIT ? stations.slice(0, LIST_LIMIT) : stations;
 
@@ -1055,6 +1375,9 @@ function StationRows({ id, stations, onSelect, emptyLabel, intl }: StationRowsPr
                   {station.address || d.stations.addressMissing}
                 </p>
               </div>
+              {favorites.has(station.id) && (
+                <StarIcon filled className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
+              )}
               {station.distanceKm !== undefined && (
                 <span className="shrink-0 text-[11px] font-medium text-muted">
                   {formatDistance(station.distanceKm, intl)}
@@ -1084,17 +1407,36 @@ function StationRows({ id, stations, onSelect, emptyLabel, intl }: StationRowsPr
   );
 }
 
+const FRESHNESS_TONE: Record<StationFreshness, string> = {
+  live: 'bg-emerald-500',
+  hour: 'bg-amber-400',
+  stale: 'bg-slate-400',
+  unknown: 'bg-slate-400',
+};
+
 function StationDetail({
   station,
+  carPorts,
   intl,
   locale,
 }: {
   station: MapStation;
+  carPorts: ConnectorType[];
   intl: string;
   locale: string;
 }) {
   const { d } = useI18n();
   const t = d.home.map;
+
+  const freshness = {
+    live: t.freshLive,
+    hour: t.freshHour,
+    stale: t.freshStale,
+    unknown: t.freshUnknown,
+  }[station.freshness];
+
+  // The station's plugs that fit the car the driver picked, if they picked one.
+  const fits = station.connectorTypes.filter((type) => carPorts.includes(type));
 
   return (
     <div className="px-4 pb-4">
@@ -1120,6 +1462,22 @@ function StationDetail({
           <span className="text-muted">· {formatDistance(station.distanceKm, intl)}</span>
         )}
       </div>
+
+      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+        <span aria-hidden className={cn('inline-block size-1.5 rounded-full', FRESHNESS_TONE[station.freshness])} />
+        {freshness}
+      </p>
+
+      {carPorts.length > 0 && (
+        <p
+          className={cn(
+            'mt-2.5 rounded-xl px-3 py-2 text-xs font-medium',
+            fits.length > 0 ? 'bg-brand-soft text-brand-strong' : 'bg-surface-muted text-muted',
+          )}
+        >
+          {fits.length > 0 ? `${t.carMatch} · ${fits.join(', ')}` : t.carUnverified}
+        </p>
+      )}
 
       <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
         <div className="min-w-0">

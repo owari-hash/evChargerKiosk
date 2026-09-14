@@ -158,6 +158,116 @@ html {
   border-color: var(--border) !important;
 }
 
+/* Sign-in, sign-up and PIN reset -----------------------------------------
+   One entrance for the card, a slide between steps, a pop as each PIN box
+   fills and a shake for a wrong code. Nothing loops. */
+
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes auth-step {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pin-pop {
+  0% { transform: scale(0.88); }
+  60% { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pin-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+.auth-rise {
+  animation: auth-rise 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.auth-step {
+  animation: auth-step 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.pin-cell {
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.pin-cell.is-filled {
+  animation: pin-pop 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--brand) 70%, transparent);
+}
+
+.pin-shake {
+  animation: pin-shake 420ms ease-out;
+}
+
+/* Account tabs: the new tab's content settles in as the highlight slides. */
+@keyframes tab-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.tab-enter {
+  animation: tab-enter 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-enter {
+    animation: none;
+  }
+}
+
+/* The check mark that confirms a saved PIN. */
+.success-pop {
+  animation: pin-pop 460ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* The phone field draws its focus ring on its wrapper. The site-wide
+   :focus-visible outline is unlayered, so a Tailwind utility cannot switch it
+   off; this rule can. */
+.auth-plain-input:focus-visible {
+  outline: none;
+}
+
+/* The brand panel's charge ring fills once, then its reading fades in. */
+@keyframes charge-fill {
+  from { stroke-dashoffset: var(--ring-length); }
+}
+
+@keyframes charge-readout {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.charge-ring {
+  animation: charge-fill 1.8s cubic-bezier(0.3, 0.7, 0.2, 1) 250ms both;
+}
+
+.charge-readout {
+  animation: charge-readout 600ms ease-out 1s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-rise,
+  .auth-step,
+  .pin-cell.is-filled,
+  .pin-shake,
+  .success-pop,
+  .charge-ring,
+  .charge-readout {
+    animation: none;
+  }
+}
+
 @keyframes pulse-ring {
   0% { transform: scale(0.85); opacity: 0.9; }
   70% { transform: scale(1.6); opacity: 0; }

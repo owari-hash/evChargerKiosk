@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { Alert, Button, Field, Input } from '@/components/ui';
+import { Alert, Button, Field } from '@/components/ui';
 import { useI18n } from '@/components/i18n-provider';
 import { phoneSchema } from '@/lib/validation';
 import { fieldAria, sanitizeNext } from './auth-shell';
+import { PhoneInput } from './phone-input';
 import { PinInput } from './pin-input';
 
 interface LoginErrorBody {
@@ -20,7 +21,6 @@ export function LoginForm() {
   const params = useSearchParams();
 
   const next = sanitizeNext(params.get('next'));
-  const registerHref = next === '/account' ? '/register' : `/register?next=${encodeURIComponent(next)}`;
 
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
@@ -78,12 +78,10 @@ export function LoginForm() {
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       {formError && <Alert tone="danger">{formError}</Alert>}
 
-      <Field label={d.auth.phoneLabel} htmlFor="phone" error={errors.phone} required>
-        <Input
+      <Field label={d.auth.phoneLabel} htmlFor="phone" error={errors.phone}>
+        <PhoneInput
           id="phone"
           name="phone"
-          type="tel"
-          inputMode="tel"
           autoComplete="tel"
           required
           value={phone}
@@ -93,7 +91,7 @@ export function LoginForm() {
         />
       </Field>
 
-      <Field label={d.auth.pinLabel} htmlFor="pin" error={errors.pin} required>
+      <Field label={d.auth.pinLabel} htmlFor="pin" error={errors.pin} className="text-center">
         <PinInput
           id="pin"
           name="pin"
@@ -105,21 +103,14 @@ export function LoginForm() {
       </Field>
 
       <div className="flex justify-end pt-0.5">
-        <Link href={forgotHref} className="text-xs font-medium text-brand underline underline-offset-2">
+        <Link href={forgotHref} className="text-sm font-medium text-brand underline-offset-4 hover:underline">
           {d.auth.login.forgotPin}
         </Link>
       </div>
 
-      <Button type="submit" size="lg" loading={pending} className="w-full mt-2">
+      <Button type="submit" size="pill" loading={pending} className="mt-2 w-full">
         {d.auth.login.submit}
       </Button>
-
-      <p className="text-center text-xs text-muted pt-1">
-        {d.auth.login.newHere}{' '}
-        <Link href={registerHref} className="font-medium text-brand underline underline-offset-2">
-          {d.auth.login.createAccount}
-        </Link>
-      </p>
     </form>
   );
 }

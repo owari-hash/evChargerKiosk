@@ -25,10 +25,20 @@ export interface HeroMapApi {
   zoomOut: () => void;
 }
 
+/** The visible area, reported whenever the view settles. */
+export interface ViewBounds {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}
+
 export interface HeroMapProps {
   stations: MapStation[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  /** Called with the visible area after every pan or zoom. */
+  onViewChange?: (view: ViewBounds) => void;
   /** Where the visitor is, once they have shared it. */
   origin: { lat: number; lng: number } | null;
   /** Bumping this refits the view to every visible station. */
@@ -359,7 +369,10 @@ function StationLayer({
   return null;
 }
 
-/** Keeps the focused station on screen without yanking the view around. */
+/** Street level: close enough to see which side of the road the charger is on. */
+const SELECTED_ZOOM = 16;
+
+/** Brings the focused station in close, without yanking a view that is already there. */
 function FollowSelection({ station }: { station: MapStation | undefined }) {
   const map = useMap();
   const lat = station?.lat;
@@ -368,18 +381,68 @@ function FollowSelection({ station }: { station: MapStation | undefined }) {
   useEffect(() => {
     if (lat === undefined || lng === undefined) return;
     const target: LatLngExpression = [lat, lng];
-    // Already comfortably in view: a short pan reads better than a zoom. The
-    // padding clears the search bar above and the station sheet below, so the
-    // pin never lands underneath the chrome describing it.
-    if (map.getBounds().pad(-0.15).contains(target)) {
+    // Already at street level and comfortably in view: a short pan reads better
+    // than another zoom. The padding clears the search bar above and the station
+    // sheet below, so the pin never lands underneath the chrome describing it.
+    if (map.getZoom() >= SELECTED_ZOOM && map.getBounds().pad(-0.15).contains(target)) {
       map.panInside(target, {
         paddingTopLeft: [28, CHROME_TOP_PX],
         paddingBottomRight: [28, CHROME_BOTTOM_PX],
       });
       return;
     }
-    map.flyTo(target, Math.max(map.getZoom(), 13), { duration: 0.6 });
+    map.flyTo(target, Math.max(map.getZoom(), SELECTED_ZOOM), { duration: 0.6 });
   }, [lat, lng, map]);
+
+  return null;
+}
+
+/** A click on empty map closes the station that was open. */
+function DeselectOnMapClick({ onSelect }: { onSelect: (id: string | null) => void }) {
+  const map = useMap();
+  const onSelectRef = useRef(onSelect);
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  });
+
+  useEffect(() => {
+    // Marker clicks do not bubble to the map, so this only sees the map itself.
+    const handler = () => onSelectRef.current(null);
+    map.on('click', handler);
+    return () => {
+      map.off('click', handler);
+    };
+  }, [map]);
+
+  return null;
+}
+
+/** Tells the page which part of the map is on screen, once each gesture settles. */
+function ViewportReporter({ onViewChange }: { onViewChange?: (view: ViewBounds) => void }) {
+  const map = useMap();
+  const callbackRef = useRef(onViewChange);
+
+  useEffect(() => {
+    callbackRef.current = onViewChange;
+  });
+
+  useEffect(() => {
+    const report = () => {
+      const bounds = map.getBounds();
+      callbackRef.current?.({
+        south: bounds.getSouth(),
+        west: bounds.getWest(),
+        north: bounds.getNorth(),
+        east: bounds.getEast(),
+      });
+    };
+    map.on('moveend', report);
+    report();
+    return () => {
+      map.off('moveend', report);
+    };
+  }, [map]);
 
   return null;
 }
@@ -446,29 +509,44 @@ function UserMarker({ origin }: { origin: { lat: number; lng: number } | null })
   return null;
 }
 
+/** How long the wheel must stay still before the next scroll can zoom again. */
+const WHEEL_GESTURE_GAP_MS = 220;
+
 /**
- * A full-bleed map must not swallow the page scroll, so the wheel only zooms
- * once the visitor has clicked into the map. Touch dragging, keyboard panning
- * and the zoom buttons are unaffected.
+ * One scroll is one zoom level, centred on the pointer — the wheel zooms the
+ * map straight away, and the page below is reached with the hero's scroll-down
+ * button. Leaflet's own wheel zoom turns the stream of events a trackpad or a
+ * smooth-scrolling mouse sends for a single flick into several levels; this
+ * takes the first event of a gesture and ignores the rest until it goes quiet.
  */
-function WheelGuard() {
+function SteppedWheelZoom() {
   const map = useMap();
 
   useEffect(() => {
     const container = map.getContainer();
-    const enable = () => map.scrollWheelZoom.enable();
-    const disable = () => map.scrollWheelZoom.disable();
+    let locked = false;
+    let quiet: ReturnType<typeof setTimeout> | undefined;
 
-    container.addEventListener('click', enable);
-    container.addEventListener('focusin', enable);
-    container.addEventListener('mouseleave', disable);
-    container.addEventListener('focusout', disable);
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      if (Math.abs(event.deltaY) < 1) return;
 
+      clearTimeout(quiet);
+      quiet = setTimeout(() => {
+        locked = false;
+      }, WHEEL_GESTURE_GAP_MS);
+      if (locked) return;
+      locked = true;
+
+      const around = map.containerPointToLatLng(map.mouseEventToContainerPoint(event));
+      const next = map.getZoom() + (event.deltaY < 0 ? 1 : -1);
+      map.setZoomAround(around, Math.min(map.getMaxZoom(), Math.max(map.getMinZoom(), next)));
+    };
+
+    container.addEventListener('wheel', onWheel, { passive: false });
     return () => {
-      container.removeEventListener('click', enable);
-      container.removeEventListener('focusin', enable);
-      container.removeEventListener('mouseleave', disable);
-      container.removeEventListener('focusout', disable);
+      container.removeEventListener('wheel', onWheel);
+      clearTimeout(quiet);
     };
   }, [map]);
 
@@ -513,6 +591,7 @@ export function HeroMap({
   stations,
   selectedId,
   onSelect,
+  onViewChange,
   origin,
   fitNonce,
   onReady,
@@ -529,10 +608,8 @@ export function HeroMap({
       minZoom={4}
       maxZoom={19}
       zoomControl={false}
+      // Wheel zoom is handled by SteppedWheelZoom below: one scroll, one level.
       scrollWheelZoom={false}
-      // Smooths out trackpads, which otherwise fire a zoom per wheel tick.
-      wheelDebounceTime={45}
-      wheelPxPerZoomLevel={140}
       className={className}
       aria-label={d.stations.mapAria}
     >
@@ -552,12 +629,16 @@ export function HeroMap({
         keepBuffer={2}
       />
       <MapApi onReady={onReady} />
-      <WheelGuard />
+      <SteppedWheelZoom />
       <ResizeWatcher />
       <FitToStations stations={stations} fitNonce={fitNonce} paused={selectedId !== null} />
       <StationLayer stations={stations} selectedId={selectedId} onSelect={onSelect} />
-      <FollowSelection station={selected} />
+      <DeselectOnMapClick onSelect={onSelect} />
+      <ViewportReporter onViewChange={onViewChange} />
+      {/* The user's marker flies to them first; when locating also picked the
+          nearest station, that selection's fly runs after and wins. */}
       <UserMarker origin={origin} />
+      <FollowSelection station={selected} />
     </MapContainer>
   );
 }

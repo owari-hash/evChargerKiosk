@@ -10,6 +10,7 @@ import { LocaleSwitcher } from './locale-switcher';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 import { buttonClass } from './ui/button';
+import { useSlidingIndicator } from './ui/use-sliding-indicator';
 
 export function SiteHeader({ user }: { user: PublicUser | null }) {
   const { d } = useI18n();
@@ -25,6 +26,8 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   ];
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const activeHref = nav.find((item) => isActive(item.href))?.href ?? null;
+  const { indicatorRef, itemRef } = useSlidingIndicator<HTMLAnchorElement>(activeHref);
 
   async function signOut() {
     setSigningOut(true);
@@ -50,16 +53,22 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
           <span className="text-[15px] tracking-tight">Eplug</span>
         </Link>
 
-        <nav className="ml-2 hidden items-center gap-1 md:flex">
+        <nav className="relative ml-2 hidden items-center gap-1 md:flex">
+          {/* One highlight that slides to the current page. */}
+          <span
+            ref={indicatorRef}
+            aria-hidden
+            className="pointer-events-none absolute left-0 top-0 rounded-lg bg-surface-muted opacity-0 ring-1 ring-border/70 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-300 data-[ready=true]:ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+          />
           {nav.map((item) => (
             <Link
               key={item.href}
+              ref={itemRef(item.href)}
               href={item.href}
+              aria-current={isActive(item.href) ? 'page' : undefined}
               className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium transition',
-                isActive(item.href)
-                  ? 'bg-surface-muted text-foreground'
-                  : 'text-muted hover:bg-surface-muted hover:text-foreground',
+                'relative rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200',
+                isActive(item.href) ? 'text-foreground' : 'text-muted hover:text-foreground',
               )}
             >
               {item.label}
@@ -72,23 +81,28 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
             <LocaleSwitcher bare />
             <span aria-hidden className="h-5 w-px bg-border" />
             <ThemeToggle className="grid size-8 place-items-center rounded-[10px] text-muted transition hover:bg-surface hover:text-foreground" />
+            {/* The account sits in the same group as the other toggles. */}
+            {user && (
+              <>
+                <span aria-hidden className="hidden h-5 w-px bg-border md:block" />
+                <div className="hidden md:block">
+                  <UserMenu user={user} compact />
+                </div>
+              </>
+            )}
           </div>
           <ThemeToggle className="grid size-9 place-items-center rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground sm:hidden" />
 
-          <div className="hidden items-center md:flex">
-            {user ? (
-              <UserMenu user={user} />
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/login" className={buttonClass('ghost', 'sm')}>
-                  {d.common.signIn}
-                </Link>
-                <Link href="/register" className={buttonClass('primary', 'sm')}>
-                  {d.common.createAccount}
-                </Link>
-              </div>
-            )}
-          </div>
+          {!user && (
+            <div className="hidden items-center gap-2 md:flex">
+              <Link href="/login" className={buttonClass('ghost', 'sm')}>
+                {d.common.signIn}
+              </Link>
+              <Link href="/register" className={buttonClass('primary', 'sm')}>
+                {d.common.createAccount}
+              </Link>
+            </div>
+          )}
 
           <button
             type="button"

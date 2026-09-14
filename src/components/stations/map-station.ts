@@ -6,6 +6,9 @@ import type { ConnectorType, Station, StationAvailability } from '@/lib/types';
  */
 export type StationSpeed = 'dc' | 'ac' | 'unknown';
 
+/** How recent the station's reported status is. */
+export type StationFreshness = 'live' | 'hour' | 'stale' | 'unknown';
+
 /**
  * The slice of a station the hero map needs. Full `Station` objects carry a
  * connector array each, which turns into a sizeable RSC payload once the whole
@@ -24,6 +27,7 @@ export interface MapStation {
   tariffPerKwh?: number;
   connectorTypes: ConnectorType[];
   speed: StationSpeed;
+  freshness: StationFreshness;
   distanceKm?: number;
 }
 
@@ -44,8 +48,18 @@ function speedOf(station: Station): StationSpeed {
   return station.maxPowerKw >= DC_POWER_KW ? 'dc' : 'ac';
 }
 
+/** Worked out when the snapshot is taken, so rendering never reads the clock. */
+function freshnessOf(station: Station, now: number): StationFreshness {
+  if (!station.lastSeenAt) return 'unknown';
+  const age = now - new Date(station.lastSeenAt).getTime();
+  if (!Number.isFinite(age)) return 'unknown';
+  if (station.isOnline && age <= 10 * 60_000) return 'live';
+  if (age <= 60 * 60_000) return 'hour';
+  return 'stale';
+}
+
 /** Returns null for stations the operator has not given coordinates yet. */
-export function toMapStation(station: Station): MapStation | null {
+export function toMapStation(station: Station, now = Date.now()): MapStation | null {
   if (typeof station.latitude !== 'number' || typeof station.longitude !== 'number') return null;
   if (!Number.isFinite(station.latitude) || !Number.isFinite(station.longitude)) return null;
 
@@ -62,14 +76,15 @@ export function toMapStation(station: Station): MapStation | null {
     tariffPerKwh: station.tariffPerKwh,
     connectorTypes: station.connectorTypes,
     speed: speedOf(station),
+    freshness: freshnessOf(station, now),
     distanceKm: station.distanceKm,
   };
 }
 
-export function toMapStations(stations: Station[]): MapStation[] {
+export function toMapStations(stations: Station[], now = Date.now()): MapStation[] {
   const mapped: MapStation[] = [];
   for (const station of stations) {
-    const point = toMapStation(station);
+    const point = toMapStation(station, now);
     if (point) mapped.push(point);
   }
   return mapped;

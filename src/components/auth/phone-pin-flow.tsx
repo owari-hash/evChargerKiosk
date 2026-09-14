@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Field, Input } from '@/components/ui';
+import { Alert, Button, Field } from '@/components/ui';
 import { format, useI18n } from '@/components/i18n-provider';
 import { cn } from '@/lib/utils';
 import { phoneSchema } from '@/lib/validation';
 import { fieldAria, sanitizeNext } from './auth-shell';
 import { DevHint } from './dev-hint';
+import { PhoneInput } from './phone-input';
 import { PinInput } from './pin-input';
 
 type Mode = 'signup' | 'reset';
@@ -39,6 +40,12 @@ interface ApiBody {
   devCode?: string;
   signupTicket?: string;
   resetTicket?: string;
+}
+
+/** The API masks the number as "********8844"; it reads better as "•••• 8844". */
+function prettyDestination(masked: string): string {
+  const digits = masked.replace(/\D/g, '');
+  return digits.length >= 4 ? `•••• ${digits.slice(-4)}` : masked;
 }
 
 async function post(url: string, payload: unknown): Promise<{ ok: boolean; body: ApiBody }> {
@@ -129,7 +136,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
     await run(async () => {
       const { ok, body } = await post(api.send, mode === 'signup' ? { phone, acceptTerms } : { phone });
       if (!ok) return fail(body);
-      setDestination(body.destination ?? phone);
+      setDestination(prettyDestination(body.destination ?? phone));
       setDevCode(body.devCode);
       setCode('');
       setResendIn(RESEND_SECONDS);
@@ -139,7 +146,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
 
   async function verifyCode(value = code) {
     if (!/^\d{6}$/.test(value)) {
-      setErrors({ code: d.auth.codeLabel });
+      setErrors({ code: d.auth.codeInvalid });
       return;
     }
 
@@ -194,23 +201,32 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-          {format(d.auth.stepOf, { step: stepNumber })}
-        </p>
+      <div className="space-y-2.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 key={step} className="auth-step text-base font-semibold text-foreground">
+            {title}
+          </h2>
+          <span className="shrink-0 text-sm text-muted tabular-nums">
+            {format(d.auth.stepOf, { step: stepNumber })}
+          </span>
+        </div>
         <div className="flex gap-1.5" aria-hidden="true">
           {[1, 2, 3].map((n) => (
             <span
               key={n}
-              className={cn('h-1 flex-1 rounded-full', n <= stepNumber ? 'bg-brand' : 'bg-border')}
+              className={cn(
+                'h-1.5 flex-1 rounded-full transition-colors duration-500',
+                n <= stepNumber ? 'bg-brand' : 'bg-border',
+              )}
             />
           ))}
         </div>
-        <h2 className="pt-1 text-lg font-semibold text-foreground">{title}</h2>
       </div>
 
       {formError && <Alert tone="danger">{formError}</Alert>}
 
+      {/* Keyed by step so each new step slides in. */}
+      <div key={step} className="auth-step space-y-5">
       {step === 'phone' && (
         <>
           <Field
@@ -218,13 +234,10 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
             htmlFor="phone"
             error={errors.phone}
             hint={d.auth.phoneHint}
-            required
           >
-            <Input
+            <PhoneInput
               id="phone"
               name="phone"
-              type="tel"
-              inputMode="tel"
               autoComplete="tel"
               autoFocus
               required
@@ -239,7 +252,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
             <div className="space-y-1">
               <label
                 htmlFor="acceptTerms"
-                className="flex min-h-8 cursor-pointer items-center gap-2.5 text-xs text-foreground"
+                className="flex min-h-8 cursor-pointer items-center gap-2.5 text-sm text-foreground"
               >
                 <input
                   id="acceptTerms"
@@ -251,13 +264,13 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
                   {...fieldAria('acceptTerms', errors.acceptTerms)}
                 />
                 <span>
-                  {d.auth.register.agreePrefix}{' '}
+                  {d.auth.register.agreePrefix}
                   <Link href="/legal/terms" className="font-medium text-brand underline underline-offset-2">
-                    {d.privacy.termsLink}
-                  </Link>{' '}
-                  {d.auth.register.agreeMiddle}{' '}
+                    {d.auth.register.termsLink}
+                  </Link>
+                  {d.auth.register.agreeMiddle}
                   <Link href="/legal/privacy" className="font-medium text-brand underline underline-offset-2">
-                    {d.terms.privacyLink}
+                    {d.auth.register.privacyLink}
                   </Link>
                   {d.auth.register.agreeSuffix}
                 </span>
@@ -276,7 +289,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
         <>
           <p className="text-sm text-muted">{format(d.auth.codeSentTo, { destination })}</p>
 
-          <Field label={d.auth.codeLabel} htmlFor="code" error={errors.code}>
+          <Field label={d.auth.codeLabel} htmlFor="code" error={errors.code} className="text-center">
             <PinInput
               id="code"
               name="code"
@@ -319,7 +332,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
         <>
           <p className="text-sm text-muted">{copy.pinBody}</p>
 
-          <Field label={d.auth.newPinLabel} htmlFor="pin" error={errors.pin}>
+          <Field label={d.auth.newPinLabel} htmlFor="pin" error={errors.pin} className="text-center">
             <PinInput
               id="pin"
               name="pin"
@@ -336,7 +349,12 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
             />
           </Field>
 
-          <Field label={d.auth.confirmPinLabel} htmlFor="confirmPin" error={errors.confirmPin}>
+          <Field
+            label={d.auth.confirmPinLabel}
+            htmlFor="confirmPin"
+            error={errors.confirmPin}
+            className="text-center"
+          >
             <PinInput
               ref={confirmRef}
               id="confirmPin"
@@ -357,17 +375,19 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
           </Field>
         </>
       )}
+      </div>
 
-      <Button type="submit" size="lg" loading={pending} className="w-full">
+      <Button type="submit" size="pill" loading={pending} className="w-full">
         {submitLabel}
       </Button>
 
-      <p className="text-center text-xs text-muted">
-        {mode === 'signup' ? d.auth.register.haveAccount : d.auth.forgot.rememberedIt}{' '}
-        <Link href="/login" className="font-medium text-brand underline underline-offset-2">
-          {d.auth.login.submit}
-        </Link>
-      </p>
+      {mode === 'reset' && (
+        <p className="text-center text-sm">
+          <Link href="/login" className="font-medium text-brand underline-offset-4 hover:underline">
+            {d.auth.forgot.backToSignIn}
+          </Link>
+        </p>
+      )}
     </form>
   );
 }

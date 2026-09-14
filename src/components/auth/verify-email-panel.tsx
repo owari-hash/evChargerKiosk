@@ -174,10 +174,9 @@ export function VerifyEmailPanel() {
         </div>
       )}
 
-      <p className="text-center text-sm text-muted">
-        {d.auth.verify.needSomethingElse}{' '}
-        <Link href="/help" className="font-medium text-brand underline underline-offset-2">
-          {d.auth.login.getHelp}
+      <p className="text-center text-sm">
+        <Link href="/help" className="font-medium text-brand underline-offset-4 hover:underline">
+          {d.auth.login.helpCenter}
         </Link>
       </p>
     </div>

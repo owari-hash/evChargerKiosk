@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import { AuthFormFallback, AuthShell } from '@/components/auth/auth-shell';
+import { AuthHeader } from '@/components/auth/auth-layout';
+import { AuthFormFallback } from '@/components/auth/auth-shell';
 import { PhonePinFlow } from '@/components/auth/phone-pin-flow';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getTranslations } from '@/lib/i18n';
@@ -19,21 +19,11 @@ export default async function RegisterPage() {
   if (user) redirect('/account');
 
   return (
-    <AuthShell
-      title={d.auth.register.title}
-      subtitle={d.auth.register.subtitle}
-      footer={
-        <>
-          {d.auth.register.footerPrompt}{' '}
-          <Link href="/help" className="font-medium text-brand underline underline-offset-2">
-            {d.auth.register.readHelp}
-          </Link>
-        </>
-      }
-    >
+    <>
+      <AuthHeader title={d.auth.register.title} subtitle={d.auth.register.subtitle} />
       <Suspense fallback={<AuthFormFallback rows={2} />}>
         <PhonePinFlow mode="signup" />
       </Suspense>
-    </AuthShell>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useI18n } from '@/components/i18n-provider';
+import { useSlidingIndicator } from '@/components/ui/use-sliding-indicator';
 import { cn } from '@/lib/utils';
 
 function OverviewIcon() {
@@ -65,32 +66,36 @@ export function AccountNav() {
 
   const isActive = (href: string) =>
     href === '/account' ? pathname === '/account' : pathname.startsWith(href);
+  const activeHref = items.find((item) => isActive(item.href))?.href ?? null;
+  const { indicatorRef, itemRef } = useSlidingIndicator<HTMLAnchorElement>(activeHref);
 
   return (
     <nav
       aria-label={d.account.title}
       className="-mx-4 overflow-x-auto px-4 md:mx-0 md:self-start md:overflow-visible md:px-0 md:sticky md:top-20"
     >
-      <ul className="flex min-w-max gap-1 md:min-w-0 md:flex-col md:gap-0.5">
+      <ul className="relative flex min-w-max gap-1 md:min-w-0 md:flex-col md:gap-0.5">
+        {/* One highlight, with its accent bar, that slides to the current tab:
+            down the sidebar on a wide screen, along the strip on a phone. */}
+        <span
+          ref={indicatorRef}
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 rounded-xl bg-brand-soft opacity-0 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-300 data-[ready=true]:ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+        >
+          <span className="absolute inset-y-1.5 left-0 hidden w-1 rounded-full bg-brand md:block" />
+        </span>
         {items.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
           return (
-            <li key={item.href} className="relative">
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute inset-y-1.5 left-0 hidden w-1 rounded-full bg-brand md:block"
-                />
-              )}
+            <li key={item.href}>
               <Link
+                ref={itemRef(item.href)}
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex h-11 items-center gap-2.5 rounded-xl px-3.5 text-sm font-medium transition-colors md:w-full',
-                  active
-                    ? 'bg-brand-soft text-brand-strong'
-                    : 'text-muted hover:bg-surface-muted hover:text-foreground',
+                  'relative flex h-11 items-center gap-2.5 rounded-xl px-3.5 text-sm font-medium transition-colors duration-200 md:w-full',
+                  active ? 'text-brand-strong' : 'text-muted hover:bg-surface-muted/60 hover:text-foreground',
                 )}
               >
                 <svg

@@ -3,11 +3,14 @@ import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'pill';
 
+// The corner radius lives with each size rather than here: `cn` only joins
+// classes, so two radius utilities on one element would fight.
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition ' +
-  'disabled:cursor-not-allowed disabled:opacity-55 whitespace-nowrap';
+  'inline-flex items-center justify-center gap-2 font-semibold transition duration-150 ' +
+  'active:scale-[0.98] motion-reduce:active:scale-100 ' +
+  'disabled:cursor-not-allowed disabled:opacity-55 disabled:active:scale-100 whitespace-nowrap';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-brand text-brand-contrast hover:bg-brand-strong shadow-sm',
@@ -17,9 +20,11 @@ const VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'h-9 px-3 text-sm',
-  md: 'h-11 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
+  sm: 'h-9 rounded-xl px-3 text-sm',
+  md: 'h-11 rounded-xl px-4 text-sm',
+  lg: 'h-12 rounded-xl px-6 text-base',
+  /** The sign-in and sign-up call to action, matching the app. */
+  pill: 'h-14 rounded-full px-6 text-base',
 };
 
 export function buttonClass(

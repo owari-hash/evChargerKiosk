@@ -20,7 +20,7 @@ export function AuthShell({ title, subtitle, children, footer, maxWidth = 'md' }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
-      <div className={`mx-auto w-full ${widthClass}`}>
+      <div className={`auth-rise mx-auto w-full ${widthClass}`}>
         <header className="mb-5 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
           {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}

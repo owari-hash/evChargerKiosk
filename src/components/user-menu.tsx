@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useI18n } from './i18n-provider';
 
 /** Avatar button showing the user's initial; opens a small menu with account + sign out. */
-export function UserMenu({ user }: { user: PublicUser }) {
+export function UserMenu({ user, compact = false }: { user: PublicUser; compact?: boolean }) {
   const { d } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -53,7 +53,9 @@ export function UserMenu({ user }: { user: PublicUser }) {
         aria-label={displayName}
         title={displayName}
         className={cn(
-          'grid size-9 place-items-center rounded-full bg-gradient-to-br from-brand to-brand-strong',
+          // Compact matches the 32px toggles it shares the header group with.
+          compact ? 'size-8' : 'size-9',
+          'grid place-items-center rounded-full bg-gradient-to-br from-brand to-brand-strong',
           'text-sm font-bold text-brand-contrast ring-2 ring-transparent transition',
           'hover:ring-brand/30',
           open && 'ring-brand/40',
@@ -69,7 +71,7 @@ export function UserMenu({ user }: { user: PublicUser }) {
         >
           <div className="px-3 py-2">
             <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
-            <p className="truncate text-xs text-muted">{user.email}</p>
+            <p className="truncate text-xs text-muted">{user.email ?? user.phone}</p>
           </div>
           <span aria-hidden className="my-1 block h-px bg-border" />
           <Link
