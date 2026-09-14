@@ -61,7 +61,7 @@ async function registerWithCsms(idTag: string, user: StoredUser): Promise<void> 
     body: {
       idTag,
       status: 'Accepted',
-      label: user.name || user.email,
+      label: user.name || user.phone || user.email,
       ownerEmail: user.email,
       ownerName: user.name,
       // One car at a time per driver. A second simultaneous charge on the same

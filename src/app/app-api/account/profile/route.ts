@@ -9,44 +9,32 @@ export const PATCH = route(async (req: Request) => {
   const body = await parseBody(req, updateProfileSchema);
 
   const patch: Partial<StoredUser> = {};
-  if (body.name !== undefined) patch.name = body.name;
+  if (body.name !== undefined) patch.name = body.name || undefined;
   if (body.locale !== undefined) patch.locale = body.locale;
 
-  if (body.email !== undefined && body.email !== user.email) {
-    const store = await getStore();
-    const existing = await store.findUserByEmail(body.email);
-    if (existing && existing.id !== user.id) {
-      throw conflict('Энэ и-мэйл хаяг аль хэдийн ашиглагдаж байна', {
-        email: 'Энэ и-мэйл хаяг өөр бүртгэлд холбогдсон байна',
-      });
-    }
-    patch.email = body.email;
-    patch.emailVerifiedAt = null as any;
-  }
-
-  if (body.phone !== undefined) {
-    if (body.phone === '') {
-      patch.phone = undefined;
-      patch.phoneVerifiedAt = null as any;
-    } else {
-      const phone = normalizePhone(body.phone);
-      if (!phone) {
-        throw badRequest('Тэмдэглэсэн талбаруудаа шалгана уу', {
-          phone: 'Зөв утасны дугаар оруулна уу',
+  if (body.email !== undefined && (body.email || undefined) !== user.email) {
+    if (body.email) {
+      const store = await getStore();
+      const existing = await store.findUserByEmail(body.email);
+      if (existing && existing.id !== user.id) {
+        throw conflict('Энэ и-мэйл хаяг аль хэдийн ашиглагдаж байна', {
+          email: 'Энэ и-мэйл хаяг өөр бүртгэлд холбогдсон байна',
         });
       }
-      if (phone !== user.phone) {
-        const store = await getStore();
-        const existing = await store.findUserByPhone(phone);
-        if (existing && existing.id !== user.id) {
-          throw conflict('Энэ утасны дугаар аль хэдийн ашиглагдаж байна', {
-            phone: 'Энэ утасны дугаар өөр бүртгэлд холбогдсон байна',
-          });
-        }
-        patch.phone = phone;
-        // A new number has not been proven yet, so it goes back to unverified.
-        patch.phoneVerifiedAt = null as any;
-      }
+    }
+    // Email is optional, so clearing the field removes it from the account.
+    patch.email = body.email || undefined;
+    patch.emailVerifiedAt = undefined;
+  }
+
+  // The phone number is how the driver signs in, so it only ever changes
+  // through the SMS code flow on the security page — never by typing it here.
+  if (body.phone !== undefined) {
+    const phone = body.phone ? normalizePhone(body.phone) : null;
+    if (phone !== (user.phone ?? null)) {
+      throw badRequest('Утасны дугаараа «Аюулгүй байдал» хэсэгт SMS кодоор баталгаажуулж солино уу', {
+        phone: 'Утасны дугаарыг SMS кодоор баталгаажуулж солино',
+      });
     }
   }
 

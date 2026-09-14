@@ -96,7 +96,7 @@ export function VerificationPanel({ user }: VerificationPanelProps) {
         return;
       }
 
-      const dest = data.destination ?? account.email;
+      const dest = data.destination ?? account.email ?? '';
       setEmailNotice(d.auth.verify.resentTo.replace('{destination}', dest));
       if (data.devToken) setEmailDevToken(data.devToken);
     } catch {
@@ -185,12 +185,14 @@ export function VerificationPanel({ user }: VerificationPanelProps) {
         </CardHeader>
         <CardBody className="space-y-4">
           <p className="text-sm text-muted">
-            {format(
-              account.emailVerified
-                ? d.account.verification.emailConfirmed
-                : d.account.verification.emailPending,
-              { email: account.email },
-            )}
+            {account.email
+              ? format(
+                  account.emailVerified
+                    ? d.account.verification.emailConfirmed
+                    : d.account.verification.emailPending,
+                  { email: account.email },
+                )
+              : d.account.verification.emailMissing}
           </p>
 
           {emailNotice && <Alert tone="success">{emailNotice}</Alert>}
@@ -199,7 +201,7 @@ export function VerificationPanel({ user }: VerificationPanelProps) {
             <DevValue label={d.account.verification.verificationToken} value={emailDevToken} />
           )}
 
-          {!account.emailVerified && (
+          {account.email && !account.emailVerified && (
             <Button variant="secondary" loading={emailBusy} onClick={resendEmail}>
               {d.account.verification.resendEmail}
             </Button>

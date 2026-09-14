@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { ChangePasswordForm } from '@/components/account/change-password-form';
+import { ChangePinForm } from '@/components/account/change-pin-form';
 import { VerificationPanel } from '@/components/account/verification-panel';
 import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
 import { getTranslations } from '@/lib/i18n';
@@ -18,7 +18,7 @@ export default async function AccountSecurityPage() {
 
   return (
     <>
-      <ChangePasswordForm />
+      <ChangePinForm hasPin={Boolean(user.pinHash)} />
       <VerificationPanel user={toPublicUser(user)} />
     </>
   );

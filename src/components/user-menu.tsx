@@ -14,8 +14,9 @@ export function UserMenu({ user }: { user: PublicUser }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const displayName = user.name?.trim() || user.email;
-  const initial = displayName.charAt(0).toUpperCase();
+  const displayName = user.name?.trim() || user.email || user.phone || '';
+  // A phone-only account would otherwise show "+" from the country code.
+  const initial = (displayName.replace(/^\+\d{3}/, '').charAt(0) || '?').toUpperCase();
 
   useEffect(() => {
     if (!open) return;

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { AuthFormFallback, AuthShell } from '@/components/auth/auth-shell';
-import { RegisterForm } from '@/components/auth/register-form';
+import { PhonePinFlow } from '@/components/auth/phone-pin-flow';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getTranslations } from '@/lib/i18n';
 
@@ -22,7 +22,6 @@ export default async function RegisterPage() {
     <AuthShell
       title={d.auth.register.title}
       subtitle={d.auth.register.subtitle}
-      maxWidth="lg"
       footer={
         <>
           {d.auth.register.footerPrompt}{' '}
@@ -32,8 +31,8 @@ export default async function RegisterPage() {
         </>
       }
     >
-      <Suspense fallback={<AuthFormFallback rows={4} />}>
-        <RegisterForm />
+      <Suspense fallback={<AuthFormFallback rows={2} />}>
+        <PhonePinFlow mode="signup" />
       </Suspense>
     </AuthShell>
   );

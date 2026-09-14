@@ -6,10 +6,13 @@ import { Schema, model, models, type Model } from 'mongoose';
  */
 const driverUserSchema = new Schema(
   {
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    phone: { type: String, index: true, sparse: true, trim: true },
+    email: { type: String, lowercase: true, trim: true },
+    phone: { type: String, trim: true },
     name: { type: String, trim: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String },
+    pinHash: { type: String },
+    failedPinAttempts: { type: Number, default: 0 },
+    pinLockedUntil: { type: Date },
     emailVerifiedAt: { type: Date },
     phoneVerifiedAt: { type: Date },
     isActive: { type: Boolean, default: true },
@@ -19,6 +22,18 @@ const driverUserSchema = new Schema(
     lastLoginAt: { type: Date },
   },
   { timestamps: true, collection: 'driverusers' },
+);
+
+// Unique only where present: an account may have no email, and before PIN
+// sign-in the phone number was optional too. The phone number is the sign-in
+// identity, so two accounts must never share one.
+driverUserSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { email: { $type: 'string' } } },
+);
+driverUserSchema.index(
+  { phone: 1 },
+  { unique: true, partialFilterExpression: { phone: { $type: 'string' } } },
 );
 
 const verificationTokenSchema = new Schema(
@@ -45,10 +60,13 @@ verificationTokenSchema.index({ userId: 1, kind: 1, usedAt: 1 });
 
 export interface DriverUserDoc {
   _id: unknown;
-  email: string;
+  email?: string;
   phone?: string;
   name?: string;
-  passwordHash: string;
+  passwordHash?: string;
+  pinHash?: string;
+  failedPinAttempts?: number;
+  pinLockedUntil?: Date;
   emailVerifiedAt?: Date;
   phoneVerifiedAt?: Date;
   isActive: boolean;

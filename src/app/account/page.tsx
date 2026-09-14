@@ -75,10 +75,16 @@ export default async function AccountOverviewPage() {
         <CardBody className="grid gap-3 sm:grid-cols-2">
           <StatusRow
             label={d.account.emailLabel}
-            detail={publicUser.email}
+            detail={publicUser.email ?? d.account.noEmailYet}
             verified={publicUser.emailVerified}
-            href="/account/security#email"
-            action={publicUser.emailVerified ? d.account.manage : d.account.confirmEmail}
+            href={publicUser.email ? '/account/security#email' : '#profile-email'}
+            action={
+              !publicUser.email
+                ? d.account.addEmail
+                : publicUser.emailVerified
+                  ? d.account.manage
+                  : d.account.confirmEmail
+            }
             d={d}
           />
           <StatusRow

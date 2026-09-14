@@ -71,10 +71,12 @@ export const fileStore: UserStore = {
     return transact((data) => {
       const user: StoredUser = {
         id: randomUUID(),
-        email: input.email.toLowerCase(),
+        email: input.email?.toLowerCase(),
         phone: input.phone,
+        phoneVerifiedAt: input.phoneVerifiedAt,
         name: input.name,
-        passwordHash: input.passwordHash,
+        pinHash: input.pinHash,
+        failedPinAttempts: 0,
         isActive: true,
         idTag: input.idTag,
         locale: input.locale ?? 'en',

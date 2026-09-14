@@ -94,11 +94,13 @@ export interface ChargingSession {
 
 export interface PublicUser {
   id: string;
-  email: string;
+  email?: string;
   phone?: string;
   name?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
+  /** False only on accounts from before PIN sign-in that have not set one yet. */
+  hasPin: boolean;
   /** The account's charge tag; absent only until the CSMS has issued one. */
   idTag?: string;
   locale: string;

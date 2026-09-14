@@ -19,18 +19,6 @@ function layout(title: string, body: string, cta?: { url: string; label: string 
   </div></body></html>`;
 }
 
-export function passwordResetEmail(url: string, minutes: number) {
-  return {
-    subject: `${brand} нууц үгээ сэргээх`,
-    text: `${brand} нууц үгээ сэргээхийн тулд ${minutes} минутын дотор энэ холбоосыг нээнэ үү:\n\n${url}\n\nХэрэв та сэргээх хүсэлт гаргаагүй бол энэ и-мэйлийг үл тоомсорлоно уу.`,
-    html: layout(
-      'Нууц үгээ сэргээх',
-      `<p style="line-height:1.6;margin:0">Таны ${brand} бүртгэлийн нууц үгийг сэргээх хүсэлт бидэнд ирлээ. Доорх холбоос ${minutes} минутын турш хүчинтэй.</p>`,
-      { url, label: 'Шинэ нууц үг сонгох' },
-    ),
-  };
-}
-
 export function verifyEmail(url: string) {
   return {
     subject: `${brand} и-мэйл хаягаа баталгаажуулах`,
@@ -54,8 +42,12 @@ export function welcomeEmail(name?: string) {
   };
 }
 
-export function passwordResetSms(code: string, minutes: number): string {
-  return `${brand}: нууц үг сэргээх код ${code}. ${minutes} минутын дараа хүчингүй болно. Энэ кодыг бусадтай бүү хуваалцаарай.`;
+export function signupSms(code: string, minutes: number): string {
+  return `${brand}: Burtguulekh code ${code}. ${minutes} minutyn daraa khuchingui bolno.`;
+}
+
+export function pinResetSms(code: string, minutes: number): string {
+  return `${brand}: PIN sergeekh code ${code}. ${minutes} minutyn daraa khuchingui bolno. Busadtai buu khuvaaltsaarai.`;
 }
 
 export function phoneVerifySms(code: string, minutes: number): string {

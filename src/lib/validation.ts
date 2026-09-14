@@ -29,7 +29,7 @@ export const emailSchema = z
   .transform((v) => v.toLowerCase());
 
 export const phoneSchema = z
-  .string()
+  .string({ message: 'Утасны дугаараа оруулна уу' })
   .trim()
   .min(6, 'Зөв утасны дугаар оруулна уу')
   .max(20)
@@ -42,120 +42,75 @@ export const phoneSchema = z
     return normalized;
   });
 
-export const passwordSchema = z
-  .string()
-  .min(8, 'Дор хаяж 8 тэмдэгт ашиглана уу')
-  .max(128, 'Энэ нууц үг хэт урт байна')
-  .refine((v) => /[a-zA-Z]/.test(v) && /\d/.test(v), {
-    message: 'Дор хаяж нэг үсэг, нэг тоо оруулна уу',
-  });
+/** The sign-in PIN: exactly four digits. */
+export const pinSchema = z
+  .string({ message: '4 оронтой PIN код оруулна уу' })
+  .regex(/^\d{4}$/, '4 оронтой PIN код оруулна уу');
 
-export const registerSchema = z
-  .object({
-    name: z.string().trim().min(1, 'Нэрээ оруулна уу').max(80),
-    email: emailSchema,
-    phone: z.string().trim().max(20).optional().or(z.literal('')),
-    password: passwordSchema,
-    confirmPassword: z.string(),
-    acceptTerms: z.literal(true, { message: 'Үргэлжлүүлэхийн тулд нөхцөлийг зөвшөөрнө үү' }),
-  })
-  .refine((v) => v.password === v.confirmPassword, {
-    message: 'Нууц үг таарахгүй байна',
-    path: ['confirmPassword'],
-  });
+/** The 6-digit code sent by SMS. */
+export const smsCodeSchema = z
+  .string({ message: '6 оронтой кодоо оруулна уу' })
+  .trim()
+  .regex(/^\d{6}$/, '6 оронтой кодоо оруулна уу');
 
-/**
- * Login accepts either an email address or a phone number, resolved the same way
- * as forgot-password. `email` stays accepted so the web form, which only ever
- * collects an address, keeps validating against this schema unchanged; the
- * mobile app sends `identifier`. Either way the parsed output is one normalised
- * `identifier` the route can dispatch on.
- */
-export const loginSchema = z
-  .object({
-    email: z.string().trim().max(200).optional(),
-    identifier: z.string().trim().max(200).optional(),
-    password: z.string().min(1, 'Нууц үгээ оруулна уу'),
-    remember: z.boolean().optional(),
-  })
-  .superRefine((v, ctx) => {
-    const path = v.identifier !== undefined ? 'identifier' : 'email';
-    const raw = (v.identifier ?? v.email ?? '').trim();
+const PIN_MISMATCH = 'PIN код таарахгүй байна';
 
-    if (!raw) {
-      ctx.addIssue({
-        code: 'custom',
-        path: [path],
-        message: 'И-мэйл хаяг эсвэл утасны дугаараа оруулна уу',
-      });
-      return;
-    }
-    if (raw.includes('@')) {
-      if (!emailSchema.safeParse(raw).success) {
-        ctx.addIssue({ code: 'custom', path: [path], message: 'Зөв и-мэйл хаяг оруулна уу' });
-      }
-      return;
-    }
-    if (!normalizePhone(raw)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: [path],
-        message: 'Зөв и-мэйл хаяг эсвэл утасны дугаар оруулна уу',
-      });
-    }
-  })
-  .transform((v) => {
-    const raw = (v.identifier ?? v.email ?? '').trim();
-    return {
-      identifier: raw.includes('@') ? raw.toLowerCase() : (normalizePhone(raw) ?? raw),
-      password: v.password,
-      remember: v.remember,
-    };
-  });
-
-/** Forgot-password accepts either an email address or a phone number. */
-export const forgotPasswordSchema = z.object({
-  identifier: z.string().trim().min(3, 'И-мэйл хаяг эсвэл утасны дугаараа оруулна уу').max(200),
-  channel: z.enum(['auto', 'email', 'sms']).default('auto'),
+/** Step 1 of sign-up: the number to text a code to. */
+export const signupSendCodeSchema = z.object({
+  phone: phoneSchema,
+  acceptTerms: z.literal(true, { message: 'Үргэлжлүүлэхийн тулд нөхцөлийг зөвшөөрнө үү' }),
 });
 
-export const resetPasswordSchema = z
-  .object({
-    token: z.string().trim().min(1).optional(),
-    phone: z.string().trim().max(20).optional(),
-    code: z.string().trim().regex(/^\d{6}$/, '6 оронтой кодоо оруулна уу').optional(),
-    password: passwordSchema,
-    confirmPassword: z.string(),
-  })
-  .refine((v) => v.password === v.confirmPassword, {
-    message: 'Нууц үг таарахгүй байна',
-    path: ['confirmPassword'],
-  })
-  .refine((v) => Boolean(v.token) || (Boolean(v.phone) && Boolean(v.code)), {
-    message: 'Сэргээх холбоосын код эсвэл утасны дугаар, түүний код шаардлагатай',
-    path: ['token'],
-  });
+/** Step 2 of sign-up and of a PIN reset: the code that came back. */
+export const phoneCodeSchema = z.object({
+  phone: phoneSchema,
+  code: smsCodeSchema,
+});
 
-export const changePasswordSchema = z
+/** Step 3 of sign-up: the new PIN, typed twice. */
+export const signupCompleteSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Одоогийн нууц үгээ оруулна уу'),
-    password: passwordSchema,
-    confirmPassword: z.string(),
+    signupTicket: z.string().min(1, 'Эхний алхмаас дахин эхлүүлнэ үү'),
+    pin: pinSchema,
+    confirmPin: z.string(),
   })
-  .refine((v) => v.password === v.confirmPassword, {
-    message: 'Нууц үг таарахгүй байна',
-    path: ['confirmPassword'],
-  });
+  .refine((v) => v.pin === v.confirmPin, { message: PIN_MISMATCH, path: ['confirmPin'] });
+
+export const loginSchema = z.object({
+  phone: phoneSchema,
+  pin: z.string({ message: 'PIN кодоо оруулна уу' }).min(1, 'PIN кодоо оруулна уу').max(12),
+});
+
+export const pinForgotSchema = z.object({
+  phone: phoneSchema,
+});
+
+export const pinResetSchema = z
+  .object({
+    resetTicket: z.string().min(1, 'Эхний алхмаас дахин эхлүүлнэ үү'),
+    pin: pinSchema,
+    confirmPin: z.string(),
+  })
+  .refine((v) => v.pin === v.confirmPin, { message: PIN_MISMATCH, path: ['confirmPin'] });
+
+export const changePinSchema = z
+  .object({
+    /** Not asked of an account that has never had a PIN. */
+    currentPin: z.string().max(12).optional(),
+    pin: pinSchema,
+    confirmPin: z.string(),
+  })
+  .refine((v) => v.pin === v.confirmPin, { message: PIN_MISMATCH, path: ['confirmPin'] });
 
 export const updateProfileSchema = z.object({
-  name: z.string().trim().min(1).max(80).optional(),
-  email: emailSchema.optional(),
+  name: z.string().trim().max(80).optional(),
+  email: emailSchema.optional().or(z.literal('')),
   phone: z.string().trim().max(20).optional().or(z.literal('')),
   locale: z.enum(['en', 'mn']).optional(),
 });
 
 export const verifyPhoneSchema = z.object({
-  code: z.string().trim().regex(/^\d{6}$/, '6 оронтой кодоо оруулна уу'),
+  code: smsCodeSchema,
 });
 
 export const stationQuerySchema = z.object({

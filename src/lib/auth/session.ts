@@ -7,8 +7,7 @@ import type { PublicUser } from '@/lib/types';
 
 export interface SessionClaims {
   sub: string;
-  email: string;
-  /** Must match the user's current tokenVersion, so a password reset logs out old devices. */
+  /** Must match the user's current tokenVersion, so a PIN reset logs out old devices. */
   v: number;
 }
 
@@ -18,7 +17,7 @@ function key(): Uint8Array {
 
 export async function createSessionToken(user: StoredUser): Promise<string> {
   const days = serverEnv.sessionMaxAgeDays();
-  return new SignJWT({ email: user.email, v: user.tokenVersion })
+  return new SignJWT({ v: user.tokenVersion })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(user.id)
     .setIssuedAt()
@@ -32,7 +31,6 @@ export async function verifySessionToken(token: string): Promise<SessionClaims |
     if (!payload.sub) return null;
     return {
       sub: payload.sub,
-      email: String(payload.email ?? ''),
       v: Number(payload.v ?? 0),
     };
   } catch {
@@ -92,6 +90,7 @@ export function toPublicUser(user: StoredUser): PublicUser {
     name: user.name,
     emailVerified: Boolean(user.emailVerifiedAt),
     phoneVerified: Boolean(user.phoneVerifiedAt),
+    hasPin: Boolean(user.pinHash),
     idTag: user.idTag,
     locale: user.locale ?? 'en',
     createdAt: user.createdAt,

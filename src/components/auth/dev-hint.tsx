@@ -9,7 +9,7 @@ interface DevHintProps {
   /** One-time code the API echoed back because SMS delivery is not configured. */
   code?: string;
   /** Page the token unlocks, so the panel can offer a ready-made link. */
-  linkPath?: '/reset-password' | '/verify-email';
+  linkPath?: '/verify-email';
 }
 
 /**

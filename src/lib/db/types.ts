@@ -2,10 +2,17 @@
 
 export interface StoredUser {
   id: string;
-  email: string;
+  /** Optional: accounts are created with a phone number and a PIN alone. */
+  email?: string;
   phone?: string;
   name?: string;
-  passwordHash: string;
+  /** Only on accounts created before PIN sign-in; no longer checked anywhere. */
+  passwordHash?: string;
+  /** bcrypt of the 4-digit sign-in PIN. Absent until the driver sets one. */
+  pinHash?: string;
+  /** Wrong PINs in a row since the last successful sign-in or reset. */
+  failedPinAttempts?: number;
+  pinLockedUntil?: string;
   emailVerifiedAt?: string;
   phoneVerifiedAt?: string;
   isActive: boolean;
@@ -41,10 +48,11 @@ export interface StoredToken {
 }
 
 export interface NewUser {
-  email: string;
+  email?: string;
   phone?: string;
+  phoneVerifiedAt?: string;
   name?: string;
-  passwordHash: string;
+  pinHash?: string;
   locale?: string;
   idTag?: string;
 }

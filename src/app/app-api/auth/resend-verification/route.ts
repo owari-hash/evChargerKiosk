@@ -1,4 +1,4 @@
-import { ApiError, conflict, guard, HOUR, json, requireUser, route, tooMany } from '@/lib/api';
+import { ApiError, badRequest, conflict, guard, HOUR, json, requireUser, route, tooMany } from '@/lib/api';
 import {
   composeLinkToken,
   expiryFor,
@@ -16,6 +16,7 @@ export const POST = route(async (req: Request) => {
   const user = await requireUser();
   guard(req, 'auth:resend-verification', 5, HOUR);
 
+  if (!user.email) throw badRequest('Эхлээд и-мэйл хаягаа нэмнэ үү');
   if (user.emailVerifiedAt) throw conflict('Таны и-мэйл хаяг аль хэдийн баталгаажсан байна');
 
   const store = await getStore();
