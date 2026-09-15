@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
 import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Field, Input } from '@/components/ui';
-import type { TopUpInvoice, WalletConfig } from '@/lib/csms/wallet';
+import type { TopUpInvoice, WalletConfig } from '@/lib/types';
 import { cn, formatMoney, intlLocale } from '@/lib/utils';
 
 /**

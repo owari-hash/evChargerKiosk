@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Alert, ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
-import { listStations } from '@/lib/csms/stations';
+import { listStations } from '@/lib/driver-api';
 import { format, getTranslations } from '@/lib/i18n';
 import type { Station } from '@/lib/types';
 import { formatMoney, formatPowerKw, intlLocale } from '@/lib/utils';

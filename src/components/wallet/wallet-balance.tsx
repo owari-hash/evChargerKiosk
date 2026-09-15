@@ -1,6 +1,6 @@
 import { Alert, Card, CardBody } from '@/components/ui';
 import { BankCardManager } from '@/components/wallet/bank-card-manager';
-import type { Wallet, WalletConfig } from '@/lib/csms/wallet';
+import type { Wallet, WalletConfig } from '@/lib/types';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { format } from '@/components/i18n-provider';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';

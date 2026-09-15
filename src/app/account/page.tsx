@@ -3,11 +3,9 @@ import { redirect } from 'next/navigation';
 import { ChargeCard } from '@/components/account/charge-card';
 import { ProfileForm } from '@/components/account/profile-form';
 import { Badge, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
-import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/driver-api';
 import { getTranslations, type Dictionary } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-
-import { ensureChargeTag } from '@/lib/csms/charge-tag';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,15 +54,9 @@ function StatusRow({ label, detail, verified, href, action, d }: StatusRowProps)
 }
 
 export default async function AccountOverviewPage() {
-  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
-  if (!user) redirect('/login');
-
-  if (!user.idTag) {
-    const idTag = await ensureChargeTag(user);
-    if (idTag) user.idTag = idTag;
-  }
-
-  const publicUser = toPublicUser(user);
+  // `auth/me` issues a charge tag to an account that is still missing one.
+  const [publicUser, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
+  if (!publicUser) redirect('/login');
 
   return (
     <>

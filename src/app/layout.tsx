@@ -4,7 +4,7 @@ import './globals.css';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { I18nProvider } from '@/components/i18n-provider';
-import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/driver-api';
 import { getLocale } from '@/lib/i18n';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -53,7 +53,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       </head>
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale}>
-          <SiteHeader user={user ? toPublicUser(user) : null} />
+          <SiteHeader user={user} />
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </I18nProvider>

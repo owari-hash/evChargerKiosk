@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { ChangePinForm } from '@/components/account/change-pin-form';
 import { VerificationPanel } from '@/components/account/verification-panel';
-import { getCurrentUser, toPublicUser } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
@@ -18,8 +18,8 @@ export default async function AccountSecurityPage() {
 
   return (
     <>
-      <ChangePinForm hasPin={Boolean(user.pinHash)} />
-      <VerificationPanel user={toPublicUser(user)} />
+      <ChangePinForm hasPin={user.hasPin} />
+      <VerificationPanel user={user} />
     </>
   );
 }

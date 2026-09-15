@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { AuthHeader } from '@/components/auth/auth-layout';
 import { AuthFormFallback } from '@/components/auth/auth-shell';
 import { LoginForm } from '@/components/auth/login-form';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';

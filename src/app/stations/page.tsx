@@ -5,7 +5,7 @@ import {
   type StationFilters,
   type StationStatusFilter,
 } from '@/components/stations/station-finder';
-import { listStations, type StationResult } from '@/lib/csms/stations';
+import { listStations, type StationResult } from '@/lib/driver-api';
 import { CONNECTOR_TYPES } from '@/lib/types';
 import { getTranslations } from '@/lib/i18n';
 import { stationQuerySchema } from '@/lib/validation';

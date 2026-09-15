@@ -4,16 +4,9 @@ import { TopUpPanel } from '@/components/wallet/top-up-panel';
 import { WalletBalance } from '@/components/wallet/wallet-balance';
 import { WalletHistory } from '@/components/wallet/wallet-history';
 import { Alert } from '@/components/ui';
-import { getCurrentUser } from '@/lib/auth/session';
-import {
-  getWallet,
-  getWalletConfig,
-  listWalletEntries,
-  type Wallet,
-  type WalletConfig,
-  type WalletEntry,
-} from '@/lib/csms/wallet';
+import { getCurrentUser, getWallet } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
+import type { Wallet, WalletConfig, WalletEntry } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'Хэтэвч',
@@ -34,11 +27,9 @@ export default async function WalletPage() {
   let loadError = '';
 
   try {
-    // The config read is what tells us whether the CSMS is reachable at all, so
-    // a failure here means the whole screen falls back to the notice below.
-    [wallet, config] = await Promise.all([getWallet(user.id), getWalletConfig()]);
-    entries = (await listWalletEntries(user.id, { limit: 20 })).data;
+    ({ wallet, config, entries } = await getWallet(20));
   } catch (err) {
+    // An unreachable API falls back to the notice below rather than an error page.
     console.error('[wallet] failed to load wallet', err);
     loadError = d.wallet.unavailable;
   }

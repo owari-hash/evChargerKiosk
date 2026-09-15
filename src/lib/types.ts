@@ -119,3 +119,76 @@ export interface Paginated<T> {
   page: number;
   limit: number;
 }
+
+// ---------------------------------------------------------------------------
+// Prepaid wallet, as the driver API returns it
+// ---------------------------------------------------------------------------
+
+export type WalletOwnerType = 'USER' | 'IDTAG';
+export type WalletStatus = 'ACTIVE' | 'FROZEN';
+export type WalletEntryType = 'TOPUP' | 'CHARGE' | 'REFUND' | 'ADJUSTMENT' | 'BONUS';
+
+export interface Wallet {
+  id: string;
+  ownerType: WalletOwnerType;
+  ownerId: string;
+  balance: number;
+  currency: string;
+  status: WalletStatus;
+  totalToppedUp: number;
+  totalSpent: number;
+  lastTopUpAt?: string;
+  lastSpendAt?: string;
+  /** Charge tags that spend from this wallet. */
+  idTags?: string[];
+}
+
+export interface WalletEntry {
+  id: string;
+  type: WalletEntryType;
+  /** Signed: positive credits the wallet, negative debits it. */
+  amount: number;
+  balanceAfter: number;
+  currency: string;
+  description?: string;
+  paymentId?: string;
+  transactionId?: number;
+  chargePointId?: string;
+  connectorId?: number;
+  idTag?: string;
+  createdAt: string;
+  ebarimt?: EBarimtData;
+}
+
+export interface WalletConfig {
+  enabled: boolean;
+  currency: string;
+  presets: number[];
+  minTopUp: number;
+  maxTopUp: number;
+  minStartBalance: number;
+  requireBalanceToStart: boolean;
+  allowNegative: boolean;
+  /** False when QPay is switched off — the top-up button has to be hidden. */
+  topUpEnabled: boolean;
+}
+
+/** The QPay invoice a top-up creates; carries everything needed to show a QR. */
+export interface TopUpInvoice {
+  id: string;
+  purpose?: 'CHARGING' | 'WALLET_TOPUP';
+  walletOwnerType?: WalletOwnerType;
+  walletOwnerId?: string;
+  walletCreditedAt?: string;
+  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELED' | 'EXPIRED' | 'REFUNDED' | 'FAILED';
+  amount: number;
+  paidAmount: number;
+  currency: string;
+  description: string;
+  qrText?: string;
+  qrImage?: string;
+  shortUrl?: string;
+  deeplinks?: { name?: string; description?: string; logo?: string; link?: string }[];
+  expiresAt?: string;
+  createdAt: string;
+}

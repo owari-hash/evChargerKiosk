@@ -1,13 +1,15 @@
 import { z } from 'zod';
-import { serverEnv } from '@/lib/env';
+
+/** Mongolia; the driver API applies the same default when it normalises a number. */
+const DEFAULT_COUNTRY_CODE = '976';
 
 /**
  * Turns typed local input into E.164 (`+97699112233`). Anything already prefixed
  * with `+` is kept as-is; a leading `00` or a bare national number is expanded
- * with DEFAULT_COUNTRY_CODE.
+ * with the default country code.
  */
 export function normalizePhone(raw: string, countryCode?: string): string | null {
-  const cc = (countryCode ?? serverEnv.defaultCountryCode()).replace(/\D/g, '');
+  const cc = (countryCode ?? DEFAULT_COUNTRY_CODE).replace(/\D/g, '');
   const trimmed = raw.trim();
   if (!trimmed) return null;
 

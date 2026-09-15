@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AccountNav } from '@/components/account/account-nav';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';

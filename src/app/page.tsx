@@ -1,8 +1,7 @@
 import { HeroMapSection } from '@/components/stations/hero-map-section';
 import { toMapStations } from '@/components/stations/map-station';
 import { ButtonLink } from '@/components/ui';
-import { getCurrentUser } from '@/lib/auth/session';
-import { listStations, type StationResult } from '@/lib/csms/stations';
+import { getCurrentUser, listStations, type StationResult } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 
 export default async function HomePage() {

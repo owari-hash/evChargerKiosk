@@ -2,8 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { SessionsTable } from '@/components/account/sessions-table';
 import { Alert } from '@/components/ui';
-import { getCurrentUser } from '@/lib/auth/session';
-import { decorateSessions, listSessionsForIdTags } from '@/lib/csms/stations';
+import { getCurrentUser, listSessions } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 import type { ChargingSession } from '@/lib/types';
 
@@ -22,7 +21,7 @@ export default async function AccountSessionsPage() {
   let unavailable = false;
 
   try {
-    sessions = await decorateSessions(await listSessionsForIdTags(user.idTag));
+    sessions = await listSessions(50);
   } catch (err) {
     // A charging network outage must not take the whole account area down.
     console.warn('[account/sessions] could not load history', (err as Error).message);

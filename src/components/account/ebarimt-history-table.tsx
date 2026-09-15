@@ -5,7 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle, Button } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import { format, useI18n } from '@/components/i18n-provider';
 import type { ChargingSession } from '@/lib/types';
-import type { WalletEntry } from '@/lib/csms/wallet';
+import type { WalletEntry } from '@/lib/types';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';
 
 interface EbarimtRecordItem {

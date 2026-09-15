@@ -35,11 +35,11 @@ the Next.js server.
 | | |
 | --- | --- |
 | Audience | EV drivers, on a phone, usually outdoors and in a hurry |
-| Backend | The OCPP 1.6J CSMS in `../evChargerBack`, over its REST API |
+| Backend | The driver API in `../evChargerBack` (`/app-api/*`), at `API_ORIGIN` — https://eplug.mn by default |
 | Framework | Next.js 16.3 (App Router), React 19, TypeScript strict |
 | Styling | Tailwind CSS v4 with CSS custom properties; light and dark themes |
-| Accounts | MongoDB (its own collections), with a JSON file store for development |
-| Sessions | Signed HttpOnly cookie (JWT via `jose`); no third-party auth service |
+| Accounts | Held by evChargerBack; this app has no database |
+| Sessions | HttpOnly `evapp_session` cookie issued by evChargerBack; this app only forwards it |
 
 What it does:
 
@@ -71,19 +71,19 @@ npm run dev
 
 Open <http://localhost:3100>. (Port 3100, not 3000 — 3000 is the CSMS.)
 
-**It runs with nothing else installed.** No MongoDB, no CSMS, no mail server, no SMS gateway:
+**There is no local backend to run.** Server-rendered pages and the browser's `/app-api/*` calls
+go to the driver API at `API_ORIGIN`, which defaults to **https://eplug.mn** — so a laptop shows
+the live network and signs in with real accounts. To work against a local evChargerBack instead:
 
-| Missing dependency | What happens instead |
-| --- | --- |
-| CSMS unreachable | `DEMO_DATA=true` serves the built-in sample network from `src/lib/csms/demo-data.ts`. Every list and detail page carries a visible "sample data" notice. |
-| MongoDB unreachable or `MONGODB_URI` empty | `ALLOW_FILE_STORE=true` keeps driver accounts in `.data/driver-accounts.json`. Never used when `NODE_ENV=production`. |
-| No mail server | `EMAIL_PROVIDER=console` prints the whole message to the server log and appends it to `.data/outbox.log`. |
-| No SMS gateway | `SMS_PROVIDER=console` does the same for text messages. |
+```bash
+# in ../evChargerBack
+HTTP_PORT=3010 NODE_ENV=development npx tsx src/index.ts
+# here
+API_ORIGIN=http://127.0.0.1:3010 npm run dev
+```
 
-So the password-reset and verification flows are fully clickable on a laptop with nothing running
-but `npm run dev`: **the reset link and the six-digit code are printed to the terminal and to
-`.data/outbox.log`.** With `DEV_EXPOSE_TOKENS=true` they are also returned in the API response
-(`devToken` / `devCode`) so a form can jump straight to the next step. `.data/` is git-ignored.
+A development evChargerBack returns SMS codes in its responses (`devCode`) and prints them to its
+log, so sign-up and PIN reset are clickable without an SMS gateway.
 
 Other scripts:
 
@@ -104,28 +104,22 @@ npm run typecheck  # tsc --noEmit
    |  station list and map, forms, start/stop buttons               |
    +------------------------------+--------------------------------+
                                   |
-                                  |  fetch() to THIS app only
-                                  |  (same origin, cookie session)
+                                  |  fetch('/app-api/...') on the page's own origin
+                                  |  (cookie session)
                                   v
    +---------------------------------------------------------------+
-   |  Next.js 16 server  —  this app, port 3100                     |
-   |                                                                |
-   |   src/app/**/page.tsx       server components, per request     |
-   |   src/app/app-api/**/route.ts  the app's own JSON API          |
-   |   src/middleware.ts         edge redirect guard                |
-   |                                                                |
-   |   src/lib/csms/*   src/lib/db/*   src/lib/auth/*               |
-   |   src/lib/notify/*  <- SMTP / Twilio / HTTP gateway            |
+   |  nginx, eplug.mn                                               |
+   |    /app-api/*  /api/*  /ocpp/*   ->  evChargerBack :3000        |
+   |    everything else               ->  this app :3100             |
    +----------+----------------------------------+-----------------+
               |                                  |
-              | HTTPS, x-api-key or Bearer JWT   | mongodb://
               v                                  v
    +-----------------------------+   +---------------------------+
-   |  CSMS REST API              |   |  MongoDB                  |
-   |  ../evChargerBack, :3000    |   |  driverusers              |
-   |  /api/charge-points         |   |  driververificationtokens |
-   |  /api/transactions          |   +---------------------------+
-   +--------------+--------------+
+   |  evChargerBack              |   |  Next.js 16 — this app    |
+   |  /app-api  driver API       |<--|  pages read API_ORIGIN    |
+   |  /api      operator API     |   |  with the visitor cookie  |
+   |  MongoDB, wallets, QPay     |   |  (src/lib/driver-api.ts)  |
+   +--------------+--------------+   +---------------------------+
                   |
                   |  OCPP 1.6J, JSON over WebSocket
                   v
@@ -136,12 +130,12 @@ npm run typecheck  # tsc --noEmit
 
 ### Security rule
 
-**CSMS credentials and the driver account store are server-only. The browser never talks to the
-CSMS, and never sees a CSMS token.** Every client component calls this app's own `/app-api/*` routes;
-those handlers authenticate the cookie session, decide what this particular driver may see, and
-only then call `@/lib/csms/*`. Nothing under `@/lib/db`, `@/lib/csms` or `@/lib/notify` may be
-imported from a `'use client'` file or from `middleware.ts` — `src/lib/auth/edge-session.ts`
-exists precisely so the middleware can check a cookie signature without touching Mongo.
+**This app holds no secrets** — no database, no charging-network credential, no session-signing
+key. Browser code calls `/app-api/*` on its own origin; server-rendered pages call
+`${API_ORIGIN}/app-api/*` forwarding the visitor's own cookie; evChargerBack decides what that
+driver may see. `src/app/app-api/[...path]/route.ts` forwards browser calls when nginx does not
+route `/app-api` (for example under `next dev`), and `src/proxy.ts` only checks that a session
+cookie is present before `/account/**` — the account pages still ask `auth/me`.
 
 ### Module map
 
@@ -149,101 +143,31 @@ exists precisely so the middleware can check a cookie signature without touching
 | --- | --- |
 | `src/lib/types.ts` | Domain types shared by server and browser: `Station`, `StationConnector`, `ChargingSession`, `PublicUser`, `ConnectorStatus`, `ConnectorType`. |
 | `src/lib/utils.ts` | Pure formatting and geo helpers — `formatKwh`, `formatPower`, `formatMoney`, `formatDateTime`, `formatDuration`, `haversineKm`, status labels and tones. Safe in client components. |
-| `src/lib/env.ts` | All configuration reading. `serverEnv` is lazy getters for secrets; `publicEnv` holds only `NEXT_PUBLIC_*` values. `requireSessionSecret()` fails fast in production. |
-| `src/lib/api.ts` | Route-handler plumbing: `route()` wrapper turning thrown errors into the single `{ error, fields? }` envelope, `parseBody`/`parseQuery`, `requireUser`, `guard` (rate limit), and the `ApiError` constructors. |
-| `src/lib/validation.ts` | Every zod schema, `normalizePhone()` (local number to E.164), `fieldErrors()` (ZodError to `{ field: message }`). |
-| `src/lib/auth/session.ts` | Issues, verifies and clears the session cookie; `getCurrentUser()` re-reads the account on every request; `toPublicUser()` strips secrets. |
-| `src/lib/auth/edge-session.ts` | Signature-only cookie check for `middleware.ts` (Edge runtime, no database). |
-| `src/lib/auth/password.ts` | bcrypt hash/verify at 12 rounds, plus a cheap strength meter for the sign-up form. |
-| `src/lib/auth/tokens.ts` | Link secrets and 6-digit OTPs, SHA-256 hashing, constant-time comparison, `<tokenId>.<secret>` link format, TTLs. |
-| `src/lib/auth/rate-limit.ts` | In-memory fixed-window limiter and best-effort client IP. Single process only. |
-| `src/lib/db/index.ts` | Chooses the store once per process: Mongo when reachable, otherwise the JSON dev store. |
-| `src/lib/db/mongoose.ts`, `mongo-store.ts`, `models.ts` | Mongo connection and the `driverusers` / `driververificationtokens` collections. |
-| `src/lib/db/file-store.ts` | The same `UserStore` interface backed by `.data/driver-accounts.json`. |
-| `src/lib/db/types.ts` | `StoredUser`, `StoredToken` and the `UserStore` contract both stores implement. |
+| `src/lib/env.ts` | Configuration: `serverEnv` (`API_ORIGIN`, timeout, cookie name) and `publicEnv` (`NEXT_PUBLIC_*` only). |
+| `src/lib/driver-api.ts` | Server-side reads from the driver API with the visitor's cookie: `getCurrentUser()`, `listStations()`, `getStation()`, `getWallet()`, `listSessions()`. |
+| `src/app/app-api/[...path]/route.ts` | Pass-through to `${API_ORIGIN}/app-api/*` for when nginx does not route it; relays `Set-Cookie`, refuses to loop back into itself. |
+| `src/proxy.ts` | Redirects visitors without a session cookie away from `/account/**` (Next 16's renamed middleware). |
+| `src/lib/validation.ts` | Client-side form schemas and `normalizePhone()`; the API validates again. |
 | `src/lib/i18n/config.ts` | Supported locales (`mn` default, `en` fallback), the `evapp_locale` cookie name and label map. |
 | `src/lib/i18n/dictionaries.ts` | All translated copy. `en` defines the shape; TypeScript makes `mn` provide every key. |
 | `src/lib/i18n/index.ts` | Server side of the translation layer: `getLocale()`, `getDictionary()`, `getTranslations()` and `format()` for `{placeholder}` interpolation. |
-| `src/lib/notify/email.ts` | `sendEmail()` — `console` or `smtp` provider. |
-| `src/lib/notify/sms.ts` | `sendSms()` — `console`, generic `http` gateway, or `twilio`. |
-| `src/lib/notify/templates.ts` | The actual message bodies for reset, verification and welcome. |
-| `src/lib/csms/client.ts` | The only place that holds a CSMS credential: `csmsFetch()`, JWT caching and one silent re-login on 401, timeouts, `CsmsError` / `CsmsUnavailableError`. |
-| `src/lib/csms/stations.ts` | Station queries and filtering, session history for a set of idTags, `remoteStart` / `remoteStop`, and the demo-data fallback. |
-| `src/lib/csms/mapping.ts` | Translates raw CSMS charge points into `Station`, including the tag convention in section 7. |
-| `src/lib/csms/demo-data.ts` | The sample network used when the CSMS is unreachable. |
 
 ---
 
 ## 4. Configuration
 
-Copy `.env.example` to `.env.local`. Every variable has a working default except `SESSION_SECRET`,
-which is mandatory in production.
+Copy `.env.example` to `.env.local`. Every variable has a working default.
 
-### Core
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `APP_URL` | `http://localhost:3100` | Public origin of this app. Used to build the links inside emails and SMS, so a wrong value produces reset links nobody can open. |
-
-### Session
+### Driver API
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SESSION_SECRET` | *(none)* | HMAC key for the session JWT. At least 32 characters. In development a fixed insecure fallback is used; in production a short or missing value throws at startup. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
-| `SESSION_COOKIE_NAME` | `evapp_session` | Cookie name. Change it if another app shares the domain. |
-| `SESSION_MAX_AGE_DAYS` | `30` | Cookie and JWT lifetime. |
+| `API_ORIGIN` | `https://eplug.mn` | Origin of evChargerBack's driver API, without `/app-api` or a trailing slash. Server-rendered pages read from it, and `/app-api/*` is forwarded to it when nginx does not route that path. |
+| `API_TIMEOUT_MS` | `10000` | Timeout for those requests. |
+| `SESSION_COOKIE_NAME` | `evapp_session` | Must match `SESSION_COOKIE_NAME` in evChargerBack. |
 
-### Driver accounts
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `MONGODB_URI` | *(empty)* | Where driver accounts live. May be the same MongoDB as the CSMS: the app uses its own `driverusers` and `driververificationtokens` collections and never touches the operator `users` collection. Required in production. |
-| `ALLOW_FILE_STORE` | `true` outside production | Permits the `.data/driver-accounts.json` fallback when Mongo is unreachable. Ignored when `NODE_ENV=production`. |
-
-### CSMS
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `CSMS_BASE_URL` | `http://127.0.0.1:3000/api` | Base URL of the CSMS REST API, including its `API_BASE_PATH`. |
-| `CSMS_API_KEY` | *(empty)* | Static machine key sent as `x-api-key`. Must equal `API_KEY` in the CSMS `.env`. Takes precedence over the email/password pair. |
-| `CSMS_EMAIL` | *(empty)* | Service account email, used when no API key is set. |
-| `CSMS_PASSWORD` | *(empty)* | Service account password. The resulting JWT is cached in the server process for six hours. |
-| `CSMS_TIMEOUT_MS` | `8000` | Per-request timeout. On timeout the request becomes a `CsmsUnavailableError`, which the demo fallback or a 503 handles. |
-| `DEMO_DATA` | `true` outside production | Serve the built-in sample network when the CSMS cannot be reached, instead of failing. |
-
-### Features
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `ENABLE_REMOTE_START` | `false` | Lets a signed-in driver with a linked idTag start a session from the web app. Requires CSMS credentials with the `OPERATOR` role. |
-| `DEV_EXPOSE_TOKENS` | `true` outside production | Returns reset tokens and OTP codes in the API response (`devToken`, `devCode`) so the flows can be clicked through before mail and SMS are wired up. Hard-disabled when `NODE_ENV=production`. |
-
-### Email
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `EMAIL_PROVIDER` | `console` | `console` writes to the log and `.data/outbox.log`; `smtp` sends through the server below. |
-| `EMAIL_FROM` | `EV Charge <no-reply@example.com>` | From header on outgoing mail. |
-| `SMTP_HOST` | *(empty)* | SMTP hostname. Required when `EMAIL_PROVIDER=smtp`. |
-| `SMTP_PORT` | `587` | SMTP port. |
-| `SMTP_SECURE` | `false` | `true` for implicit TLS (port 465); `false` uses STARTTLS. |
-| `SMTP_USER` | *(empty)* | SMTP username. Leave blank for an unauthenticated relay. |
-| `SMTP_PASS` | *(empty)* | SMTP password. |
-
-### SMS
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `SMS_PROVIDER` | `console` | `console`, `http` (generic gateway) or `twilio`. |
-| `SMS_FROM` | `EVCHARGE` | Sender ID; also substituted for `{from}` in the HTTP gateway templates. |
-| `SMS_HTTP_URL` | *(empty)* | Gateway URL. `{to}`, `{text}` and `{from}` are substituted and URL-encoded. |
-| `SMS_HTTP_METHOD` | `GET` | HTTP method for the gateway. |
-| `SMS_HTTP_BODY` | *(empty)* | Request body template, used for non-GET methods. Placeholders are substituted without URL-encoding. |
-| `SMS_HTTP_HEADERS` | *(empty)* | Extra request headers as a JSON object, e.g. an API key. |
-| `TWILIO_ACCOUNT_SID` | *(empty)* | Twilio account SID. |
-| `TWILIO_AUTH_TOKEN` | *(empty)* | Twilio auth token. |
-| `TWILIO_FROM` | *(empty)* | Twilio sending number in E.164. |
-| `DEFAULT_COUNTRY_CODE` | `976` | Calling code applied to phone numbers typed without a `+`. |
+Sessions, driver accounts, SMS, email, remote start and wallet settings are no longer configured
+here. They live in **evChargerBack's `.env`** — see the "Driver API" section of its `.env.example`.
 
 ### Branding and map (exposed to the browser)
 
@@ -259,6 +183,9 @@ which is mandatory in production.
 ---
 
 ## 5. Connecting real email and SMS
+
+> **Moved to evChargerBack.** Email and SMS are sent by the driver API now, so the variables in
+> this section go in `../evChargerBack/.env`, not in this app's `.env.local`.
 
 Until this is done, every message is written to the terminal and to `.data/outbox.log`. That is
 fine for development and useless in production — a driver who forgets their password has no way
@@ -355,51 +282,25 @@ but remove it from the environment file anyway rather than relying on that.
 
 ---
 
-## 6. Connecting the CSMS
+## 6. Connecting the driver API
 
-Point the app at the CSMS REST API and give it one credential.
-
-```env
-CSMS_BASE_URL=http://127.0.0.1:3000/api
-```
-
-The URL must include the CSMS `API_BASE_PATH` (`/api` by default). No trailing slash is needed —
-one is stripped if present.
-
-**Option A — static machine key (simplest).** In the CSMS `.env` set `API_KEY` to a long random
-string, then mirror it here:
+The driver API is part of evChargerBack (`src/driver`) and needs no credential from this app: it
+authenticates drivers by their own `evapp_session` cookie.
 
 ```env
-CSMS_API_KEY=the-same-long-random-string
+API_ORIGIN=https://eplug.mn
 ```
 
-The key is sent as an `x-api-key` header, and the CSMS treats it as an `ADMIN` caller, so remote
-start works. Rotate it by changing both files and restarting both services.
+**In production** nginx routes `https://eplug.mn/app-api/` to evChargerBack
+(`../evChargerBack/deploy/nginx-eplug.mn.conf`), so the browser's calls never reach this app and
+the pass-through route is idle. Server-rendered pages still call `API_ORIGIN` themselves.
 
-**Option B — service account.** Create a CSMS user and put its credentials here:
+**CORS.** None is needed. The browser only ever calls its own origin, and server-rendered pages
+call the API server-to-server.
 
-```env
-CSMS_EMAIL=webapp@yourdomain.mn
-CSMS_PASSWORD=a-strong-password
-```
-
-The client logs in on first use, caches the JWT in the server process for six hours, and silently
-re-logs in once if a request comes back 401. `CSMS_API_KEY` wins when both are configured.
-
-**Roles.** Reading charge points and transactions needs any authenticated CSMS role (`VIEWER` is
-enough). `POST /charge-points/:id/remote-start` and `POST /transactions/:id/stop` require
-`OPERATOR` or higher, so give the service account `OPERATOR` if you intend to set
-`ENABLE_REMOTE_START=true`. With a `VIEWER` account the CSMS returns 403 and the app surfaces it
-as a failed start.
-
-**CORS.** The CSMS `CORS_ORIGIN` does not need to include this app's origin. Every CSMS call is
-made server-to-server from the Next.js process, where CORS does not apply. Only add this origin
-to `CORS_ORIGIN` if you ever change that and call the CSMS from the browser — which would also
-mean shipping a CSMS credential to the browser, so do not.
-
-**Checking the link.** With the CSMS down you will see `[stations] serving demo data — …` in the
-log and a "sample data" notice in the UI. When the connection is right, that notice disappears and
-`demo` is `false` in the `/app-api/stations` response.
+**Checking the link.** `curl https://eplug.mn/app-api/stations` should answer JSON from
+evChargerBack. If the pass-through answers `508`, `API_ORIGIN` leads back to this app — nginx is not
+routing `/app-api/` to evChargerBack yet.
 
 ---
 
@@ -473,14 +374,14 @@ consumes. Delete the tag parsing there, read the new fields, and nothing else mo
 Route-level UI files: `src/app/loading.tsx` (skeleton), `src/app/error.tsx` (client error boundary
 with retry) and `src/app/not-found.tsx` (404, routes back to `/stations`).
 
-`src/middleware.ts` redirects signed-out visitors from `/account/**` to `/login?next=…`, and
-signed-in visitors away from `/login`, `/register` and `/forgot-password`.
+`src/proxy.ts` redirects visitors without a session cookie from `/account/**` to
+`/login?next=…`; the auth pages redirect signed-in visitors to `/account`.
 
 ### API
 
-This app's own route handlers live under **`/app-api/`**, not `/api/`. In production the CSMS is
-proxied at `https://eplug.mn/api/...` on the same origin, so anything this app served at `/api/`
-would be shadowed by it — the same reason the admin console uses `/console-api/`.
+The driver API lives under **`/app-api/`** and is served by **evChargerBack** (`src/driver`), not by
+this app. It stays off `/api/`, which is the operator API on the same origin. The table below
+predates PIN sign-in; `evChargerBack/src/driver/routes/` is the source of truth.
 
 Every endpoint answers errors as `{ error: string, fields?: Record<string,string> }` with a 4xx or
 5xx status. "Session" means the cookie must be present and valid.
@@ -516,8 +417,8 @@ station with `distanceKm` and sorts by it.
 
 ### The wallet
 
-The balance lives in the CSMS, not here — this app only renders it. `src/lib/csms/wallet.ts` is
-the server-side client; the browser never sees a CSMS credential.
+The balance lives in evChargerBack, not here — this app only renders what `/app-api/wallet`
+returns.
 
 Every wallet route derives the account id from the session cookie, never from the request, so a
 driver can only read their own balance. `/app-api/wallet/topup/[id]` additionally re-reads the invoice
@@ -542,6 +443,9 @@ All wallet copy is in `src/lib/i18n/dictionaries.ts` under `wallet.*`, Mongolian
 ---
 
 ## 9. Auth model
+
+> Implemented in evChargerBack (`src/driver/auth`) since the driver API moved there. Sign-in is
+> phone + 4-digit PIN with SMS codes; the password wording below predates that.
 
 **Cookie session.** Signing in sets one cookie (`SESSION_COOKIE_NAME`, default `evapp_session`)
 holding an HS256 JWT signed with `SESSION_SECRET`. It is `HttpOnly` so no script can read it,
@@ -593,41 +497,13 @@ into a membership oracle for any email address or phone number. The consequences
 
 ## 10. Deployment notes
 
-1. **Set the secrets and the database.**
+1. **Deploy evChargerBack first**, with the driver-API keys in its `.env` — above all
+   `SESSION_SECRET`, copied from this app's old production env so signed-in drivers stay signed in.
 
-   ```env
-   SESSION_SECRET=<64 hex characters, unique to this deployment>
-   MONGODB_URI=mongodb://user:pass@host:27017/csms?authSource=admin
-   ```
+2. **Route `/app-api/` to evChargerBack in nginx** (the `location /app-api/` block in
+   `../evChargerBack/deploy/nginx-eplug.mn.conf`), then `nginx -t && systemctl reload nginx`.
 
-   A `SESSION_SECRET` under 32 characters throws at startup in production rather than falling back.
-
-2. **Turn off the development escape hatches.**
-
-   ```env
-   ALLOW_FILE_STORE=false
-   DEMO_DATA=false
-   # DEV_EXPOSE_TOKENS — remove the line entirely
-   ```
-
-   With `DEMO_DATA=false` an unreachable CSMS produces an honest 503 instead of quietly showing a
-   fictional network to drivers.
-
-3. **Set the public origin and the real providers.**
-
-   ```env
-   APP_URL=https://charge.yourdomain.mn
-   NODE_ENV=production
-   EMAIL_PROVIDER=smtp
-   SMS_PROVIDER=twilio   # or http
-   ```
-
-   `APP_URL` must be the origin drivers actually reach, including scheme and any port, with no
-   trailing slash — every reset and verification link is built from it.
-
-4. **Point at the CSMS** as in section 6, with `OPERATOR` credentials if remote start is on.
-
-5. **Build and run.**
+3. **Build and run this app.**
 
    ```bash
    npm ci
@@ -635,13 +511,12 @@ into a membership oracle for any email address or phone number. The consequences
    npm start          # listens on port 3100
    ```
 
-   Put it behind a TLS-terminating reverse proxy and forward `X-Forwarded-For`, which is what the
-   rate limiter uses to identify a client. Serve the app over HTTPS: the session cookie is marked
-   `Secure` in production and a browser will simply drop it over plain HTTP.
+   `API_ORIGIN` defaults to `https://eplug.mn`; set it only to point at a different backend.
+   Serve over HTTPS: the session cookie is `Secure` in production and a browser drops it over
+   plain HTTP.
 
-6. **Scaling.** The rate limiter and the cached CSMS token live in process memory, so several
-   instances will each keep their own. That is safe but weakens the limits; move the limiter to a
-   shared store before running more than one instance.
+4. **Scaling.** This app keeps no state, so it can run as several instances. The driver API's
+   rate limiter lives in evChargerBack's process memory.
 
 ---
 

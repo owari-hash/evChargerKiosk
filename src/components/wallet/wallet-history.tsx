@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
-import type { WalletEntry } from '@/lib/csms/wallet';
+import type { WalletEntry } from '@/lib/types';
 import type { ChargingSession } from '@/lib/types';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { format } from '@/components/i18n-provider';

@@ -6,30 +6,28 @@ import { AvailabilityStatus } from '@/components/stations/availability-dot';
 import { StationLiveView } from '@/components/stations/station-live-view';
 import { StationMapPanel } from '@/components/stations/station-finder';
 import { Alert, Badge, ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
-import { getCurrentUser } from '@/lib/auth/session';
-import { getStation } from '@/lib/csms/stations';
-import { serverEnv } from '@/lib/env';
+import { getCurrentUser, getStation } from '@/lib/driver-api';
 import { format, getTranslations } from '@/lib/i18n';
 import type { Station } from '@/lib/types';
 import { directionsUrl, formatDateTime, formatMoney, formatPowerKw, intlLocale } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-interface StationLoad {
+interface StationPageLoad {
   station: Station | null;
-  demo: boolean;
+  remoteStartEnabled: boolean;
+  /** The API could not be asked, as opposed to answering that there is no such station. */
   unreachable: boolean;
 }
 
-/** Deduplicates the CSMS call shared by generateMetadata() and the page itself. */
-const loadStation = cache(async (id: string): Promise<StationLoad> => {
+/** Deduplicates the API call shared by generateMetadata() and the page itself. */
+const loadStation = cache(async (id: string): Promise<StationPageLoad> => {
   try {
-    const { station, demo } = await getStation(id);
-    // A demo fallback with no match means the CSMS answered nothing, not a 404.
-    return { station, demo, unreachable: station === null && demo };
+    const { station, remoteStartEnabled } = await getStation(id);
+    return { station, remoteStartEnabled, unreachable: false };
   } catch (err) {
     console.error(`[station] failed to load ${id}`, err);
-    return { station: null, demo: false, unreachable: true };
+    return { station: null, remoteStartEnabled: false, unreachable: true };
   }
 });
 
@@ -41,7 +39,7 @@ export async function generateMetadata(props: PageProps<'/stations/[id]'>): Prom
 
 export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   const { id } = await props.params;
-  const [{ station, unreachable }, { locale, d }] = await Promise.all([
+  const [{ station, unreachable, remoteStartEnabled }, { locale, d }] = await Promise.all([
     loadStation(id),
     getTranslations(),
   ]);
@@ -108,7 +106,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
         tariffPerKwh={station.tariffPerKwh}
         signedIn={Boolean(user)}
         hasIdTag={Boolean(user?.idTag)}
-        remoteStartEnabled={serverEnv.enableRemoteStart()}
+        remoteStartEnabled={remoteStartEnabled}
         locale={locale}
         connectorsTitle={d.stations.connectorsTitle}
         mapSlot={
