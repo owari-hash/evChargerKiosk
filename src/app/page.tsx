@@ -47,9 +47,9 @@ export default async function HomePage() {
   ];
 
   const steps = [
-    { title: d.home.step1Title, body: d.home.step1Body, badge: '01' },
-    { title: d.home.step2Title, body: d.home.step2Body, badge: '02' },
-    { title: d.home.step3Title, body: d.home.step3Body, badge: '03' },
+    { title: d.home.step1Title, body: d.home.step1Body },
+    { title: d.home.step2Title, body: d.home.step2Body },
+    { title: d.home.step3Title, body: d.home.step3Body },
   ];
 
   let result: StationResult = { stations: [], demo: false };
@@ -137,10 +137,7 @@ export default async function HomePage() {
                 className="relative flex flex-col justify-between rounded-2xl bg-surface-muted/50 p-6 shadow-sm ring-1 ring-border"
               >
                 <div>
-                  <span className="inline-block rounded-xl bg-brand-soft px-3 py-1 text-xs font-bold text-brand">
-                    {step.badge}
-                  </span>
-                  <h3 className="mt-4 text-base font-bold text-foreground">{step.title}</h3>
+                  <h3 className="text-base font-bold text-foreground">{step.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
                 </div>
               </li>
