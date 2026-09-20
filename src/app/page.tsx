@@ -1,4 +1,5 @@
 import { HeroMapSection } from '@/components/stations/hero-map-section';
+import { HeroScrollCue } from '@/components/stations/hero-scroll-cue';
 import { toMapStations } from '@/components/stations/map-station';
 import { ButtonLink } from '@/components/ui';
 import { getCurrentUser, listStations, type StationResult } from '@/lib/driver-api';
@@ -64,7 +65,7 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero — the live network map is the landing surface */}
-      <section className="relative border-b border-border">
+      <section className="relative overflow-hidden border-b border-border">
         {/* The map carries the page visually, so the page heading lives here for
             the document outline, screen readers and crawlers. */}
         <h1 className="sr-only">{d.home.title}</h1>
@@ -73,22 +74,11 @@ export default async function HomePage() {
           className="h-[calc(100svh-4rem)] min-h-[520px]"
         />
 
-        <a
-          href="#features"
-          aria-label={d.home.scrollDown}
-          title={d.home.scrollDown}
-          className="absolute inset-x-0 -bottom-6 z-30 flex justify-center"
-        >
-          <span className="grid size-12 animate-bounce place-items-center rounded-full bg-surface text-foreground shadow-[0_10px_28px_-10px_rgb(2_6_23/0.5)] ring-1 ring-border transition hover:bg-surface-muted">
-            <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        </a>
+        <HeroScrollCue label={d.home.scrollDown} targetId="features" />
       </section>
 
       {/* Features Showcase Section */}
-      <section id="features" className="border-t border-border bg-surface-muted/40 py-16 scroll-mt-20">
+      <section id="features" className="scroll-mt-16 border-t border-border bg-surface-muted/40 py-16">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mx-auto max-w-2xl text-center">
             <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
