@@ -233,6 +233,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   const [flyoutLeft, setFlyoutLeft] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   // The phone's sheet starts collapsed because it is a summary bar over the
   // map; the column has the room to start open, so it is its own state rather
   // than a shared one the breakpoint would have to reinterpret.
@@ -506,6 +507,8 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
 
   const activeCount =
     groups.filter((group) => group.active).length + (query ? 1 : 0) + (favoritesOnly ? 1 : 0);
+  const filterCount =
+    groups.filter((group) => group.active).length + (favoritesOnly ? 1 : 0);
   const open = groups.find((group) => group.key === openGroup) ?? null;
 
   // A station filtered out from under the selection stops counting as selected.
@@ -616,11 +619,259 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             depends on a hover tooltip that a touchscreen never shows. The row
             scrolls sideways when it outgrows a narrow phone. */}
         <div ref={controlsRef} className="relative z-10 w-full shrink-0">
+          {/* Mobile Search + Filter Trigger Row */}
+          <div className="pointer-events-auto flex items-center gap-2 sm:hidden">
+            <label
+              className={cn(
+                'flex h-11 flex-1 items-center gap-2 rounded-full bg-surface pl-3.5 pr-1.5 ring-1 ring-border transition focus-within:ring-2 focus-within:ring-brand',
+                CHIP_SHADOW,
+              )}
+            >
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="size-[18px] shrink-0 text-muted"
+              >
+                <circle cx="11" cy="11" r="6.5" />
+                <path strokeLinecap="round" d="m20 20-4.2-4.2" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t.searchPlaceholder}
+                aria-label={t.searchPlaceholder}
+                className="auth-plain-input min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted/80 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label={t.clearSearch}
+                  className="grid size-8 shrink-0 place-items-center rounded-full text-muted transition hover:bg-surface-muted hover:text-foreground"
+                >
+                  <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+                    <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
+              )}
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen((v) => !v)}
+              aria-expanded={mobileFiltersOpen}
+              aria-label={t.filterLabel}
+              className={cn(
+                'inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 transition',
+                CHIP_SHADOW,
+                mobileFiltersOpen || filterCount > 0
+                  ? 'bg-brand text-brand-contrast ring-brand'
+                  : 'bg-surface text-foreground ring-border hover:bg-surface-muted',
+              )}
+            >
+              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span>{t.filterLabel}</span>
+              {filterCount > 0 && (
+                <span
+                  className={cn(
+                    'grid size-5 place-items-center rounded-full text-xs font-bold tabular-nums',
+                    mobileFiltersOpen || filterCount > 0
+                      ? 'bg-brand-contrast/20 text-brand-contrast'
+                      : 'bg-surface-muted text-muted',
+                  )}
+                >
+                  {filterCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Active Filter Badges */}
+          {filterCount > 0 && !mobileFiltersOpen && (
+            <div className="pointer-events-auto mt-2 flex flex-wrap items-center gap-1.5 sm:hidden">
+              {favoritesOnly && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-foreground shadow-sm ring-1 ring-border">
+                  <StarIcon filled className="size-3 text-amber-400" />
+                  <span>{t.favorites}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFavoritesOnly(false)}
+                    aria-label={t.clearFilter ? format(t.clearFilter, { name: t.favorites }) : t.clearAll}
+                    className="ml-0.5 text-muted hover:text-foreground"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {groups
+                .filter((g) => g.active)
+                .map((group) => (
+                  <span
+                    key={group.key}
+                    className="inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-foreground shadow-sm ring-1 ring-border"
+                  >
+                    <span>{group.value}</span>
+                    <button
+                      type="button"
+                      onClick={group.clear}
+                      aria-label={t.clearFilter ? format(t.clearFilter, { name: group.label }) : t.clearAll}
+                      className="ml-0.5 text-muted hover:text-foreground"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              <button
+                type="button"
+                onClick={clearAll}
+                className="px-1 text-xs font-medium text-brand hover:underline"
+              >
+                {t.clearAll}
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Filter List Panel */}
+          {mobileFiltersOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-20 sm:hidden"
+                onClick={() => setMobileFiltersOpen(false)}
+                aria-hidden="true"
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={t.filterLabel}
+                className="pointer-events-auto relative z-30 mt-1.5 flex max-h-[44svh] flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_20px_60px_-15px_rgb(2_6_23/0.7)] ring-1 ring-border sm:hidden"
+              >
+                {/* Fixed Header */}
+                <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground">{t.filterLabel}</h3>
+                    <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand">
+                      {format(t.count, { count: visible.length })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {filterCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearAll}
+                        className="mr-1 text-[11px] font-semibold text-brand hover:underline"
+                      >
+                        {t.clearAll}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setMobileFiltersOpen(false)}
+                      aria-label={d.common.close}
+                      className="grid size-7 place-items-center rounded-full text-muted hover:bg-surface-muted hover:text-foreground"
+                    >
+                      <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5">
+                        <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scrollable Filters Body */}
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-1 divide-y divide-border/60">
+                  {/* Favorites Switch Row */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-1.5">
+                      <StarIcon filled={favoritesOnly} className="size-4 text-amber-400" />
+                      <span className="text-xs font-semibold text-foreground">{t.favorites}</span>
+                      {favoriteIds.length > 0 && (
+                        <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted tabular-nums">
+                          {favoriteIds.length}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={favoritesOnly}
+                      onClick={() => setFavoritesOnly((v) => !v)}
+                      className={cn(
+                        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                        favoritesOnly ? 'bg-brand' : 'bg-surface-muted ring-1 ring-border',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                          favoritesOnly ? 'translate-x-4' : 'translate-x-0',
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Filter Groups List */}
+                  {groups.map((group) => (
+                    <div key={group.key} className="py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          {group.label}
+                        </span>
+                        {group.active && (
+                          <button
+                            type="button"
+                            onClick={group.clear}
+                            className="text-[11px] text-brand hover:underline"
+                          >
+                            {t.clearAll}
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {group.options.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={option.apply}
+                            className={cn(
+                              'h-7 rounded-full px-2.5 text-[11px] font-medium ring-1 transition',
+                              option.selected
+                                ? 'bg-brand text-brand-contrast ring-brand'
+                                : 'bg-surface-muted text-muted ring-border hover:text-foreground',
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Fixed Solid Footer */}
+                <div className="shrink-0 border-t border-border bg-surface p-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="flex h-9 w-full items-center justify-center rounded-xl bg-brand text-xs font-semibold text-brand-contrast shadow-sm hover:bg-brand-strong transition active:scale-[0.99]"
+                  >
+                    {format(t.count, { count: visible.length })}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Desktop Filter Row */}
           <div
             ref={chipRowRef}
             role="group"
             aria-label={t.filterLabel}
-            className="ev-chip-row pointer-events-auto w-full overflow-x-auto pb-1"
+            className="ev-chip-row pointer-events-auto hidden w-full overflow-x-auto pb-1 sm:block"
           >
             <div className="mx-auto flex w-max gap-2">
               <label
@@ -732,7 +983,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
               aria-multiselectable={open.key === 'car' || undefined}
               style={{ left: flyoutLeft }}
               className={cn(
-                'pointer-events-auto absolute top-full mt-1 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3',
+                'pointer-events-auto absolute top-full mt-1 hidden w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-surface p-3 sm:block',
                 'shadow-[0_16px_44px_-18px_rgb(2_6_23/0.6)] ring-1 ring-border',
               )}
             >
