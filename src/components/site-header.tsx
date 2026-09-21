@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -42,14 +43,15 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
     <header className="sticky top-0 z-30 border-b border-border bg-surface/80 shadow-[0_1px_0_0_rgb(15_23_42/0.03),0_8px_24px_-16px_rgb(15_23_42/0.15)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 font-bold text-foreground">
-          <span
+          <Image
+            src="/eplug-mark.png"
+            alt=""
             aria-hidden
-            className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-brand-strong text-brand-contrast shadow-sm"
-          >
-            <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
-              <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
-            </svg>
-          </span>
+            width={36}
+            height={36}
+            className="size-9 rounded-xl shadow-sm"
+            priority
+          />
           <span className="text-[15px] tracking-tight">Eplug</span>
         </Link>
 

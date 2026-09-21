@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Card } from '@/components/ui';
 import { useI18n } from '@/components/i18n-provider';
 import { PinInput } from '@/components/auth/pin-input';
@@ -20,7 +20,8 @@ const ADVANCE_DELAY_MS = 180;
 
 /**
  * Changes the sign-in PIN one step at a time: the current PIN, the new one, the
- * new one again. Each step moves on by itself when the fourth digit goes in.
+ * new one again. Each step moves on by itself when the fourth digit goes in, and
+ * a matching repeat lands on the save button — saving stays a deliberate press.
  * An account that has never had a PIN starts at the new one.
  */
 export function ChangePinForm({ hasPin }: { hasPin: boolean }) {
@@ -35,6 +36,7 @@ export function ChangePinForm({ hasPin }: { hasPin: boolean }) {
   const [fieldError, setFieldError] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   const t = d.account.pin;
   const index = stage === 'done' ? stages.length : stages.indexOf(stage);
@@ -122,7 +124,16 @@ export function ChangePinForm({ hasPin }: { hasPin: boolean }) {
 
     if (stage === 'current') setTimeout(() => setStage('new'), ADVANCE_DELAY_MS);
     if (stage === 'new') setTimeout(() => setStage('confirm'), ADVANCE_DELAY_MS);
-    if (stage === 'confirm') setTimeout(() => void save(next), ADVANCE_DELAY_MS);
+    if (stage === 'confirm') {
+      setTimeout(() => {
+        if (next !== pin) {
+          setConfirmPin('');
+          setFieldError(d.auth.pinMismatch);
+        } else {
+          submitRef.current?.focus();
+        }
+      }, ADVANCE_DELAY_MS);
+    }
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -216,7 +227,7 @@ export function ChangePinForm({ hasPin }: { hasPin: boolean }) {
                     {d.common.back}
                   </Button>
                 )}
-                <Button type="submit" size="pill" className="flex-1" loading={saving} disabled={value.length !== 4}>
+                <Button ref={submitRef} type="submit" size="pill" className="flex-1" loading={saving} disabled={value.length !== 4}>
                   {stage === 'confirm' ? (hasPin ? t.submitButton : t.setButton) : d.auth.continue}
                 </Button>
               </div>

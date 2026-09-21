@@ -22,7 +22,8 @@ export const metadata: Metadata = {
   description:
     'Ойролцоох цэнэглэх станцуудыг хайж, холбогчийн сул байдлыг шууд харж, цэнэглэлтийн бүртгэлээ удирдаарай.',
   icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    icon: [{ url: '/icon.png', type: 'image/png' }],
+    apple: [{ url: '/apple-icon.png' }],
   },
 };
 

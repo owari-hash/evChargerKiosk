@@ -39,7 +39,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const router = useRouter();
   const [name, setName] = useState(user.name ?? '');
   const [email, setEmail] = useState(user.email ?? '');
-  const [phone, setPhone] = useState(user.phone ?? '');
+  // The number the account was signed up with. It is the sign-in identity, so it
+  // is shown here but only changes through the SMS flow on the security page.
+  const phone = (user.phone ?? '').replace(/^\+976(\d{4})(\d{4})$/, '+976 $1 $2');
   const [locale, setLocale] = useState<Locale>(user.locale === 'mn' ? 'mn' : 'en');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -63,7 +65,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       const res = await fetch('/app-api/account/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), locale }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), locale }),
       });
       const data = (await res.json().catch(() => ({}))) as ProfileResponse;
 
@@ -75,7 +77,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       setName(data.user.name ?? '');
       setEmail(data.user.email ?? '');
-      setPhone(data.user.phone ?? '');
       setLocale(data.user.locale === 'mn' ? 'mn' : 'en');
       setSaved(true);
       router.refresh();
@@ -164,16 +165,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 id="profile-phone"
                 name="phone"
                 type="tel"
-                inputMode="tel"
                 value={phone}
-                autoComplete="tel"
-                placeholder={d.account.profile.phonePlaceholder}
-                aria-invalid={fields.phone ? true : undefined}
+                readOnly
+                aria-readonly
+                className="cursor-default text-muted"
                 aria-describedby={describedBy('profile-phone', fields.phone, true)}
-                onChange={(event) => {
-                  touched();
-                  setPhone(event.target.value);
-                }}
               />
             </Field>
 

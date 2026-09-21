@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Field } from '@/components/ui';
 import { useI18n } from '@/components/i18n-provider';
 import { phoneSchema } from '@/lib/validation';
 import { fieldAria, sanitizeNext } from './auth-shell';
-import { PhoneInput } from './phone-input';
+import { isFullLocalNumber, PhoneInput } from './phone-input';
 import { PinInput } from './pin-input';
 
 interface LoginErrorBody {
@@ -27,6 +27,10 @@ export function LoginForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // The cursor walks the form by itself: a whole number moves it to the PIN,
+  // the fourth digit moves it to the button.
+  const pinRef = useRef<HTMLInputElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   const forgotHref = phone.trim()
     ? `/forgot-password?phone=${encodeURIComponent(phone.trim())}`
@@ -85,7 +89,11 @@ export function LoginForm() {
           autoComplete="tel"
           required
           value={phone}
-          onChange={(event) => setPhone(event.target.value)}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (isFullLocalNumber(value) && !isFullLocalNumber(phone)) pinRef.current?.focus();
+            setPhone(value);
+          }}
           placeholder={d.auth.phonePlaceholder}
           {...fieldAria('phone', errors.phone)}
         />
@@ -93,11 +101,15 @@ export function LoginForm() {
 
       <Field label={d.auth.pinLabel} htmlFor="pin" error={errors.pin} className="text-center">
         <PinInput
+          ref={pinRef}
           id="pin"
           name="pin"
           masked
           value={pin}
-          onChange={setPin}
+          onChange={(value) => {
+            setPin(value);
+            if (value.length === 4) submitRef.current?.focus();
+          }}
           {...fieldAria('pin', errors.pin)}
         />
       </Field>
@@ -108,7 +120,7 @@ export function LoginForm() {
         </Link>
       </div>
 
-      <Button type="submit" size="pill" loading={pending} className="mt-2 w-full">
+      <Button ref={submitRef} type="submit" size="pill" loading={pending} className="mt-2 w-full">
         {d.auth.login.submit}
       </Button>
     </form>

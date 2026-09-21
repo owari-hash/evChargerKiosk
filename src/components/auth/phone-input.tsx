@@ -2,6 +2,16 @@ import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
+ * True once a whole Mongolian number is in: eight local digits, with or without
+ * the +976 code typed in front. The sign-in and sign-up forms move on from here.
+ */
+export function isFullLocalNumber(value: string): boolean {
+  let digits = value.replace(/\D/g, '');
+  if (digits.length > 8 && digits.startsWith('976')) digits = digits.slice(3);
+  return digits.length === 8;
+}
+
+/**
  * A phone number field with the country code fixed in front. The driver types
  * the local number; the API adds the code, so a pasted +976 number works too.
  */

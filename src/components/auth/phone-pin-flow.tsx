@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { phoneSchema } from '@/lib/validation';
 import { fieldAria, sanitizeNext } from './auth-shell';
 import { DevHint } from './dev-hint';
-import { PhoneInput } from './phone-input';
+import { isFullLocalNumber, PhoneInput } from './phone-input';
 import { PinInput } from './pin-input';
 
 type Mode = 'signup' | 'reset';
@@ -83,6 +83,10 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const confirmRef = useRef<HTMLInputElement>(null);
+  // Where the cursor goes once a field is complete: a whole number moves on to
+  // the terms (while unticked) or the button; a matching repeat PIN to the button.
+  const termsRef = useRef<HTMLInputElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -242,7 +246,14 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
               autoFocus
               required
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (isFullLocalNumber(value) && !isFullLocalNumber(phone)) {
+                  if (mode === 'signup' && !acceptTerms) termsRef.current?.focus();
+                  else submitRef.current?.focus();
+                }
+                setPhone(value);
+              }}
               placeholder={d.auth.phonePlaceholder}
               {...fieldAria('phone', errors.phone, true)}
             />
@@ -255,11 +266,15 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
                 className="flex min-h-8 cursor-pointer items-center gap-2.5 text-sm text-foreground"
               >
                 <input
+                  ref={termsRef}
                   id="acceptTerms"
                   name="acceptTerms"
                   type="checkbox"
                   checked={acceptTerms}
-                  onChange={(event) => setAcceptTerms(event.target.checked)}
+                  onChange={(event) => {
+                    setAcceptTerms(event.target.checked);
+                    if (event.target.checked && isFullLocalNumber(phone)) submitRef.current?.focus();
+                  }}
                   className="size-4 shrink-0 rounded accent-brand"
                   {...fieldAria('acceptTerms', errors.acceptTerms)}
                 />
@@ -369,6 +384,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
                 }
                 setConfirmPin(value);
                 setErrors({});
+                if (value.length === 4) submitRef.current?.focus();
               }}
               {...fieldAria('confirmPin', errors.confirmPin)}
             />
@@ -377,7 +393,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
       )}
       </div>
 
-      <Button type="submit" size="pill" loading={pending} className="w-full">
+      <Button ref={submitRef} type="submit" size="pill" loading={pending} className="w-full">
         {submitLabel}
       </Button>
 
