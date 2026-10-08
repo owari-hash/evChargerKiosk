@@ -12,18 +12,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AccountLayout({ children }: LayoutProps<'/account'>) {
-  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
+  const user = await getCurrentUser();
   if (!user) redirect('/login');
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 md:py-10">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-          {d.account.title}
-        </h1>
-      </header>
-
-      <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[14rem_1fr] md:gap-8">
+      <div className="grid gap-6 md:grid-cols-[14rem_1fr] md:gap-8">
         <AccountNav />
         <div className="min-w-0 space-y-6">{children}</div>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Alert, Button, Field, Input } from '@/components/ui';
+import { Alert, Button, Field, Input, Modal, ModalHeader } from '@/components/ui';
 import type { ChargingSession, EBarimtData } from '@/lib/types';
 import { formatKwh, formatMoney } from '@/lib/utils';
 
@@ -55,25 +55,21 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-surface p-6 shadow-2xl ring-1 ring-border">
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div>
-            <h3 className="text-lg font-bold text-foreground">И-Баримт олгох</h3>
-            <p className="text-xs text-muted">
-              {session.stationName || `Цэнэглэлт #${session.transactionId}`}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1 text-muted transition hover:bg-surface-muted hover:text-foreground"
-          >
-            ✕
-          </button>
-        </div>
+    <Modal onClose={onClose} maxWidth="md">
+      <ModalHeader
+        title="И-Баримт олгох"
+        subtitle={session.stationName || `Цэнэглэлт #${session.transactionId}`}
+        onClose={onClose}
+        icon={
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zm3 5h6M9 11h6M9 14h4" />
+            </svg>
+          </span>
+        }
+      />
 
-        <div className="mt-4 space-y-4">
+      <div className="space-y-4 px-6 py-5">
           <div className="rounded-xl bg-surface-muted p-3 text-xs text-muted">
             <div className="flex justify-between py-1">
               <span>Хэрэглэсэн эрчим хүч:</span>
@@ -175,8 +171,7 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
               </div>
             </>
           )}
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

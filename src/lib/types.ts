@@ -103,6 +103,9 @@ export interface PublicUser {
   hasPin: boolean;
   /** The account's charge tag; absent only until the CSMS has issued one. */
   idTag?: string;
+  /** The vehicle this driver charges — shown on an active session, not OCPP data. */
+  vehicleBrand?: string;
+  vehicleModel?: string;
   locale: string;
   createdAt: string;
   lastLoginAt?: string;

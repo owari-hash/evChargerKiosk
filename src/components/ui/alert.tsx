@@ -6,8 +6,8 @@ export type AlertTone = 'info' | 'success' | 'warning' | 'danger';
 const TONES: Record<AlertTone, string> = {
   info: 'bg-surface-muted text-foreground ring-border',
   success: 'bg-brand-soft text-brand-strong ring-brand/30',
-  warning: 'bg-brand-soft text-brand-strong ring-brand/30',
-  danger: 'bg-red-500/10 text-red-700 ring-red-500/30 dark:text-red-300',
+  warning: 'bg-warning/10 text-warning ring-warning/30',
+  danger: 'bg-danger/10 text-danger ring-danger/30',
 };
 
 interface AlertProps {
@@ -21,7 +21,7 @@ export function Alert({ tone = 'info', title, children, className }: AlertProps)
   return (
     <div
       role={tone === 'danger' ? 'alert' : 'status'}
-      
+      className={cn('rounded-xl px-4 py-3 text-sm ring-1', TONES[tone], className)}
     >
       {title && <p className="font-semibold">{title}</p>}
       {children && <div className={cn(title && 'mt-1')}>{children}</div>}

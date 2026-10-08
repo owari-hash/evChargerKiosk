@@ -66,7 +66,7 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
                           {entry.description || d.wallet.history.type[entry.type]}
                         </p>
                         {eb && (
-                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
+                          <span className="inline-flex items-center rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand-strong ring-1 ring-brand/20">
                             ✓ И-Баримт {eb.lottery ? `(${eb.lottery})` : ''}
                           </span>
                         )}

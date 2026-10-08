@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Card } from '@/components/ui';
+import { Alert, Button, ModalHeader } from '@/components/ui';
 import { useI18n } from '@/components/i18n-provider';
 import { PinInput } from '@/components/auth/pin-input';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ const ADVANCE_DELAY_MS = 180;
  * a matching repeat lands on the save button — saving stays a deliberate press.
  * An account that has never had a PIN starts at the new one.
  */
-export function ChangePinForm({ hasPin }: { hasPin: boolean }) {
+export function ChangePinForm({ hasPin, onClose }: { hasPin: boolean; onClose: () => void }) {
   const { d } = useI18n();
   const router = useRouter();
   const stages: Stage[] = hasPin ? ['current', 'new', 'confirm'] : ['new', 'confirm'];
@@ -145,21 +145,21 @@ export function ChangePinForm({ hasPin }: { hasPin: boolean }) {
   }
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-start gap-4 border-b border-border px-6 py-5 sm:px-8">
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand" aria-hidden>
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
-            <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
-          </svg>
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-foreground">{t.title}</h2>
-          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted">
-            {hasPin ? t.signOutHint : t.noPinYet}
-          </p>
-        </div>
-      </div>
+    <>
+      <ModalHeader
+        title={t.title}
+        subtitle={!hasPin ? t.noPinYet : undefined}
+        onClose={onClose}
+        closeLabel={d.common.close}
+        icon={
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+              <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+            </svg>
+          </span>
+        }
+      />
 
       <div className="px-6 py-8 sm:px-8">
         <div className="mx-auto max-w-sm">
@@ -235,6 +235,6 @@ export function ChangePinForm({ hasPin }: { hasPin: boolean }) {
           )}
         </div>
       </div>
-    </Card>
+    </>
   );
 }

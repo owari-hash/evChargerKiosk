@@ -161,8 +161,8 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           <p className="text-sm text-muted">
             {d.account.sessions.empty}
           </p>
-          <ButtonLink href="/account" variant="secondary" size="sm">
-            {d.account.idTags.manage}
+          <ButtonLink href="/stations" variant="secondary" size="sm">
+            {d.nav.stations}
           </ButtonLink>
         </CardBody>
       </Card>

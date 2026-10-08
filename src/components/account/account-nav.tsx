@@ -25,15 +25,6 @@ function WalletIcon() {
     />
   );
 }
-function SecurityIcon() {
-  return (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"
-    />
-  );
-}
 function SessionsIcon() {
   return (
     <>
@@ -59,7 +50,6 @@ export function AccountNav() {
   const items: { href: string; label: string; icon: () => ReactNode }[] = [
     { href: '/account', label: d.account.nav.overview, icon: OverviewIcon },
     { href: '/account/wallet', label: d.account.nav.wallet, icon: WalletIcon },
-    { href: '/account/security', label: d.account.nav.security, icon: SecurityIcon },
     { href: '/account/sessions', label: d.account.nav.sessions, icon: SessionsIcon },
     { href: '/account/ebarimt', label: d.account.nav.ebarimt, icon: EbarimtIcon },
   ];

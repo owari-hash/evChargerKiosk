@@ -81,7 +81,8 @@ export default async function HomePage() {
       <section id="features" className="scroll-mt-16 border-t border-border bg-surface-muted/40 py-16">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-strong ring-1 ring-brand/15">
+              <span aria-hidden className="size-1.5 rounded-full bg-brand" />
               {d.home.featuresBadge}
             </span>
             <h2 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -111,7 +112,8 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-strong ring-1 ring-brand/15">
+                <span aria-hidden className="size-1.5 rounded-full bg-brand" />
                 {d.home.howItWorksBadge}
               </span>
               <h2 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">

@@ -36,11 +36,6 @@ export default async function WalletPage() {
 
   return (
     <>
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">{d.wallet.title}</h2>
-        <p className="text-sm text-muted">{d.wallet.subtitle}</p>
-      </header>
-
       {loadError || !wallet || !config ? (
         <Alert tone="danger" title={d.common.somethingWentWrong}>
           {loadError || d.wallet.unavailable}

@@ -15,20 +15,20 @@ export async function AuthFrame({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto grid max-w-6xl gap-10 px-4 py-6 sm:py-10 lg:min-h-[calc(100dvh-4rem)] lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14 lg:py-12">
-      <aside className="auth-rise relative hidden min-h-[580px] flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0b2418] p-10 text-white lg:flex">
+      <aside className="auth-rise relative hidden min-h-[580px] flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0d2619] p-10 text-white lg:flex">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-28 -top-28 size-[26rem] rounded-full bg-[radial-gradient(circle,rgb(37_162_105/0.45),transparent_65%)]"
+          className="pointer-events-none absolute -right-28 -top-28 size-[26rem] rounded-full bg-[radial-gradient(circle,rgb(31_138_86/0.45),transparent_65%)]"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-36 -left-24 size-[26rem] rounded-full bg-[radial-gradient(circle,rgb(16_185_129/0.22),transparent_65%)]"
+          className="pointer-events-none absolute -bottom-36 -left-24 size-[26rem] rounded-full bg-[radial-gradient(circle,rgb(79_216_150/0.22),transparent_65%)]"
         />
-        <p className="relative text-sm font-semibold tracking-wide text-emerald-200/80">Eplug</p>
+        <p className="relative text-sm font-semibold tracking-wide text-[#d8ece1]/80">Eplug</p>
         <ChargeVisual label={d.auth.visualCharging} />
         <div className="relative space-y-3">
           <h2 className="text-3xl font-bold leading-tight tracking-tight">{d.auth.visualTitle}</h2>
-          <p className="max-w-sm text-base leading-relaxed text-emerald-50/75">{d.auth.visualBody}</p>
+          <p className="max-w-sm text-base leading-relaxed text-[#ecfdf5]/75">{d.auth.visualBody}</p>
         </div>
       </aside>
 

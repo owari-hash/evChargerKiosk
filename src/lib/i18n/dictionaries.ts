@@ -19,6 +19,7 @@ export const en = {
     saving: 'Saving…',
     saved: 'Saved',
     cancel: 'Cancel',
+    edit: 'Edit',
     close: 'Close',
     back: 'Back',
     retry: 'Try again',
@@ -71,7 +72,7 @@ export const en = {
   },
   account: {
     nav: {
-      overview: 'Overview',
+      overview: 'Settings',
       wallet: 'Wallet',
       security: 'Security',
       sessions: 'Charging history',
@@ -102,6 +103,12 @@ export const en = {
       phoneHintPrefix: 'Verify your new number on the',
       emailHintPrefix: 'Verify your new email on the',
       hintSuffix: 'tab.',
+      vehicleTitle: 'Your vehicle',
+      vehicleHint: 'Shown on an active charging session, so you can tell it apart from others at the same station.',
+      vehicleBrandLabel: 'Brand',
+      vehicleBrandPlaceholder: 'e.g. BYD',
+      vehicleModelLabel: 'Model',
+      vehicleModelPlaceholder: 'e.g. Atto 3',
       saveButton: 'Save changes',
       savedLabel: 'Saved.',
     },
@@ -186,8 +193,7 @@ export const en = {
       unavailable: 'Charging history is unavailable',
       unavailableBody:
         'We could not reach the charging network just now, so your sessions are not shown. Please try again in a few minutes.',
-      empty:
-        'Your charging history appears here once a charge tag is linked to your account and used at a charger.',
+      empty: 'Your charging history appears here once you charge for the first time.',
       count: '{count} sessions',
       connector: 'Connector {id}',
       connectorHeader: 'Connector',
@@ -235,8 +241,8 @@ export const en = {
   },
 
   wallet: {
-    title: 'Wallet',
-    subtitle: 'Top your balance up with QPay and pay for charging automatically.',
+    title: '',
+    subtitle: '',
     balance: 'Balance',
     balanceHint: 'Available to spend on charging',
     debt: 'Outstanding amount',
@@ -940,6 +946,7 @@ export const mn: Dictionary = {
     saving: 'Хадгалж байна…',
     saved: 'Хадгаллаа',
     cancel: 'Цуцлах',
+    edit: 'Засах',
     close: 'Хаах',
     back: 'Буцах',
     retry: 'Дахин оролдох',
@@ -1023,6 +1030,12 @@ export const mn: Dictionary = {
       phoneHintPrefix: 'Шинэ дугаараа',
       emailHintPrefix: 'Шинэ и-мэйлээ',
       hintSuffix: 'хэсэгт баталгаажуулна уу.',
+      vehicleTitle: 'Таны тээврийн хэрэгсэл',
+      vehicleHint: 'Идэвхтэй цэнэглэлт дээр харагдана, ижил станцад байгаа бусдаас ялгахад хялбар болно.',
+      vehicleBrandLabel: 'Марк',
+      vehicleBrandPlaceholder: 'жишээ нь: BYD',
+      vehicleModelLabel: 'Загвар',
+      vehicleModelPlaceholder: 'жишээ нь: Atto 3',
       saveButton: 'Хадгалах',
       savedLabel: 'Хадгалагдлаа.',
     },
@@ -1091,7 +1104,7 @@ export const mn: Dictionary = {
         '{phone} баталгаажсан тул анхаарал шаардсан цэнэглэлтийн талаар танд мессеж илгээх боломжтой. Өөр дугаар ашиглах бол «Хувийн мэдээлэл» хэсэгт солиод эндээс баталгаажуулна уу.',
       phonePending:
         'Анхаарал шаардсан цэнэглэлтийн талаар мессеж хүлээн авах, мөн SMS-ээр PIN кодоо сэргээхийн тулд гар утасны дугаараа баталгаажуулна уу.',
-      phoneHint: 'Өөр дугаар баталгаажуулах бол энд тэр дугаараа оруулна уу.',
+      phoneHint: 'Өөр дугаар баталгаажуулах бол энд оруулна уу.',
       sendCode: 'Код илгээх',
       sendNewCode: 'Шинэ код илгээх',
       codeSendFailed: 'Кодыг илгээж чадсангүй. Дахин оролдоно уу.',
@@ -1107,8 +1120,7 @@ export const mn: Dictionary = {
       unavailable: 'Цэнэглэлтийн түүх боломжгүй байна',
       unavailableBody:
         'Цэнэглэх сүлжээтэй одоохондоо холбогдож чадсангүй тул таны цэнэглэлтүүд харагдахгүй байна. Хэдэн минутын дараа дахин оролдоно уу.',
-      empty:
-        'Бүртгэлдээ цэнэглэх карт холбож, цэнэглэгч дээр ашигласны дараа цэнэглэлтийн түүх энд харагдана.',
+      empty: 'Анх удаа цэнэглэснээс хойш цэнэглэлтийн түүх энд харагдана.',
       count: '{count} цэнэглэлт',
       connector: '{id}-р холбогч',
       connectorHeader: 'Холбогч',
@@ -1157,8 +1169,8 @@ export const mn: Dictionary = {
   },
 
   wallet: {
-    title: 'Хэтэвч',
-    subtitle: 'QPay-ээр үлдэгдлээ цэнэглээд цэнэглэлтийн төлбөрөө автоматаар төлөөрэй.',
+    title: '',
+    subtitle: '',
     balance: 'Үлдэгдэл',
     balanceHint: 'Цэнэглэлтэд зарцуулах боломжтой',
     debt: 'Төлөх дүн',

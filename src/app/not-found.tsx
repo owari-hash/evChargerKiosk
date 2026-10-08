@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ButtonLink } from '@/components/ui';
 import { getTranslations } from '@/lib/i18n';
@@ -12,12 +13,7 @@ export default async function NotFound() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col items-center px-4 py-20 text-center sm:py-28">
-      <span
-        aria-hidden
-        className="grid size-14 place-items-center rounded-2xl bg-brand-soft text-2xl text-brand-strong"
-      >
-        ⚡
-      </span>
+      <Image src="/eplug-mark.png" alt="" aria-hidden width={56} height={56} className="size-14 rounded-2xl shadow-sm" />
 
       <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-muted">
         {d.errors.notFoundCode}

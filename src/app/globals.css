@@ -5,19 +5,21 @@
    by the OS preference and by an explicit data-theme, so the header toggle wins.
    --------------------------------------------------------------------------- */
 :root {
-  --background: #f6f8fb;
+  /* Forest-green system, shared with the admin console and the driver app —
+     pulled from the eplug mark itself rather than a generic emerald. */
+  --background: #f5f8f6;
   --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --foreground: #0b1220;
-  --muted: #5b6b80;
-  --border: #e2e8f0;
-  --brand: #059669;
-  --brand-strong: #047857;
-  --brand-soft: #ecfdf5;
+  --surface-muted: #eef3ef;
+  --foreground: #0d1f17;
+  --muted: #57695f;
+  --border: #dde6e1;
+  --brand: #1f8a56;
+  --brand-strong: #166e45;
+  --brand-soft: #d8ece1;
   --brand-contrast: #ffffff;
-  --danger: #dc2626;
-  --warning: #d97706;
-  --ring: rgb(5 150 105 / 0.35);
+  --danger: #c62f3c;
+  --warning: #a4690a;
+  --ring: rgb(31 138 86 / 0.35);
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.18);
 }
 
@@ -32,7 +34,7 @@
     --brand: #10b981;
     --brand-strong: #34d399;
     --brand-soft: #062e25;
-    --brand-contrast: #04201a;
+    --brand-contrast: #ffffff;
     --danger: #f87171;
     --warning: #fbbf24;
     --ring: rgb(16 185 129 / 0.4);
@@ -50,7 +52,7 @@
   --brand: #10b981;
   --brand-strong: #34d399;
   --brand-soft: #062e25;
-  --brand-contrast: #04201a;
+  --brand-contrast: #ffffff;
   --danger: #f87171;
   --warning: #fbbf24;
   --ring: rgb(16 185 129 / 0.4);
@@ -101,6 +103,31 @@ select:-webkit-autofill {
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
+}
+
+/* Landing on a field or card via an anchor link ("Manage" on the overview
+   page, say) is otherwise just a scroll with no sign of why — this glows the
+   actual target for a moment so it reads as "you're here, edit this". */
+:target {
+  animation: target-glow 2.2s ease-out;
+}
+
+@keyframes target-glow {
+  0%,
+  35% {
+    box-shadow: 0 0 0 3px var(--ring);
+    border-radius: inherit;
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :target {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--ring);
+  }
 }
 
 /* Themed scrollbars — Firefox via scrollbar-color, WebKit via the pseudo-elements.
@@ -156,6 +183,34 @@ html {
 
 .leaflet-bar a {
   border-color: var(--border) !important;
+}
+
+/* Every modal (PIN change, e-Barimt, …) shares this one entrance: the
+   backdrop fades in, the sheet itself fades and settles up from a slight
+   scale — one motion vocabulary instead of each modal inventing its own. */
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.modal-backdrop {
+  animation: modal-backdrop-in 180ms ease-out both;
+}
+
+.modal-pop {
+  animation: modal-pop-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-pop {
+    animation: none;
+  }
 }
 
 /* Sign-in, sign-up and PIN reset -----------------------------------------

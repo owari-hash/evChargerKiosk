@@ -339,7 +339,7 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-foreground">{t.chooseAmount}</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {config.presets.map((preset) => {
               const active = selected === preset;
               return (
@@ -353,20 +353,31 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
                     setFieldError('');
                   }}
                   className={cn(
-                    'h-14 rounded-xl text-base font-semibold tabular-nums transition',
+                    'relative h-14 rounded-2xl text-base font-semibold tabular-nums transition duration-150',
+                    'active:scale-[0.97] motion-reduce:active:scale-100',
                     active
-                      ? 'bg-brand text-brand-contrast shadow-sm'
-                      : 'bg-surface text-foreground ring-1 ring-border hover:bg-surface-muted',
+                      ? 'bg-brand text-brand-contrast shadow-md shadow-brand/20'
+                      : 'bg-surface text-foreground ring-1 ring-border hover:ring-brand/50 hover:bg-surface-muted',
                   )}
                 >
                   {money(preset)}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-brand-contrast text-brand shadow-sm ring-1 ring-brand/15"
+                    >
+                      <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12l5 5L19 7" />
+                      </svg>
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
         </fieldset>
 
-        <form onSubmit={createInvoice} noValidate className="space-y-4">
+        <form onSubmit={createInvoice} noValidate className="space-y-5">
           <Field
             label={t.customAmount}
             htmlFor="topup-amount"
@@ -376,54 +387,67 @@ export function TopUpPanel({ config }: TopUpPanelProps) {
             })}
             error={fieldError || undefined}
           >
-            <Input
-              id="topup-amount"
-              name="amount"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder={t.customPlaceholder}
-              value={custom}
-              aria-invalid={fieldError ? true : undefined}
-              aria-describedby={fieldError ? 'topup-amount-error' : 'topup-amount-hint'}
-              onChange={(event) => {
-                // Digits only: QPay settles whole tugrik, and a stray separator
-                // would otherwise fail validation with a confusing message.
-                setCustom(event.target.value.replace(/[^\d]/g, ''));
-                setSelected(null);
-                setFieldError('');
-              }}
-            />
+            <div className="relative">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm font-semibold text-muted"
+              >
+                ₮
+              </span>
+              <Input
+                id="topup-amount"
+                name="amount"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder={t.customPlaceholder}
+                value={custom}
+                className="pl-8"
+                aria-invalid={fieldError ? true : undefined}
+                aria-describedby={fieldError ? 'topup-amount-error' : 'topup-amount-hint'}
+                onChange={(event) => {
+                  // Digits only: QPay settles whole tugrik, and a stray separator
+                  // would otherwise fail validation with a confusing message.
+                  setCustom(event.target.value.replace(/[^\d]/g, ''));
+                  setSelected(null);
+                  setFieldError('');
+                }}
+              />
+            </div>
           </Field>
 
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Button type="submit" size="lg" loading={creating} disabled={!Number.isFinite(amount)}>
-              {creating
-                ? t.submitting
-                : Number.isFinite(amount) && amount > 0
-                  ? `${t.submit} · ${money(amount)}`
-                  : t.submit}
-            </Button>
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full justify-center"
+            loading={creating}
+            disabled={!Number.isFinite(amount)}
+          >
+            {creating
+              ? t.submitting
+              : Number.isFinite(amount) && amount > 0
+                ? `${t.submit} · ${money(amount)}`
+                : t.submit}
+          </Button>
 
-            <div className="flex items-center gap-2 rounded-2xl bg-surface-muted/80 px-3 py-1.5 ring-1 ring-border shadow-xs">
-              <span className="text-xs font-semibold text-muted">Бусад:</span>
-              <div className="flex items-center gap-2">
-                <div title="Toki" className="grid size-9 place-items-center overflow-hidden rounded-xl p-0.5 transition hover:scale-110">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/toki.png" alt="Toki" className="h-full w-full object-contain" />
-                </div>
-                <div title="Tino (Dino)" className="grid size-9 place-items-center overflow-hidden rounded-xl p-0.5 transition hover:scale-110">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/tino.webp" alt="Tino" className="h-full w-full object-contain" />
-                </div>
-                <div title="HiPay" className="grid size-9 place-items-center overflow-hidden rounded-xl p-0.5 transition hover:scale-110">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/hipay%20logo.png" alt="HiPay" className="h-full w-full object-contain" />
-                </div>
-                <div title="SocialPay" className="grid size-9 place-items-center overflow-hidden rounded-xl p-0.5 transition hover:scale-110">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/social%20pay.png" alt="SocialPay" className="h-full w-full object-contain" />
-                </div>
+          <div className="flex items-center justify-center gap-3 border-t border-border pt-4">
+            <span className="text-xs text-muted">Эсвэл дараах аппаар төлнө үү</span>
+            <div className="flex items-center gap-1.5">
+              <div title="Toki" className="grid size-8 place-items-center overflow-hidden rounded-lg p-0.5 opacity-80 transition hover:scale-110 hover:opacity-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/toki.png" alt="Toki" className="h-full w-full object-contain" />
+              </div>
+              <div title="Tino (Dino)" className="grid size-8 place-items-center overflow-hidden rounded-lg p-0.5 opacity-80 transition hover:scale-110 hover:opacity-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/tino.webp" alt="Tino" className="h-full w-full object-contain" />
+              </div>
+              <div title="HiPay" className="grid size-8 place-items-center overflow-hidden rounded-lg p-0.5 opacity-80 transition hover:scale-110 hover:opacity-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hipay%20logo.png" alt="HiPay" className="h-full w-full object-contain" />
+              </div>
+              <div title="SocialPay" className="grid size-8 place-items-center overflow-hidden rounded-lg p-0.5 opacity-80 transition hover:scale-110 hover:opacity-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/social%20pay.png" alt="SocialPay" className="h-full w-full object-contain" />
               </div>
             </div>
           </div>
