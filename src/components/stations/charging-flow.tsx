@@ -150,6 +150,7 @@ export function ChargingFlow({
     session,
     sessionConnector,
     hasFreeConnector: free.length > 0,
+    hasConnector: Boolean(targetConnectorId),
   });
 
   const refresh = useCallback(async () => {
@@ -341,6 +342,8 @@ function resolveStep(input: {
   session: ChargingSession | null;
   sessionConnector: StationConnector | undefined;
   hasFreeConnector: boolean;
+  /** A specific gun has been chosen, by the driver or by a scanned sticker. */
+  hasConnector: boolean;
 }): FlowStep {
   const { session, sessionConnector } = input;
 
@@ -356,7 +359,11 @@ function resolveStep(input: {
   if (session) return 'done';
 
   if (input.requested) return 'preparing';
+  // No gun free: the connector step shows why. No gun chosen: it shows the
+  // picker. The station refuses a start that does not name one, so the driver
+  // must get past this step before the start button is offered at all.
   if (!input.hasFreeConnector) return 'connector';
+  if (!input.hasConnector) return 'connector';
   if (!input.plugged) return 'plug';
   return 'start';
 }
