@@ -795,7 +795,6 @@ export const en = {
     subtitle: 'Point your phone camera at a code — no app needed to scan it.',
     scanHint: 'Scan with your camera',
     openOnThisDevice: 'Open on this device',
-    orType: 'Or type this address:',
     ios: {
       name: 'iPhone and iPad',
       store: 'App Store',
@@ -808,7 +807,7 @@ export const en = {
     },
     web: {
       name: 'Web',
-      store: 'In your browser',
+      goToHomepage: 'Go to the homepage',
       note: 'Nothing to install — find a charger and manage your account from any browser.',
     },
   },
@@ -1757,7 +1756,6 @@ export const mn: Dictionary = {
     subtitle: 'Утасныхаа камерыг код руу чиглүүлнэ үү — нэмэлт апп хэрэггүй.',
     scanHint: 'Камераараа уншуулна уу',
     openOnThisDevice: 'Энэ төхөөрөмж дээр нээх',
-    orType: 'Эсвэл дараах хаягийг бичнэ үү:',
     ios: {
       name: 'iPhone ба iPad',
       store: 'App Store',
@@ -1770,7 +1768,7 @@ export const mn: Dictionary = {
     },
     web: {
       name: 'Вэб',
-      store: 'Хөтөч дээрээ',
+      goToHomepage: 'Нүүр хуудас руу очих',
       note: 'Татах шаардлагагүй — ямар ч хөтчөөс станц хайж, бүртгэлээ удирдана.',
     },
   },

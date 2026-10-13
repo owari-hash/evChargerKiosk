@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { appLinks } from '@/lib/app-links';
 import { getTranslations } from '@/lib/i18n';
 import { responsiveQr } from '@/lib/qr';
-import { cn } from '@/lib/utils';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getTranslations();
@@ -16,11 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DownloadPage() {
   const { d } = await getTranslations();
 
-  // Generated together so the three codes land in the same render pass.
-  const [iosQr, androidQr, webQr] = await Promise.all([
+  // Only the two app stores get a code. The website is already open in front of
+  // whoever is reading this, so a QR pointing at it would be pointless.
+  const [iosQr, androidQr] = await Promise.all([
     responsiveQr(appLinks.ios),
     responsiveQr(appLinks.android),
-    responsiveQr(appLinks.web),
   ]);
 
   const webHost = appLinks.web.replace(/^https?:\/\//, '');
@@ -36,7 +36,7 @@ export default async function DownloadPage() {
         </p>
       </header>
 
-      <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-3">
+      <div className="mx-auto mt-10 grid max-w-3xl gap-5 sm:mt-12 sm:grid-cols-2">
         <QrCard
           id="ios"
           icon={<AppleIcon />}
@@ -59,25 +59,15 @@ export default async function DownloadPage() {
           action={d.download.openOnThisDevice}
           scanHint={d.download.scanHint}
         />
-        <QrCard
-          id="web"
-          icon={<GlobeIcon />}
-          name={d.download.web.name}
-          store={d.download.web.store}
-          note={d.download.web.note}
-          qr={webQr}
-          href={appLinks.web}
-          action={d.download.openOnThisDevice}
-          scanHint={d.download.scanHint}
-          highlight
-          footer={
-            <p className="text-center text-xs text-muted">
-              {d.download.orType}{' '}
-              <span className="font-mono font-semibold text-foreground">{webHost}</span>
-            </p>
-          }
-        />
       </div>
+
+      <WebStrip
+        id="web"
+        name={d.download.web.name}
+        note={d.download.web.note}
+        host={webHost}
+        action={d.download.web.goToHomepage}
+      />
     </div>
   );
 }
@@ -93,30 +83,13 @@ interface QrCardProps {
   href: string;
   action: string;
   scanHint: string;
-  highlight?: boolean;
-  footer?: ReactNode;
 }
 
-function QrCard({
-  id,
-  icon,
-  name,
-  store,
-  note,
-  qr,
-  href,
-  action,
-  scanHint,
-  highlight = false,
-  footer,
-}: QrCardProps) {
+function QrCard({ id, icon, name, store, note, qr, href, action, scanHint }: QrCardProps) {
   return (
     <section
       id={id}
-      className={cn(
-        'flex scroll-mt-24 flex-col rounded-2xl bg-surface p-6 ring-1 shadow-[var(--shadow-card)]',
-        highlight ? 'ring-brand/35' : 'ring-border',
-      )}
+      className="flex scroll-mt-24 flex-col rounded-2xl bg-surface p-6 ring-1 ring-border shadow-[var(--shadow-card)]"
     >
       <div className="flex items-center gap-3">
         <span
@@ -132,9 +105,9 @@ function QrCard({
       </div>
 
       {/* The code is always dark on white, in both themes — see lib/qr.ts. */}
-      <div className="mt-6 self-center rounded-2xl bg-white p-3 ring-1 ring-black/10">
+      <div className="mt-6 self-center rounded-2xl bg-white p-3.5 ring-1 ring-black/10">
         <div
-          className="size-44 sm:size-48"
+          className="size-52 sm:size-56"
           role="img"
           aria-label={`${name} — ${scanHint}`}
           dangerouslySetInnerHTML={{ __html: qr }}
@@ -145,22 +118,64 @@ function QrCard({
 
       <p className="mt-4 text-pretty text-center text-sm text-muted">{note}</p>
 
-      <div className="mt-5 flex flex-col gap-3">
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            'inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold transition',
-            highlight
-              ? 'bg-brand text-brand-contrast hover:bg-brand-strong'
-              : 'bg-surface-muted text-foreground ring-1 ring-border hover:bg-background',
-          )}
-        >
-          {action}
-        </a>
-        {footer}
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-surface-muted px-4 text-sm font-semibold text-foreground ring-1 ring-border transition hover:bg-background"
+      >
+        {action}
+      </a>
+    </section>
+  );
+}
+
+/**
+ * The website is the fallback for anyone who does not want to install anything,
+ * so it sits below the two stores as a single quiet row rather than a third
+ * card competing with them.
+ */
+function WebStrip({
+  id,
+  name,
+  note,
+  host,
+  action,
+}: {
+  id: string;
+  name: string;
+  note: string;
+  host: string;
+  action: string;
+}) {
+  return (
+    <section
+      id={id}
+      className="mx-auto mt-5 flex max-w-3xl scroll-mt-24 flex-col gap-4 rounded-2xl bg-surface px-5 py-4 ring-1 ring-border sm:flex-row sm:items-center"
+    >
+      <span
+        aria-hidden
+        className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-muted text-muted"
+      >
+        <GlobeIcon />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-foreground">
+          {name}
+          <span className="ml-2 font-mono text-xs font-normal text-muted">{host}</span>
+        </p>
+        <p className="mt-0.5 text-pretty text-sm text-muted">{note}</p>
       </div>
+
+      {/* Relative, not the absolute address: on a kiosk or a staging build this
+          must land on the site being shown, not jump to the public domain. */}
+      <Link
+        href="/"
+        className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl px-4 text-sm font-semibold text-brand ring-1 ring-brand/35 transition hover:bg-brand-soft"
+      >
+        {action}
+      </Link>
     </section>
   );
 }
@@ -185,7 +200,7 @@ function GlobeIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="size-5"
+      className="size-4.5"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
