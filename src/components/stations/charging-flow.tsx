@@ -96,6 +96,15 @@ export function ChargingFlow({
   });
   const [plugged, setPlugged] = useState(false);
   const [requested, setRequested] = useState(false);
+  /**
+   * A finished session the driver has acknowledged.
+   *
+   * The API keeps returning their most recent session forever, and the step
+   * machine treats any session as "done" — so once one completed, the flow was
+   * stuck on step 9 permanently and a reload landed straight back on it.
+   * Dismissing it locally is what lets them start another charge.
+   */
+  const [dismissedSessionId, setDismissedSessionId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staleFeed, setStaleFeed] = useState(false);
@@ -133,7 +142,8 @@ export function ChargingFlow({
    */
   const targetConnectorId = connectorId;
 
-  const session = live.session;
+  const session =
+    live.session && live.session.transactionId === dismissedSessionId ? null : live.session;
   const active = session?.status === 'Active' ? session : null;
 
   const sessionConnector = active
@@ -207,6 +217,16 @@ export function ChargingFlow({
    * and this hardware offers the driver no way to do that at the unit — so
    * without this button they are physically attached to the charger.
    */
+  /** Clears the finished session so the driver can charge again. */
+  function startAnother() {
+    if (live.session) setDismissedSessionId(live.session.transactionId);
+    setPlugged(false);
+    setRequested(false);
+    setConnectorId(initialConnectorId ? String(initialConnectorId) : '');
+    setError(null);
+    void refresh();
+  }
+
   async function unlock() {
     const transactionId = live.session?.transactionId;
     if (!transactionId) return;
@@ -322,6 +342,7 @@ export function ChargingFlow({
                     connectorId={connectorId}
                     canStart={Boolean(targetConnectorId)}
                     onUnlock={() => void unlock()}
+                    onStartAnother={startAnother}
                     onConnector={setConnectorId}
                     onPlugged={() => setPlugged(true)}
                     onStart={() => void start()}
@@ -473,6 +494,7 @@ function StepAction({
   onStart,
   onStop,
   onUnlock,
+  onStartAnother,
   onOpenEbarimt,
   busy,
   canStart,
@@ -488,6 +510,7 @@ function StepAction({
   onStart: () => void;
   onStop: () => void;
   onUnlock: () => void;
+  onStartAnother: () => void;
   onOpenEbarimt?: () => void;
   busy: boolean;
   /** False until a specific gun is identified; the station refuses otherwise. */
@@ -597,7 +620,7 @@ function StepAction({
                 {t.viewReceipt}
               </Link>
             )}
-            <Button type="button" variant="secondary" size="sm" onClick={() => location.reload()}>
+            <Button type="button" variant="secondary" size="sm" onClick={onStartAnother}>
               {t.startAnother}
             </Button>
           </div>
