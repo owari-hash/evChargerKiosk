@@ -543,6 +543,9 @@ export const en = {
     plugConfirm: 'The cable is plugged in',
     refreshFailed: 'Live updates paused — reconnecting…',
     viewReceipt: 'See this session',
+    unlockNow: 'Release the cable',
+    unlockFailed: 'The cable could not be released. Try the button on the unit.',
+    unlockRejected: 'The charge point replied “{status}”. Try releasing it at the unit.',
     startAnother: 'Start another session',
   },
 
@@ -1537,6 +1540,9 @@ export const mn: Dictionary = {
     plugConfirm: 'Кабель залгагдсан',
     refreshFailed: 'Шууд мэдээлэл түр тасарлаа — дахин холбогдож байна…',
     viewReceipt: 'Энэ цэнэглэлтийг харах',
+    unlockNow: 'Кабель сугалах',
+    unlockFailed: 'Кабелийг суллаж чадсангүй. Станц дээрх товчийг ашиглана уу.',
+    unlockRejected: 'Цэнэглэх цэг «{status}» гэж хариулав. Станц дээр нь суллана уу.',
     startAnother: 'Дахин цэнэглэх',
   },
 

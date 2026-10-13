@@ -200,6 +200,36 @@ export function ChargingFlow({
     }
   }
 
+  /**
+   * Releases the cable after the session has ended.
+   *
+   * The gun stays latched in `Finishing` until the station is told to let go,
+   * and this hardware offers the driver no way to do that at the unit — so
+   * without this button they are physically attached to the charger.
+   */
+  async function unlock() {
+    const transactionId = live.session?.transactionId;
+    if (!transactionId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/app-api/sessions/${transactionId}/unlock`, { method: 'POST' });
+      const payload = (await res.json().catch(() => ({}))) as {
+        status?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(payload.error ?? d.flow.unlockFailed);
+      if (payload.status && payload.status !== 'Unlocked') {
+        throw new Error(format(d.flow.unlockRejected, { status: payload.status }));
+      }
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : d.flow.unlockFailed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function stop() {
     if (!active) return;
     setBusy(true);
@@ -291,6 +321,7 @@ export function ChargingFlow({
                     free={free}
                     connectorId={connectorId}
                     canStart={Boolean(targetConnectorId)}
+                    onUnlock={() => void unlock()}
                     onConnector={setConnectorId}
                     onPlugged={() => setPlugged(true)}
                     onStart={() => void start()}
@@ -441,6 +472,7 @@ function StepAction({
   onPlugged,
   onStart,
   onStop,
+  onUnlock,
   onOpenEbarimt,
   busy,
   canStart,
@@ -455,6 +487,7 @@ function StepAction({
   onPlugged: () => void;
   onStart: () => void;
   onStop: () => void;
+  onUnlock: () => void;
   onOpenEbarimt?: () => void;
   busy: boolean;
   /** False until a specific gun is identified; the station refuses otherwise. */
@@ -549,6 +582,11 @@ function StepAction({
                 onClick={onOpenEbarimt}
               >
                 И-Баримт харах / авах
+              </Button>
+            )}
+            {session && (
+              <Button type="button" size="sm" variant="secondary" onClick={onUnlock}>
+                {t.unlockNow}
               </Button>
             )}
             {session && (
