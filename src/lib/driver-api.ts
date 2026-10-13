@@ -129,3 +129,30 @@ export function getWallet(limit: number): Promise<WalletLoad> {
 export async function listSessions(limit: number): Promise<ChargingSession[]> {
   return (await driverApi<{ sessions: ChargingSession[] }>(`/sessions?limit=${limit}`)).sessions;
 }
+
+/** A connector resolved from the short code printed on its QR sticker. */
+export interface ConnectorCodeLoad {
+  code: string;
+  stationId: string;
+  cpId: string;
+  stationName: string;
+  address: string | null;
+  connectorId: number;
+  connectorType: string | null;
+  powerKw: number | null;
+  label: string | null;
+}
+
+/**
+ * Resolves a sticker code. Null means the code is not one of ours; a thrown
+ * error means the API could not be asked, which the page reports differently —
+ * a driver standing at a charger needs to know which of the two happened.
+ */
+export async function resolveConnectorCode(code: string): Promise<ConnectorCodeLoad | null> {
+  try {
+    return await driverApi<ConnectorCodeLoad>(`/app/connector/${encodeURIComponent(code)}`);
+  } catch (err) {
+    if ((err as DriverApiError).status === 404) return null;
+    throw err;
+  }
+}

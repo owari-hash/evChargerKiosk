@@ -38,11 +38,18 @@ export async function generateMetadata(props: PageProps<'/stations/[id]'>): Prom
 }
 
 export default async function StationPage(props: PageProps<'/stations/[id]'>) {
-  const { id } = await props.params;
-  const [{ station, unreachable, remoteStartEnabled }, { locale, d }] = await Promise.all([
-    loadStation(id),
+  const [{ id }, query, { locale, d }] = await Promise.all([
+    props.params,
+    props.searchParams,
     getTranslations(),
   ]);
+  const { station, unreachable, remoteStartEnabled } = await loadStation(id);
+
+  // `?connector=` is set by the QR sticker on a gun (see /c/[code]). Trust it
+  // only as far as "a positive integer"; the picker ignores one that is not here.
+  const requested = Number(Array.isArray(query.connector) ? query.connector[0] : query.connector);
+  const initialConnectorId =
+    Number.isInteger(requested) && requested > 0 ? requested : undefined;
   const intl = intlLocale(locale);
 
   if (!station) {
@@ -102,6 +109,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
       <StationLiveView
         stationId={station.id}
         initialConnectors={station.connectors}
+        initialConnectorId={initialConnectorId}
         availability={station.availability}
         tariffPerKwh={station.tariffPerKwh}
         signedIn={Boolean(user)}

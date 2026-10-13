@@ -22,6 +22,8 @@ export interface StationLiveViewProps {
   signedIn: boolean;
   hasIdTag: boolean;
   remoteStartEnabled: boolean;
+  /** Gun preselected by the QR sticker the driver scanned. */
+  initialConnectorId?: number;
   locale?: Locale;
   connectorsTitle: string;
   mapSlot?: React.ReactNode;
@@ -36,6 +38,7 @@ export function StationLiveView({
   signedIn,
   hasIdTag,
   remoteStartEnabled,
+  initialConnectorId,
   locale,
   connectorsTitle,
   mapSlot,
@@ -75,6 +78,7 @@ export function StationLiveView({
           signedIn={signedIn}
           hasIdTag={hasIdTag}
           remoteStartEnabled={remoteStartEnabled}
+          initialConnectorId={initialConnectorId}
           onLiveUpdate={handleLiveUpdate}
         />
       </div>

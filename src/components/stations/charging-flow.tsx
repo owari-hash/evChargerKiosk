@@ -66,6 +66,8 @@ export interface ChargingFlowProps {
   signedIn: boolean;
   hasIdTag: boolean;
   remoteStartEnabled: boolean;
+  /** Gun chosen for the driver, e.g. by scanning the QR sticker on it. */
+  initialConnectorId?: number;
   onLiveUpdate?: (live: LiveState) => void;
 }
 
@@ -77,6 +79,7 @@ export function ChargingFlow({
   signedIn,
   hasIdTag,
   remoteStartEnabled,
+  initialConnectorId,
   onLiveUpdate,
 }: ChargingFlowProps) {
   const { d, locale } = useI18n();
@@ -101,7 +104,11 @@ export function ChargingFlow({
   const free = live.connectors.filter(
     (c) => c.status === 'Available' && c.availability === 'Operative',
   );
-  const [connectorId, setConnectorId] = useState('');
+  // Seeded from the sticker when the driver arrived by QR, so the gun they
+  // are standing at is already chosen.
+  const [connectorId, setConnectorId] = useState(
+    initialConnectorId ? String(initialConnectorId) : '',
+  );
 
   const session = live.session;
   const active = session?.status === 'Active' ? session : null;
