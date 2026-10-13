@@ -790,13 +790,12 @@ export const en = {
   download: {
     metaTitle: 'Get the app',
     metaDescription:
-      'Download the Eplug app for iPhone or Android, or open the charging network in your browser.',
+      'Download the Eplug app for iOS or Android, or open the charging network in your browser.',
     title: 'Get the Eplug app',
     subtitle: 'Point your phone camera at a code — no app needed to scan it.',
-    scanHint: 'Scan with your camera',
-    openOnThisDevice: 'Open on this device',
+    getApp: 'Download',
     ios: {
-      name: 'iPhone and iPad',
+      name: 'iOS',
       store: 'App Store',
       note: 'Requires iOS 13 or later.',
     },
@@ -809,6 +808,37 @@ export const en = {
       name: 'Web',
       goToHomepage: 'Go to the homepage',
       note: 'Nothing to install — find a charger and manage your account from any browser.',
+    },
+    guide: {
+      title: 'How it works',
+      subtitle: 'From installing the app to your tax receipt — the whole journey.',
+      s1Title: 'Get the app',
+      s1Body:
+        'Scan a code above to install from the App Store or Google Play. You can also use the website without installing anything.',
+      s2Title: 'Create an account',
+      s2Body:
+        'Enter your phone number, confirm the six-digit code we text you, then choose a 4-digit PIN.',
+      s3Title: 'Top up your wallet',
+      s3Body:
+        'Pay into your wallet with QPay. Charging is billed from this balance, so top up before you set off.',
+      s4Title: 'Link your charge tag',
+      s4Body:
+        'Add the number printed on your RFID card. That is what the station recognises you by.',
+      s5Title: 'Find a station',
+      s5Body:
+        'The map shows every station with live plug availability, power and price per kWh.',
+      s6Title: 'Plug in',
+      s6Body:
+        'Connect the cable to your car first. The station will not lock the cable otherwise.',
+      s7Title: 'Start charging',
+      s7Body:
+        'Start it from the app, or hold your tag against the reader on the unit. The station has the final say and may decline.',
+      s8Title: 'Stop and pay',
+      s8Body:
+        'Stop from the app or unplug. The cost is taken from your wallet automatically when the session closes.',
+      s9Title: 'Get your receipt',
+      s9Body:
+        'Issue an e-Barimt tax receipt for any finished session from your charging history.',
     },
   },
 
@@ -1751,13 +1781,12 @@ export const mn: Dictionary = {
   download: {
     metaTitle: 'Апп татах',
     metaDescription:
-      'Eplug аппыг iPhone эсвэл Android утсандаа татаж авах, эсвэл хөтчөөрөө шууд ашиглах.',
+      'Eplug аппыг iOS эсвэл Android утсандаа татаж авах, эсвэл хөтчөөрөө шууд ашиглах.',
     title: 'Eplug аппыг татах',
     subtitle: 'Утасныхаа камерыг код руу чиглүүлнэ үү — нэмэлт апп хэрэггүй.',
-    scanHint: 'Камераараа уншуулна уу',
-    openOnThisDevice: 'Энэ төхөөрөмж дээр нээх',
+    getApp: 'Татах',
     ios: {
-      name: 'iPhone ба iPad',
+      name: 'iOS',
       store: 'App Store',
       note: 'iOS 13 ба түүнээс дээш хувилбар шаардана.',
     },
@@ -1770,6 +1799,37 @@ export const mn: Dictionary = {
       name: 'Вэб',
       goToHomepage: 'Нүүр хуудас руу очих',
       note: 'Татах шаардлагагүй — ямар ч хөтчөөс станц хайж, бүртгэлээ удирдана.',
+    },
+    guide: {
+      title: 'Хэрхэн ажилладаг вэ',
+      subtitle: 'Апп суулгахаас эхлээд И-Баримт авах хүртэлх бүх алхам.',
+      s1Title: 'Апп татах',
+      s1Body:
+        'Дээрх кодыг уншуулж App Store эсвэл Google Play-ээс суулгана. Эсвэл юу ч суулгалгүй вэб хуудсыг ашиглаж болно.',
+      s2Title: 'Бүртгүүлэх',
+      s2Body:
+        'Утасны дугаараа оруулж, ирсэн 6 оронтой кодыг баталгаажуулаад 4 оронтой PIN код үүсгэнэ.',
+      s3Title: 'Хэтэвчээ цэнэглэх',
+      s3Body:
+        'QPay-ээр хэтэвчээ цэнэглэнэ. Цэнэглэлтийн төлбөр энэ үлдэгдлээс хасагдах тул замдаа гарахаасаа өмнө цэнэглээрэй.',
+      s4Title: 'Карт холбох',
+      s4Body:
+        'RFID картан дээрх дугаараа бүртгэлдээ нэмнэ. Станц таныг үүгээр танина.',
+      s5Title: 'Станц олох',
+      s5Body:
+        'Газрын зураг дээр станц бүрийн сул холбогч, чадал, 1 кВт·ц-ийн үнэ шууд харагдана.',
+      s6Title: 'Кабелиа залгах',
+      s6Body:
+        'Эхлээд кабелиа машиндаа залгана. Үгүй бол станц кабелиа цоожлохгүй.',
+      s7Title: 'Цэнэглэлт эхлүүлэх',
+      s7Body:
+        'Аппаас эхлүүлэх эсвэл картаа станцын уншигч дээр барина. Станц эцсийн шийдвэрийг гаргах бөгөөд татгалзаж болно.',
+      s8Title: 'Дуусгаж төлөх',
+      s8Body:
+        'Аппаас зогсоох эсвэл кабелиа салгана. Цэнэглэлт хаагдмагц төлбөр хэтэвчнээс автоматаар хасагдана.',
+      s9Title: 'И-Баримт авах',
+      s9Body:
+        'Дууссан цэнэглэлт бүрийн И-Баримтыг цэнэглэлтийн түүхээсээ авна.',
     },
   },
 
