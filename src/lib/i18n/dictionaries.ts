@@ -43,6 +43,7 @@ export const en = {
     stations: 'Find a charger',
     pricing: 'Pricing',
     help: 'Help',
+    download: 'Get the app',
   },
 
   footer: {
@@ -786,6 +787,32 @@ export const en = {
     howPricingWorks: 'How pricing works',
   },
 
+  download: {
+    metaTitle: 'Get the app',
+    metaDescription:
+      'Download the Eplug app for iPhone or Android, or open the charging network in your browser.',
+    title: 'Get the Eplug app',
+    subtitle: 'Point your phone camera at a code — no app needed to scan it.',
+    scanHint: 'Scan with your camera',
+    openOnThisDevice: 'Open on this device',
+    orType: 'Or type this address:',
+    ios: {
+      name: 'iPhone and iPad',
+      store: 'App Store',
+      note: 'Requires iOS 13 or later.',
+    },
+    android: {
+      name: 'Android',
+      store: 'Google Play',
+      note: 'Requires Android 7.0 or later.',
+    },
+    web: {
+      name: 'Web',
+      store: 'In your browser',
+      note: 'Nothing to install — find a charger and manage your account from any browser.',
+    },
+  },
+
   terms: {
     metaTitle: 'Terms of service (draft)',
     metaDescription:
@@ -977,6 +1004,7 @@ export const mn: Dictionary = {
     stations: 'Цэнэглэх станц',
     pricing: 'Үнэ тариф',
     help: 'Тусламж',
+    download: 'Апп татах',
   },
 
   footer: {
@@ -1719,6 +1747,32 @@ export const mn: Dictionary = {
 
     moreTitle: 'Бусад',
     howPricingWorks: 'Үнэ хэрхэн тооцогддог вэ',
+  },
+
+  download: {
+    metaTitle: 'Апп татах',
+    metaDescription:
+      'Eplug аппыг iPhone эсвэл Android утсандаа татаж авах, эсвэл хөтчөөрөө шууд ашиглах.',
+    title: 'Eplug аппыг татах',
+    subtitle: 'Утасныхаа камерыг код руу чиглүүлнэ үү — нэмэлт апп хэрэггүй.',
+    scanHint: 'Камераараа уншуулна уу',
+    openOnThisDevice: 'Энэ төхөөрөмж дээр нээх',
+    orType: 'Эсвэл дараах хаягийг бичнэ үү:',
+    ios: {
+      name: 'iPhone ба iPad',
+      store: 'App Store',
+      note: 'iOS 13 ба түүнээс дээш хувилбар шаардана.',
+    },
+    android: {
+      name: 'Android',
+      store: 'Google Play',
+      note: 'Android 7.0 ба түүнээс дээш хувилбар шаардана.',
+    },
+    web: {
+      name: 'Вэб',
+      store: 'Хөтөч дээрээ',
+      note: 'Татах шаардлагагүй — ямар ч хөтчөөс станц хайж, бүртгэлээ удирдана.',
+    },
   },
 
   terms: {

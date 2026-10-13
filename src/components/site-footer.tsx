@@ -8,6 +8,7 @@ export async function SiteFooter() {
   const links = [
     { href: '/pricing', label: d.nav.pricing },
     { href: '/help', label: d.nav.help },
+    { href: '/download', label: d.nav.download },
     { href: '/legal/terms', label: d.footer.terms },
     { href: '/legal/privacy', label: d.footer.privacy },
   ];
