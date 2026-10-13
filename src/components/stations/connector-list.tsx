@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Badge } from '@/components/ui';
 import type { StationConnector } from '@/lib/types';
 import type { Locale } from '@/lib/i18n/config';
@@ -38,28 +41,78 @@ export function ConnectorList({
     return <p className={cn('text-sm text-muted', className)}>{d.stations.noConnectors}</p>;
   }
 
-  const ordered =
+  return (
+    <ScannedFirstList
+      connectors={connectors}
+      className={className}
+      locale={locale}
+      scannedConnectorId={scannedConnectorId}
+    />
+  );
+}
+
+/**
+ * Arriving by QR, a driver is standing at one specific gun and does not want to
+ * pick it out of a list of identical rows — so only that one is shown.
+ *
+ * The others are one tap away rather than gone: if the gun they scanned turns
+ * out to be faulted or occupied, the next one along is the answer, and hiding
+ * it entirely would strand them at the charger.
+ */
+function ScannedFirstList({
+  connectors,
+  className,
+  locale,
+  scannedConnectorId,
+}: ConnectorListProps) {
+  const d = getDictionary(locale ?? 'mn');
+  const [showAll, setShowAll] = useState(false);
+
+  const scanned =
     scannedConnectorId === undefined
-      ? connectors
-      : [...connectors].sort((a, b) =>
-          a.connectorId === scannedConnectorId
-            ? -1
-            : b.connectorId === scannedConnectorId
-              ? 1
-              : a.connectorId - b.connectorId,
-        );
+      ? undefined
+      : connectors.find((c) => c.connectorId === scannedConnectorId);
+
+  // No scan, or a code pointing at a gun this station no longer reports: fall
+  // back to the plain list rather than showing nothing.
+  if (!scanned) {
+    return (
+      <ul className={cn('divide-y divide-border', className)}>
+        {connectors.map((connector) => (
+          <ConnectorRow key={connector.connectorId} connector={connector} locale={locale} />
+        ))}
+      </ul>
+    );
+  }
+
+  const others = connectors.filter((c) => c.connectorId !== scanned.connectorId);
+  const visible = showAll ? [scanned, ...others] : [scanned];
 
   return (
-    <ul className={cn('divide-y divide-border', className)}>
-      {ordered.map((connector) => (
-        <ConnectorRow
-          key={connector.connectorId}
-          connector={connector}
-          locale={locale}
-          scanned={connector.connectorId === scannedConnectorId}
-        />
-      ))}
-    </ul>
+    <div className={className}>
+      <ul className="divide-y divide-border">
+        {visible.map((connector) => (
+          <ConnectorRow
+            key={connector.connectorId}
+            connector={connector}
+            locale={locale}
+            scanned={connector.connectorId === scanned.connectorId}
+          />
+        ))}
+      </ul>
+
+      {others.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-3 text-sm font-semibold text-brand transition hover:text-brand-strong"
+        >
+          {showAll
+            ? d.stations.hideOtherConnectors
+            : format(d.stations.showOtherConnectors, { count: others.length })}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
