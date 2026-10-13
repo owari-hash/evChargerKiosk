@@ -110,6 +110,17 @@ export function ChargingFlow({
     initialConnectorId ? String(initialConnectorId) : '',
   );
 
+  /**
+   * The gun the start request will name.
+   *
+   * It is never allowed to be empty: this hardware rejects a
+   * RemoteStartTransaction that does not say which connector to use, and an
+   * unspecified one is the single most common reason a start fails. When the
+   * driver has not picked and only one gun is free, that is the one they mean.
+   */
+  const targetConnectorId =
+    connectorId || (free.length === 1 ? String(free[0]!.connectorId) : '');
+
   const session = live.session;
   const active = session?.status === 'Active' ? session : null;
 
@@ -157,7 +168,9 @@ export function ChargingFlow({
       const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(connectorId ? { connectorId: Number(connectorId) } : {}),
+        body: JSON.stringify(
+          targetConnectorId ? { connectorId: Number(targetConnectorId) } : {},
+        ),
       });
       const payload = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
       if (!res.ok) throw new Error(payload.error ?? d.start.requestFailed);
@@ -264,6 +277,7 @@ export function ChargingFlow({
                     stationId={stationId}
                     free={free}
                     connectorId={connectorId}
+                    canStart={Boolean(targetConnectorId)}
                     onConnector={setConnectorId}
                     onPlugged={() => setPlugged(true)}
                     onStart={() => void start()}
@@ -410,6 +424,7 @@ function StepAction({
   onStop,
   onOpenEbarimt,
   busy,
+  canStart,
   session,
   intl,
 }: {
@@ -423,6 +438,8 @@ function StepAction({
   onStop: () => void;
   onOpenEbarimt?: () => void;
   busy: boolean;
+  /** False until a specific gun is identified; the station refuses otherwise. */
+  canStart: boolean;
   session: ChargingSession | null;
   intl: string;
 }) {
@@ -474,7 +491,13 @@ function StepAction({
 
     case 'start':
       return (
-        <Button type="button" onClick={onStart} loading={busy} size="sm">
+        <Button
+          type="button"
+          onClick={onStart}
+          loading={busy}
+          size="sm"
+          disabled={!canStart}
+        >
           {busy ? t.starting : t.startNow}
         </Button>
       );
