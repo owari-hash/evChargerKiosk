@@ -60,7 +60,11 @@ export function StationLiveView({
             <CardTitle>{connectorsTitle}</CardTitle>
           </CardHeader>
           <CardBody>
-            <ConnectorList connectors={connectors} locale={locale} />
+            <ConnectorList
+              connectors={connectors}
+              locale={locale}
+              scannedConnectorId={initialConnectorId}
+            />
           </CardBody>
         </Card>
 

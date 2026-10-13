@@ -15,27 +15,63 @@ interface ConnectorListProps {
   connectors: StationConnector[];
   className?: string;
   locale?: Locale;
+  /**
+   * The gun whose QR sticker was scanned. It is pulled to the top and marked,
+   * so a driver standing at it is not left comparing identical-looking rows.
+   * The others stay visible on purpose: if this one is faulty, the next one
+   * along is the answer.
+   */
+  scannedConnectorId?: number;
 }
 
 const LIVE_STATUSES = new Set(['Charging', 'SuspendedEV', 'SuspendedEVSE', 'Finishing']);
 
-export function ConnectorList({ connectors, className, locale }: ConnectorListProps) {
+export function ConnectorList({
+  connectors,
+  className,
+  locale,
+  scannedConnectorId,
+}: ConnectorListProps) {
   const d = getDictionary(locale ?? 'mn');
 
   if (connectors.length === 0) {
     return <p className={cn('text-sm text-muted', className)}>{d.stations.noConnectors}</p>;
   }
 
+  const ordered =
+    scannedConnectorId === undefined
+      ? connectors
+      : [...connectors].sort((a, b) =>
+          a.connectorId === scannedConnectorId
+            ? -1
+            : b.connectorId === scannedConnectorId
+              ? 1
+              : a.connectorId - b.connectorId,
+        );
+
   return (
     <ul className={cn('divide-y divide-border', className)}>
-      {connectors.map((connector) => (
-        <ConnectorRow key={connector.connectorId} connector={connector} locale={locale} />
+      {ordered.map((connector) => (
+        <ConnectorRow
+          key={connector.connectorId}
+          connector={connector}
+          locale={locale}
+          scanned={connector.connectorId === scannedConnectorId}
+        />
       ))}
     </ul>
   );
 }
 
-function ConnectorRow({ connector, locale }: { connector: StationConnector; locale?: Locale }) {
+function ConnectorRow({
+  connector,
+  locale,
+  scanned = false,
+}: {
+  connector: StationConnector;
+  locale?: Locale;
+  scanned?: boolean;
+}) {
   const d = getDictionary(locale ?? 'mn');
   const intl = intlLocale(locale);
   const live = LIVE_STATUSES.has(connector.status);
@@ -47,15 +83,30 @@ function ConnectorRow({ connector, locale }: { connector: StationConnector; loca
       : undefined;
 
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4 first:pt-0 last:pb-0">
+    <li
+      className={cn(
+        'flex flex-wrap items-center gap-x-4 gap-y-2 py-4 first:pt-0 last:pb-0',
+        scanned && 'relative -mx-3 rounded-xl bg-brand-soft px-3 ring-1 ring-brand/30',
+      )}
+    >
       <span
         aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-muted text-sm font-semibold text-foreground"
+        className={cn(
+          'grid size-10 shrink-0 place-items-center rounded-xl text-sm font-semibold',
+          scanned
+            ? 'bg-brand text-brand-contrast'
+            : 'bg-surface-muted text-foreground',
+        )}
       >
         {connector.connectorId}
       </span>
 
       <div className="min-w-0 flex-1">
+        {scanned ? (
+          <p className="mb-0.5 text-xs font-semibold text-brand-strong">
+            {d.stations.scannedConnector}
+          </p>
+        ) : null}
         <p className="text-sm font-semibold text-foreground">
           <span className="sr-only">
             {format(d.stations.connectorN, { id: connector.connectorId })}
