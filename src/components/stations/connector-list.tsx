@@ -127,7 +127,14 @@ function ConnectorRow({
 }) {
   const d = getDictionary(locale ?? 'mn');
   const intl = intlLocale(locale);
-  const live = LIVE_STATUSES.has(connector.status);
+  /**
+   * `lastPowerW` and `lastSocPercent` are the last values the station ever
+   * reported on this gun and they outlive the session that produced them — so
+   * they were showing "0 кВт · 0%" before the first reading of a new session,
+   * and the final reading long after one had ended. A live figure is only shown
+   * while a transaction is actually running on the connector.
+   */
+  const live = LIVE_STATUSES.has(connector.status) && Boolean(connector.currentTransactionId);
   const soc = live ? connector.lastSocPercent : undefined;
   const power = live ? connector.lastPowerW : undefined;
   const faultCode =
