@@ -169,7 +169,12 @@ export default async function PricingPage() {
                         {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
-                        {formatMoney(station.tariffPerKwh, intl)}
+                        {formatMoney(station.tariffPerKwh, intl, 2)}
+                        {station.feePercent != null && station.feePercent > 0 && (
+                          <span className="mt-0.5 block text-xs font-normal text-muted">
+                            {format(d.stations.feeIncluded, { percent: station.feePercent })}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

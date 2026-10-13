@@ -94,13 +94,15 @@ export function formatPowerKw(
 export function formatMoney(
   value: number | undefined | null,
   locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
+  /** Per-kWh prices can carry a fraction once a service fee is added (472.5₮). */
+  maxFractionDigits = 0,
 ): string {
   if (value === undefined || value === null || Number.isNaN(value)) return '—';
   // Node's and the browser's ICU data disagree on the MNT currency symbol
   // ("₮" vs "MNT"), which desyncs SSR and hydration. Formatting the number
   // plainly and prefixing the symbol ourselves keeps it identical everywhere.
   const amount = new Intl.NumberFormat(safeLocale(locale), {
-    maximumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits,
   }).format(value);
   return `₮ ${amount}`;
 }
@@ -111,7 +113,7 @@ export function formatTariff(
   locale: FormatLocale = DEFAULT_FORMAT_LOCALE,
 ): string {
   if (perKwh === undefined || perKwh === null || Number.isNaN(perKwh)) return '—';
-  return `${formatMoney(perKwh, locale)}/${units(locale).kwh}`;
+  return `${formatMoney(perKwh, locale, 2)}/${units(locale).kwh}`;
 }
 
 export function formatDateTime(

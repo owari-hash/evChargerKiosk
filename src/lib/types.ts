@@ -43,7 +43,12 @@ export interface Station {
   address?: string;
   latitude?: number;
   longitude?: number;
+  /** What the driver pays per kWh, Eplug's service fee included. */
   tariffPerKwh?: number;
+  /** The station's own tariff, before the service fee. */
+  baseTariffPerKwh?: number;
+  /** Service fee in percent; 0 when none applies. */
+  feePercent?: number;
   vendor?: string;
   model?: string;
   tags: string[];
@@ -70,7 +75,7 @@ export interface EBarimtData {
   customerTin?: string;
   totalAmount: number;
   totalVAT: number;
-  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  status: 'SUCCESS' | 'FAILED' | 'PENDING' | 'REFUNDED';
   issuedAt?: string;
   error?: string;
 }
@@ -81,11 +86,17 @@ export interface ChargingSession {
   stationName?: string;
   connectorId: number;
   idTag: string;
-  status: 'Active' | 'Completed' | 'Rejected';
+  /** `Refunded`: the charge was returned to the wallet (Буцаалт). */
+  status: 'Active' | 'Completed' | 'Rejected' | 'Refunded';
   startTimestamp: string;
   stopTimestamp?: string;
   energyKwh: number;
+  /** Total the driver pays, service fee included. */
   cost?: number;
+  /** Breakdown of `cost`; absent on sessions from before the service fee. */
+  energyCost?: number;
+  feeAmount?: number;
+  feePercent?: number;
   lastPowerW?: number;
   lastSocPercent?: number;
   stopReason?: string;

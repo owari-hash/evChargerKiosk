@@ -38,50 +38,44 @@ export function EbarimtHistoryTable({
   // Consolidate eBarimt items from wallet top-ups & charging sessions
   const records: EbarimtRecordItem[] = [];
 
-  // Add wallet entries
+  // Add wallet entries — only those the PosAPI actually issued a receipt for.
+  // Nothing is shown for an entry without one: a made-up lottery number or
+  // receipt id would look like a real tax receipt.
   walletEntries.forEach((entry) => {
-    const amount = Math.abs(entry.amount);
     const eb = entry.ebarimt;
+    if (!eb?.receiptId || (eb.status !== 'SUCCESS' && eb.status !== 'REFUNDED')) return;
+    const amount = Math.abs(entry.amount);
     records.push({
       id: `w-${entry.id}`,
       source: 'WALLET',
       title: entry.description || t.walletTopup,
       amount,
-      vatAmount: eb?.totalVAT ?? Math.round((amount - amount / 1.1) * 100) / 100,
-      lottery: eb?.lottery || `EB${Math.floor(10000000 + Math.random() * 90000000)}`,
-      receiptId: eb?.receiptId || `REC-${Date.now()}`,
-      type: eb?.type || 'B2C_RECEIPT',
-      customerTin: eb?.customerTin,
+      vatAmount: eb.totalVAT,
+      lottery: eb.lottery || '—',
+      receiptId: eb.receiptId,
+      type: eb.type || 'B2C_RECEIPT',
+      customerTin: eb.customerTin,
       createdAt: entry.createdAt,
-      qrData: eb?.qrData,
+      qrData: eb.qrData,
       sessionObj: {
-        transactionId: entry.transactionId || Number(entry.id.replace(/\D/g, '').slice(0, 8)) || 1001,
+        transactionId: entry.transactionId ?? 0,
         status: 'Completed',
-        chargePointId: entry.chargePointId || 'CP-001',
-        connectorId: entry.connectorId || 1,
-        idTag: entry.idTag || 'DRIVER',
+        chargePointId: entry.chargePointId ?? '',
+        connectorId: entry.connectorId ?? 0,
+        idTag: entry.idTag ?? '',
         startTimestamp: entry.createdAt,
         stopTimestamp: entry.createdAt,
         energyKwh: 0,
         cost: amount,
-        ebarimt: eb || {
-          receiptId: `REC-${Date.now()}`,
-          type: 'B2C_RECEIPT',
-          qrData: `https://ebarimt.mn/qr/${Date.now()}`,
-          lottery: `EB${Math.floor(10000000 + Math.random() * 90000000)}`,
-          merchantTin: '37900846788',
-          totalAmount: amount,
-          totalVAT: Math.round((amount - amount / 1.1) * 100) / 100,
-          status: 'SUCCESS',
-          issuedAt: entry.createdAt,
-        },
+        ebarimt: eb,
       },
     });
   });
 
   // Add charging sessions if not already in wallet entries
   sessions.forEach((s) => {
-    if (s.ebarimt && !records.some((r) => r.sessionObj.transactionId === s.transactionId)) {
+    const issued = s.ebarimt?.receiptId && (s.ebarimt.status === 'SUCCESS' || s.ebarimt.status === 'REFUNDED');
+    if (s.ebarimt && issued && !records.some((r) => r.sessionObj.transactionId === s.transactionId)) {
       const amount = s.cost || 0;
       records.push({
         id: `s-${s.transactionId}`,
@@ -93,7 +87,7 @@ export function EbarimtHistoryTable({
         amount,
         vatAmount: s.ebarimt.totalVAT ?? Math.round((amount - amount / 1.1) * 100) / 100,
         lottery: s.ebarimt.lottery || '—',
-        receiptId: s.ebarimt.receiptId || `REC-${s.transactionId}`,
+        receiptId: s.ebarimt.receiptId ?? '',
         type: s.ebarimt.type || 'B2C_RECEIPT',
         customerTin: s.ebarimt.customerTin,
         createdAt: s.stopTimestamp || s.startTimestamp,
@@ -132,6 +126,11 @@ export function EbarimtHistoryTable({
                       <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
                         {format(t.lotteryLabel, { id: r.lottery })}
                       </span>
+                      {r.sessionObj.ebarimt?.status === 'REFUNDED' && (
+                        <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
+                          {t.refundedLabel}
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-xs text-muted">

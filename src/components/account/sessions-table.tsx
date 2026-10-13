@@ -28,11 +28,12 @@ import {
 /** Tone per session state; the label is looked up in `d.account.sessions`. */
 const STATUS_META: Record<
   ChargingSession['status'],
-  { labelKey: 'inProgress' | 'completed' | 'rejected'; tone: string }
+  { labelKey: 'inProgress' | 'completed' | 'rejected' | 'refunded'; tone: string }
 > = {
   Active: { labelKey: 'inProgress', tone: connectorStatusTone('Charging') },
   Completed: { labelKey: 'completed', tone: connectorStatusTone('Available') },
   Rejected: { labelKey: 'rejected', tone: connectorStatusTone('Faulted') },
+  Refunded: { labelKey: 'refunded', tone: connectorStatusTone('Reserved') },
 };
 
 interface StopResponse {
@@ -107,6 +108,20 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
 
   function duration(session: ChargingSession): string {
     return formatDuration(session.startTimestamp, session.stopTimestamp ?? new Date(clock));
+  }
+
+  /** Energy and service-fee lines under the total; only sessions billed with a fee have them. */
+  function feeBreakdown(session: ChargingSession): ReactNode {
+    if (!session.feeAmount || session.feeAmount <= 0) return null;
+    return (
+      <span className="mt-0.5 block whitespace-nowrap text-xs text-muted">
+        {d.account.sessions.energyCost} {formatMoney(session.energyCost)}
+        <span className="block">
+          {format(d.account.sessions.feeShort, { percent: session.feePercent ?? '—' })}{' '}
+          {formatMoney(session.feeAmount)}
+        </span>
+      </span>
+    );
   }
 
   function stopControls(session: ChargingSession): ReactNode {
@@ -226,7 +241,10 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                 </div>
                 <div>
                   <dt className="text-muted">{d.account.sessions.cost}</dt>
-                  <dd className="text-foreground">{formatMoney(session.cost)}</dd>
+                  <dd className="text-foreground">
+                    {formatMoney(session.cost)}
+                    {feeBreakdown(session)}
+                  </dd>
                 </div>
                 {active && (
                   <div>
@@ -300,7 +318,8 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     </Link>
                   </td>
                   <td className="px-5 py-3 text-muted">{session.connectorId}</td>
-                  <td suppressHydrationWarning className="px-5 py-3 whitespace-nowrap text-muted">
+                  {/* Wraps onto two lines so the status and actions stay in view. */}
+                  <td suppressHydrationWarning className="min-w-[8.5rem] px-4 py-3 text-muted">
                     {formatDateTime(session.startTimestamp)}
                   </td>
                   <td suppressHydrationWarning className="px-5 py-3 whitespace-nowrap text-muted">
@@ -316,6 +335,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </td>
                   <td className="px-5 py-3 whitespace-nowrap text-foreground">
                     {formatMoney(session.cost)}
+                    {feeBreakdown(session)}
                   </td>
                   <td className="px-5 py-3">
                     <Badge tone={meta.tone}>{d.account.sessions[meta.labelKey]}</Badge>

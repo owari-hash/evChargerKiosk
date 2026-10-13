@@ -134,8 +134,13 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
                   {station.tariffPerKwh === undefined
                     ? d.stations.notPublished
                     : format(d.stations.perKwh, {
-                        price: formatMoney(station.tariffPerKwh, intl),
+                        price: formatMoney(station.tariffPerKwh, intl, 2),
                       })}
+                  {station.feePercent != null && station.feePercent > 0 && (
+                    <span className="mt-0.5 block text-xs font-normal text-muted">
+                      {format(d.stations.feeIncluded, { percent: station.feePercent })}
+                    </span>
+                  )}
                 </Detail>
                 <Detail label={d.stations.hardware}>
                   {[station.vendor, station.model].filter(Boolean).join(' ') ||

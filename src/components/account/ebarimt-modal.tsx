@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { format, useI18n } from '@/components/i18n-provider';
 import { Alert, Button, Field, Input, Modal, ModalHeader } from '@/components/ui';
 import type { ChargingSession, EBarimtData } from '@/lib/types';
 import { formatKwh, formatMoney } from '@/lib/utils';
@@ -12,6 +13,7 @@ export interface EbarimtModalProps {
 }
 
 export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps) {
+  const { d } = useI18n();
   const [type, setType] = useState<'B2C_RECEIPT' | 'B2B_RECEIPT'>(
     session.ebarimt?.type ?? 'B2C_RECEIPT',
   );
@@ -43,8 +45,8 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
         setEbarimt(data.session.ebarimt);
         onSuccess?.(data.session);
       }
-    } catch (err: any) {
-      setError(err?.message || 'И-Баримт үүсгэхэд алдаа гарлаа');
+    } catch (err) {
+      setError((err instanceof Error && err.message) || 'И-Баримт үүсгэхэд алдаа гарлаа');
     } finally {
       setLoading(false);
     }
@@ -75,6 +77,24 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
               <span>Хэрэглэсэн эрчим хүч:</span>
               <span className="font-semibold text-foreground">{formatKwh(session.energyKwh, 'mn')}</span>
             </div>
+            {session.feeAmount != null && session.feeAmount > 0 && (
+              <>
+                <div className="flex justify-between py-1">
+                  <span>{d.account.sessions.energyCost}:</span>
+                  <span className="font-semibold text-foreground">
+                    {formatMoney(session.energyCost, 'mn')}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span>
+                    {format(d.account.sessions.serviceFee, { percent: session.feePercent ?? '—' })}:
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {formatMoney(session.feeAmount, 'mn')}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between py-1 border-t border-border/50 pt-1">
               <span>Нийт төлбөр:</span>
               <span className="font-bold text-brand-strong">{formatMoney(session.cost ?? 0, 'mn')}</span>

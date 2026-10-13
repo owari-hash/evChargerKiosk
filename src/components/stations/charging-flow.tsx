@@ -13,6 +13,7 @@ import {
   formatMoney,
   formatPower,
   formatPowerKw,
+  formatTariff,
   intlLocale,
 } from '@/lib/utils';
 
@@ -209,7 +210,7 @@ export function ChargingFlow({
 
           {session && (
             <div className="space-y-3">
-              {active && <LiveReadout session={active} intl={intl} />}
+              {active && <LiveReadout session={active} intl={intl} tariffPerKwh={live.tariffPerKwh} />}
               {session.ebarimt && (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-foreground flex items-center justify-between">
                   <div>
@@ -486,28 +487,33 @@ function StepAction({
 
     case 'done':
       return (
-        <div className="flex flex-wrap gap-2 items-center">
-          {session && (
-            <Button
-              type="button"
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
-              onClick={onOpenEbarimt}
-            >
-              И-Баримт харах / авах
+        <div className="space-y-3">
+          {session && session.feeAmount != null && session.feeAmount > 0 && (
+            <FeeBreakdown session={session} intl={intl} />
+          )}
+          <div className="flex flex-wrap gap-2 items-center">
+            {session && (
+              <Button
+                type="button"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
+                onClick={onOpenEbarimt}
+              >
+                И-Баримт харах / авах
+              </Button>
+            )}
+            {session && (
+              <Link
+                href="/account/sessions"
+                className="inline-flex h-9 items-center rounded-xl bg-surface-muted px-3 text-xs font-semibold text-foreground ring-1 ring-border transition hover:bg-surface"
+              >
+                {t.viewReceipt}
+              </Link>
+            )}
+            <Button type="button" variant="secondary" size="sm" onClick={() => location.reload()}>
+              {t.startAnother}
             </Button>
-          )}
-          {session && (
-            <Link
-              href="/account/sessions"
-              className="inline-flex h-9 items-center rounded-xl bg-surface-muted px-3 text-xs font-semibold text-foreground ring-1 ring-border transition hover:bg-surface"
-            >
-              {t.viewReceipt}
-            </Link>
-          )}
-          <Button type="button" variant="secondary" size="sm" onClick={() => location.reload()}>
-            {t.startAnother}
-          </Button>
+          </div>
         </div>
       );
 
@@ -516,9 +522,24 @@ function StepAction({
   }
 }
 
-function LiveReadout({ session, intl }: { session: ChargingSession; intl: string }) {
+function LiveReadout({
+  session,
+  intl,
+  tariffPerKwh,
+}: {
+  session: ChargingSession;
+  intl: string;
+  /** Fee-inclusive price per kWh, as the driver pays it. */
+  tariffPerKwh?: number;
+}) {
   const { d } = useI18n();
   const t = d.flow;
+  // The backend prices a session when it ends; until then show the running
+  // estimate at the price the driver pays.
+  const estimate =
+    session.cost == null && tariffPerKwh != null
+      ? Math.round(session.energyKwh * tariffPerKwh)
+      : undefined;
 
   return (
     <div className="rounded-2xl bg-surface-muted/60 p-4 ring-1 ring-border">
@@ -533,10 +554,36 @@ function LiveReadout({ session, intl }: { session: ChargingSession; intl: string
           value={session.lastSocPercent != null ? `${session.lastSocPercent}%` : '—'}
         />
         <Metric label={t.liveElapsed} value={formatDuration(session.startTimestamp, undefined, intl)} />
-        <Metric label={t.liveCost} value={formatMoney(session.cost, intl)} />
-        <Metric label={d.stations.price} value={d.status.connector.Charging} />
+        <Metric
+          label={t.liveCost}
+          value={estimate != null ? `≈ ${formatMoney(estimate, intl)}` : formatMoney(session.cost, intl)}
+        />
+        <Metric label={d.stations.price} value={formatTariff(tariffPerKwh, intl)} />
       </dl>
     </div>
+  );
+}
+
+/** Energy cost, service fee and total of a finished session billed with a fee. */
+function FeeBreakdown({ session, intl }: { session: ChargingSession; intl: string }) {
+  const { d } = useI18n();
+  const t = d.account.sessions;
+
+  return (
+    <dl className="max-w-xs space-y-1 rounded-xl bg-surface-muted/60 p-3 text-xs ring-1 ring-border">
+      <div className="flex justify-between gap-4">
+        <dt className="text-muted">{t.energyCost}</dt>
+        <dd className="font-semibold text-foreground">{formatMoney(session.energyCost, intl)}</dd>
+      </div>
+      <div className="flex justify-between gap-4">
+        <dt className="text-muted">{format(t.serviceFee, { percent: session.feePercent ?? '—' })}</dt>
+        <dd className="font-semibold text-foreground">{formatMoney(session.feeAmount, intl)}</dd>
+      </div>
+      <div className="flex justify-between gap-4 border-t border-border/50 pt-1">
+        <dt className="text-muted">{t.total}</dt>
+        <dd className="font-bold text-foreground">{formatMoney(session.cost, intl)}</dd>
+      </div>
+    </dl>
   );
 }
 
