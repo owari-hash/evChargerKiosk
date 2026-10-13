@@ -101,8 +101,20 @@ export function ChargingFlow({
   const [staleFeed, setStaleFeed] = useState(false);
   const [showEbarimtModal, setShowEbarimtModal] = useState(false);
 
+  /**
+   * Guns a driver may start right now.
+   *
+   * `Preparing` is included deliberately: on DC hardware the gun enters that
+   * state the moment a cable is plugged into the car, which is precisely when
+   * the driver wants to start. Filtering to `Available` alone made the one gun
+   * they were standing at disappear from the picker, leaving only the empty one.
+   * A gun already running a session is excluded.
+   */
   const free = live.connectors.filter(
-    (c) => c.status === 'Available' && c.availability === 'Operative',
+    (c) =>
+      c.availability === 'Operative' &&
+      !c.currentTransactionId &&
+      (c.status === 'Available' || c.status === 'Preparing'),
   );
   // Seeded from the sticker when the driver arrived by QR, so the gun they
   // are standing at is already chosen.
@@ -111,15 +123,15 @@ export function ChargingFlow({
   );
 
   /**
-   * The gun the start request will name.
+   * The gun the start request will name. Empty until the driver chooses, or
+   * until a QR sticker chose for them.
    *
-   * It is never allowed to be empty: this hardware rejects a
-   * RemoteStartTransaction that does not say which connector to use, and an
-   * unspecified one is the single most common reason a start fails. When the
-   * driver has not picked and only one gun is free, that is the one they mean.
+   * It is never guessed. The station rejects a RemoteStartTransaction that does
+   * not name a connector, but guessing one is worse than refusing to start:
+   * picking "the only free gun" silently targeted the gun the driver was NOT
+   * standing at, and started it with no car attached.
    */
-  const targetConnectorId =
-    connectorId || (free.length === 1 ? String(free[0]!.connectorId) : '');
+  const targetConnectorId = connectorId;
 
   const session = live.session;
   const active = session?.status === 'Active' ? session : null;
