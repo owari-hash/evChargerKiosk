@@ -8,6 +8,7 @@ import type { PublicUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from './i18n-provider';
 import { LocaleSwitcher } from './locale-switcher';
+import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 import { buttonClass } from './ui/button';
@@ -87,6 +88,8 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
             {/* The account sits in the same group as the other toggles. */}
             {user && (
               <>
+                <span aria-hidden className="hidden h-5 w-px bg-border md:block" />
+                <NotificationBell />
                 <span aria-hidden className="hidden h-5 w-px bg-border md:block" />
                 <div className="hidden md:block">
                   <UserMenu user={user} compact />

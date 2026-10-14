@@ -3,6 +3,10 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
+import { AssistantWidget } from '@/components/assistant-widget';
+import { WalletWatcher } from '@/components/wallet-watcher';
+import { AnnouncementModal } from '@/components/announcement-modal';
+import { OnboardingTour } from '@/components/onboarding-tour';
 import { I18nProvider } from '@/components/i18n-provider';
 import { getCurrentUser } from '@/lib/driver-api';
 import { getLocale } from '@/lib/i18n';
@@ -57,6 +61,10 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
           <SiteHeader user={user} />
           <main className="flex-1">{children}</main>
           <SiteFooter />
+          <AssistantWidget signedIn={user !== null} />
+          <WalletWatcher signedIn={user !== null} />
+          <AnnouncementModal signedIn={user !== null} />
+          <OnboardingTour signedIn={user !== null} />
         </I18nProvider>
       </body>
     </html>

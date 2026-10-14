@@ -541,6 +541,8 @@ export const en = {
       'This network starts sessions on the unit. Hold your charge tag against the reader and plug in — the steps below then continue on their own.',
     autoNote: 'Steps 6 to 9 happen on their own; nothing more is needed from you.',
     plugConfirm: 'The cable is plugged in',
+    plugNotDetected:
+      "The station does not see a cable on this connector yet. Plug it in firmly, then try again.",
     refreshFailed: 'Live updates paused — reconnecting…',
     viewReceipt: 'See this session',
     unlockNow: 'Release the cable',
@@ -791,6 +793,45 @@ export const en = {
 
     moreTitle: 'More',
     howPricingWorks: 'How pricing works',
+  },
+
+  assistant: {
+    label: 'Eplug assistant',
+    greeting: "Hi! Ask me anything about charging, your wallet, e-Barimt or stations.",
+    placeholder: 'Type a question…',
+    send: 'Send',
+    thinking: 'Thinking…',
+    error: 'Could not reach the assistant. Please try again.',
+    signInHint: 'Sign in to ask about your own wallet or charging history.',
+    newChat: 'New chat',
+    close: 'Close assistant',
+    open: 'Open assistant',
+  },
+
+  onboarding: {
+    title: 'Welcome to Eplug',
+    subtitleGuest: 'A quick look before you sign in',
+    step1Title: 'Find a charger',
+    step1Body:
+      'Open "Find a charger" to see every station on the network with live plug status, sorted by distance.',
+    step2Title: 'Scan the QR code',
+    step2Body:
+      'Each station and plug has its own QR sticker. Scan it with your phone to land straight on that charger.',
+    step3Title: 'Top up your wallet',
+    step3Body:
+      'Charging is prepaid — top up with QPay once, then start a charge in one tap whenever you need it.',
+    step4Title: 'Get your receipt',
+    step4Body:
+      'After a charge, request an e-Barimt tax receipt in one tap. Stuck on anything? Ask the assistant in the corner.',
+    skip: 'Skip',
+    back: 'Back',
+    next: 'Next',
+    done: 'Get started',
+  },
+
+  notifications: {
+    label: 'Notifications',
+    empty: 'No notifications yet.',
   },
 
   download: {
@@ -1538,6 +1579,8 @@ export const mn: Dictionary = {
       'Энэ сүлжээнд цэнэглэлтийг станц дээр нь эхлүүлдэг. Картаа уншуулаад кабелиа залгахад доорх алхмууд өөрөө үргэлжилнэ.',
     autoNote: '6-9 дүгээр алхам өөрөө явагдана; танаас өөр юу ч шаардахгүй.',
     plugConfirm: 'Кабель залгагдсан',
+    plugNotDetected:
+      'Станц энэ холбогч дээр кабель мэдрэхгүй байна. Кабелиа бататгаж залгаад дахин оролдоно уу.',
     refreshFailed: 'Шууд мэдээлэл түр тасарлаа — дахин холбогдож байна…',
     viewReceipt: 'Энэ цэнэглэлтийг харах',
     unlockNow: 'Кабель сугалах',
@@ -1788,6 +1831,45 @@ export const mn: Dictionary = {
 
     moreTitle: 'Бусад',
     howPricingWorks: 'Үнэ хэрхэн тооцогддог вэ',
+  },
+
+  assistant: {
+    label: 'Eplug туслах',
+    greeting: 'Сайн байна уу! Цэнэглэлт, хэтэвч, е-баримт эсвэл станцын талаар асуугаарай.',
+    placeholder: 'Асуултаа бичнэ үү…',
+    send: 'Илгээх',
+    thinking: 'Бодож байна…',
+    error: 'Туслахтай холбогдож чадсангүй. Дахин оролдоно уу.',
+    signInHint: 'Өөрийн хэтэвч, цэнэглэлтийн талаар асуухын тулд нэвтэрнэ үү.',
+    newChat: 'Шинэ чат',
+    close: 'Туслахыг хаах',
+    open: 'Туслах нээх',
+  },
+
+  onboarding: {
+    title: 'Eplug-д тавтай морил',
+    subtitleGuest: 'Нэвтрэхээсээ өмнө товч танилцуулга',
+    step1Title: 'Цэнэглэх станц хайх',
+    step1Body:
+      '"Станц хайх" хэсгээс сүлжээн дэх бүх станцыг шууд холболтын төлөвтэй, зайгаар эрэмбэлэгдсэнээр харна.',
+    step2Title: 'QR код уншуулах',
+    step2Body:
+      'Станц болон залгуур бүр дээр өөрийн QR стикер байдаг. Үүнийг утасаараа уншуулахад шууд тухайн цэгт очно.',
+    step3Title: 'Хэтэвчээ цэнэглэх',
+    step3Body:
+      'Цэнэглэлт урьдчилан төлбөртэй — QPay-ээр нэг удаа цэнэглээд, дараа нь хэзээ ч нэг товчоор эхлүүлнэ.',
+    step4Title: 'Баримтаа аваарай',
+    step4Body:
+      'Цэнэглэлтийн дараа нэг товчоор е-баримт хүсэх боломжтой. Асуудал гарвал буланд байгаа туслахаас асуугаарай.',
+    skip: 'Алгасах',
+    back: 'Буцах',
+    next: 'Дараах',
+    done: 'Эхлэх',
+  },
+
+  notifications: {
+    label: 'Мэдэгдэл',
+    empty: 'Одоогоор мэдэгдэл алга.',
   },
 
   download: {

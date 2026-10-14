@@ -60,51 +60,138 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   const user = await getCurrentUser();
   const directions = directionsUrl(station);
   const hasCoordinates = station.latitude !== undefined && station.longitude !== undefined;
+  const hardware = [station.vendor, station.model].filter(Boolean).join(' ');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-      <Link href="/stations" className="text-sm font-medium text-muted hover:text-foreground">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:py-8">
+      <Link
+        href="/stations"
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted transition hover:text-brand"
+      >
         {d.stations.allChargers}
       </Link>
 
-      <header className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            {station.name}
-          </h1>
-          <p className="mt-1 text-sm text-muted sm:text-base">
-            {station.address || d.stations.addressMissing}
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <AvailabilityStatus availability={station.availability} locale={locale} />
-            <span className="text-sm text-muted">
-              {format(d.stations.plugsFree, {
-                available: station.availableConnectors,
-                total: station.totalConnectors,
-              })}
-            </span>
-            {station.maxPowerKw && (
-              <span className="text-sm text-muted">
-                {format(d.stations.upToPower, { power: formatPowerKw(station.maxPowerKw, intl) })}
+      <header className="mt-4 overflow-hidden rounded-3xl bg-surface shadow-[var(--shadow-card)] ring-1 ring-border">
+        <div className="grid lg:min-h-[320px] lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="flex flex-col justify-center p-5 sm:p-8 lg:p-10">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full bg-surface-muted px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-border">
+                <AvailabilityStatus
+                  availability={station.availability}
+                  locale={locale}
+                  className="text-xs font-semibold"
+                />
               </span>
+              <span className="rounded-full bg-surface-muted px-3 py-1.5 text-xs font-medium text-muted ring-1 ring-border">
+                {format(d.stations.plugsFree, {
+                  available: station.availableConnectors,
+                  total: station.totalConnectors,
+                })}
+              </span>
+            </div>
+
+            <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              {station.name}
+            </h1>
+            <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-muted sm:text-base">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mt-1 size-4 shrink-0 text-brand" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+                <circle cx="12" cy="10" r="2.5" />
+              </svg>
+              {station.address || d.stations.addressMissing}
+            </p>
+            {station.description && (
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+                {station.description}
+              </p>
+            )}
+
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:max-w-xl sm:grid-cols-3">
+              <HeroStat
+                icon={
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 2 4.5 13h6l-.5 9 9-12h-6l.5-8Z" />
+                  </svg>
+                }
+                label={d.stations.maxPower}
+                value={
+                  station.maxPowerKw
+                    ? formatPowerKw(station.maxPowerKw, intl)
+                    : d.stations.notPublished
+                }
+              />
+              <HeroStat
+                icon={
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+                    <rect x="3" y="5" width="18" height="15" rx="2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9h18m-6 5h2" />
+                  </svg>
+                }
+                label={d.stations.price}
+                value={
+                  station.tariffPerKwh === undefined
+                    ? d.stations.notPublished
+                    : format(d.stations.perKwh, {
+                        price: formatMoney(station.tariffPerKwh, intl, 2),
+                      })
+                }
+              />
+              {hardware && (
+                <HeroStat
+                  className="col-span-2 sm:col-span-1"
+                  icon={
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 7V3m10 4V3M5 7h14v5a7 7 0 0 1-14 0V7Zm7 12v2m-4 0h8" />
+                    </svg>
+                  }
+                  label={d.stations.hardware}
+                  value={hardware}
+                />
+              )}
+            </div>
+
+            {directions && (
+              <ButtonLink
+                href={directions}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 w-fit gap-2"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
+                </svg>
+                {d.stations.directions}
+              </ButtonLink>
             )}
           </div>
+
+          <div className="relative h-64 border-t border-border bg-surface-muted sm:h-80 lg:h-auto lg:min-h-full lg:border-l lg:border-t-0">
+            {hasCoordinates ? (
+              <StationMapPanel
+                stations={[station]}
+                selectedId={station.id}
+                fitToStations={false}
+                zoom={15}
+                scrollWheelZoom={false}
+                ariaLabel={format(d.stations.mapOf, { name: station.name })}
+              />
+            ) : (
+              <div className="grid h-full place-items-center px-6 text-center">
+                <div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto size-8 text-brand" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+                    <circle cx="12" cy="10" r="2.5" />
+                  </svg>
+                  <p className="mt-3 text-sm font-medium text-foreground">
+                    {d.stations.addressMissing}
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/30 to-transparent" />
+          </div>
         </div>
-
-        {directions && (
-          <ButtonLink
-            href={directions}
-            variant="secondary"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0"
-          >
-            {d.stations.directions}
-          </ButtonLink>
-        )}
       </header>
-
-      {station.description && <p className="mt-6 text-sm text-muted">{station.description}</p>}
 
       <StationLiveView
         stationId={station.id}
@@ -117,26 +204,12 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
         remoteStartEnabled={remoteStartEnabled}
         locale={locale}
         connectorsTitle={d.stations.connectorsTitle}
-        mapSlot={
-          hasCoordinates ? (
-            <div className="h-64 sm:h-80">
-              <StationMapPanel
-                stations={[station]}
-                selectedId={station.id}
-                fitToStations={false}
-                zoom={15}
-                scrollWheelZoom={false}
-                ariaLabel={format(d.stations.mapOf, { name: station.name })}
-              />
-            </div>
-          ) : undefined
-        }
         detailsSlot={
-          <Card>
+          <Card className="flex h-full flex-col">
             <CardHeader>
               <CardTitle>{d.stations.detailsTitle}</CardTitle>
             </CardHeader>
-            <CardBody>
+            <CardBody className="flex-1">
               <dl className="space-y-3 text-sm">
                 <Detail label={d.stations.price}>
                   {station.tariffPerKwh === undefined
@@ -173,6 +246,28 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
           </Card>
         }
       />
+    </div>
+  );
+}
+
+function HeroStat({
+  icon,
+  label,
+  value,
+  className,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={`min-w-0 rounded-2xl bg-surface-muted/70 p-3 ring-1 ring-border ${className ?? ''}`}>
+      <div className="flex items-center gap-1.5 text-brand">
+        {icon}
+        <span className="truncate text-[11px] font-medium text-muted">{label}</span>
+      </div>
+      <p className="mt-1 truncate text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }

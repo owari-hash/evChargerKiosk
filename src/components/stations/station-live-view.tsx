@@ -26,7 +26,6 @@ export interface StationLiveViewProps {
   initialConnectorId?: number;
   locale?: Locale;
   connectorsTitle: string;
-  mapSlot?: React.ReactNode;
   detailsSlot?: React.ReactNode;
 }
 
@@ -41,7 +40,6 @@ export function StationLiveView({
   initialConnectorId,
   locale,
   connectorsTitle,
-  mapSlot,
   detailsSlot,
 }: StationLiveViewProps) {
   const [connectors, setConnectors] = useState<StationConnector[]>(initialConnectors);
@@ -53,9 +51,9 @@ export function StationLiveView({
   }, []);
 
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-3">
-      <div className="space-y-6 lg:col-span-2">
-        <Card>
+    <div className="mt-6 space-y-6">
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
+        <Card className="h-full">
           <CardHeader>
             <CardTitle>{connectorsTitle}</CardTitle>
           </CardHeader>
@@ -68,24 +66,20 @@ export function StationLiveView({
           </CardBody>
         </Card>
 
-        {mapSlot}
-      </div>
-
-      <div className="space-y-6">
         {detailsSlot}
-
-        <ChargingFlow
-          stationId={stationId}
-          connectors={connectors}
-          availability={availability}
-          tariffPerKwh={tariffPerKwh}
-          signedIn={signedIn}
-          hasIdTag={hasIdTag}
-          remoteStartEnabled={remoteStartEnabled}
-          initialConnectorId={initialConnectorId}
-          onLiveUpdate={handleLiveUpdate}
-        />
       </div>
+
+      <ChargingFlow
+        stationId={stationId}
+        connectors={connectors}
+        availability={availability}
+        tariffPerKwh={tariffPerKwh}
+        signedIn={signedIn}
+        hasIdTag={hasIdTag}
+        remoteStartEnabled={remoteStartEnabled}
+        initialConnectorId={initialConnectorId}
+        onLiveUpdate={handleLiveUpdate}
+      />
     </div>
   );
 }

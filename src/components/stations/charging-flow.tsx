@@ -211,6 +211,28 @@ export function ChargingFlow({
   }
 
   /**
+   * The driver says the cable is in; this checks it against what the station
+   * itself is reporting before taking their word for it.
+   *
+   * A connector the station still calls `Available` has not seen a cable —
+   * pressing Start from there just gets refused a step later, which reads as
+   * a broken charger rather than an unplugged one. `Preparing` (or further
+   * along, if they are quick) is the station's own signal that a cable landed,
+   * so that is what gates the step instead of a bare button press.
+   */
+  function confirmPlugged() {
+    const target = live.connectors.find((c) => String(c.connectorId) === targetConnectorId);
+    const looksPlugged =
+      target != null && target.status !== 'Available' && target.status !== 'Unavailable' && target.status !== 'Faulted';
+    if (!looksPlugged) {
+      setError(d.flow.plugNotDetected);
+      return;
+    }
+    setError(null);
+    setPlugged(true);
+  }
+
+  /**
    * Releases the cable after the session has ended.
    *
    * The gun stays latched in `Finishing` until the station is told to let go,
@@ -324,7 +346,10 @@ export function ChargingFlow({
             </div>
           )}
 
-          <ol className="space-y-1">
+          <ol
+            aria-label={t.title}
+            className="scroll-none flex snap-x gap-2 overflow-x-auto pb-2"
+          >
             {STEPS.map((key, index) => (
               <StepRow
                 key={key}
@@ -332,30 +357,42 @@ export function ChargingFlow({
                 index={index}
                 currentIndex={stepIndex}
                 title={t[`s${index + 1}Title` as keyof typeof t] as string}
-                body={t[`s${index + 1}Body` as keyof typeof t] as string}
-              >
-                {key === step && (
-                  <StepAction
-                    step={key}
-                    stationId={stationId}
-                    free={free}
-                    connectorId={connectorId}
-                    canStart={Boolean(targetConnectorId)}
-                    onUnlock={() => void unlock()}
-                    onStartAnother={startAnother}
-                    onConnector={setConnectorId}
-                    onPlugged={() => setPlugged(true)}
-                    onStart={() => void start()}
-                    onStop={() => void stop()}
-                    onOpenEbarimt={() => setShowEbarimtModal(true)}
-                    busy={busy}
-                    session={session}
-                    intl={intl}
-                  />
-                )}
-              </StepRow>
+              />
             ))}
           </ol>
+
+          <div className="grid gap-4 rounded-2xl bg-brand-soft/70 p-4 ring-1 ring-brand/25 sm:grid-cols-[minmax(0,1fr)_minmax(14rem,0.8fr)] sm:items-center">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {t[`s${stepIndex + 1}Title` as keyof typeof t] as string}
+                <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-contrast">
+                  {t.current}
+                </span>
+              </p>
+              <p className="mt-1 text-sm leading-5 text-muted">
+                {t[`s${stepIndex + 1}Body` as keyof typeof t] as string}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <StepAction
+                step={step}
+                stationId={stationId}
+                free={free}
+                connectorId={connectorId}
+                canStart={Boolean(targetConnectorId)}
+                onUnlock={() => void unlock()}
+                onStartAnother={startAnother}
+                onConnector={setConnectorId}
+                onPlugged={confirmPlugged}
+                onStart={() => void start()}
+                onStop={() => void stop()}
+                onOpenEbarimt={() => setShowEbarimtModal(true)}
+                busy={busy}
+                session={session}
+                intl={intl}
+              />
+            </div>
+          </div>
 
           <p className="text-xs text-muted">{t.autoNote}</p>
 
@@ -425,15 +462,11 @@ function StepRow({
   index,
   currentIndex,
   title,
-  body,
-  children,
 }: {
   step: FlowStep;
   index: number;
   currentIndex: number;
   title: string;
-  body: string;
-  children?: React.ReactNode;
 }) {
   const { d } = useI18n();
   const state = index < currentIndex ? 'done' : index === currentIndex ? 'current' : 'todo';
@@ -441,44 +474,40 @@ function StepRow({
   return (
     <li
       className={cn(
-        'rounded-xl px-3 py-2.5 transition',
+        'flex min-w-[7.25rem] flex-1 snap-start items-start gap-2 rounded-xl p-2.5 transition',
         state === 'current' && 'bg-brand-soft ring-1 ring-brand/30',
+        state === 'done' && 'bg-surface-muted/70',
+        state === 'todo' && 'bg-surface-muted/35',
       )}
     >
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden
+      <span
+        aria-hidden
+        className={cn(
+          'grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold',
+          state === 'done' && 'bg-brand text-brand-contrast',
+          state === 'current' && 'bg-brand text-brand-contrast',
+          state === 'todo' && 'bg-surface text-muted ring-1 ring-border',
+        )}
+      >
+        {state === 'done' ? '✓' : index + 1}
+      </span>
+      <div className="min-w-0">
+        <p
           className={cn(
-            'mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold',
-            state === 'done' && 'bg-brand text-brand-contrast',
-            state === 'current' && 'bg-brand text-brand-contrast',
-            state === 'todo' && 'bg-surface-muted text-muted',
+            'text-xs font-semibold leading-4',
+            state === 'todo' ? 'text-muted' : 'text-foreground',
           )}
         >
-          {state === 'done' ? '✓' : index + 1}
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              'text-sm font-semibold',
-              state === 'todo' ? 'text-muted' : 'text-foreground',
-            )}
-          >
-            {title}
-            {state === 'current' && (
-              <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-contrast">
-                {d.flow.current}
-              </span>
-            )}
-            {state === 'todo' && AUTOMATIC.has(step) && (
-              <span className="ml-2 text-[11px] font-medium text-muted">({d.flow.waiting})</span>
-            )}
-          </p>
-
-          {state !== 'todo' && <p className="mt-0.5 text-xs text-muted">{body}</p>}
-          {children ? <div className="mt-3">{children}</div> : null}
-        </div>
+          {title}
+        </p>
+        {state === 'todo' && AUTOMATIC.has(step) && (
+          <p className="mt-1 text-[10px] font-medium leading-3 text-muted">{d.flow.waiting}</p>
+        )}
+        {state === 'current' && (
+          <span className="mt-1 inline-flex rounded-full bg-brand px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-contrast">
+            {d.flow.current}
+          </span>
+        )}
       </div>
     </li>
   );
