@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { isGuideActive, registerModal } from '@/lib/overlay-lock';
 
 const WIDTHS = {
   sm: 'max-w-sm',
@@ -27,10 +28,13 @@ interface ModalProps {
 export function Modal({ onClose, children, maxWidth = 'md' }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
+  useEffect(() => registerModal(), []);
+
   useEffect(() => {
     setMounted(true);
+    // The spotlight guide owns Escape while it runs.
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && !isGuideActive()) onClose();
     };
     window.addEventListener('keydown', onKeyDown);
     const original = document.body.style.overflow;

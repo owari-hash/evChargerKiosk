@@ -5,6 +5,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
 import { Alert, Button, ButtonLink, Card, CardBody, CardHeader, CardTitle, Field, Select } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
+import {
+  noteStartRequested,
+  registerChargingFlow,
+  requestSessionCheck,
+  showSessionOnScreen,
+} from '@/lib/session-events';
 import type { ChargingSession, StationAvailability, StationConnector } from '@/lib/types';
 import {
   cn,
@@ -163,6 +169,16 @@ export function ChargingFlow({
     hasConnector: Boolean(targetConnectorId),
   });
 
+  // This flow already shows its own "charging" and "done" steps for the
+  // session on screen; the site-wide SessionWatcher files those in the bell
+  // without a second pop-up on top.
+  useEffect(() => registerChargingFlow(), []);
+  const shownSessionId = session?.transactionId ?? null;
+  useEffect(() => {
+    if (shownSessionId === null) return;
+    return showSessionOnScreen(shownSessionId);
+  }, [shownSessionId]);
+
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/live`, {
@@ -201,6 +217,8 @@ export function ChargingFlow({
         throw new Error(format(d.start.rejectedBody, { status: payload.status }));
       }
       setRequested(true);
+      noteStartRequested();
+      requestSessionCheck();
       await refresh();
       [500, 1200, 2200, 3500].forEach((delay) => setTimeout(() => void refresh(), delay));
     } catch (err) {
@@ -280,6 +298,7 @@ export function ChargingFlow({
       const res = await fetch(`/app-api/sessions/${active.transactionId}/stop`, { method: 'POST' });
       const payload = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
       if (!res.ok) throw new Error(payload.error ?? d.start.requestFailed);
+      requestSessionCheck();
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : d.start.requestFailed);

@@ -808,30 +808,61 @@ export const en = {
     open: 'Open assistant',
   },
 
-  onboarding: {
-    title: 'Welcome to Eplug',
-    subtitleGuest: 'A quick look before you sign in',
-    step1Title: 'Find a charger',
-    step1Body:
-      'Open "Find a charger" to see every station on the network with live plug status, sorted by distance.',
-    step2Title: 'Scan the QR code',
-    step2Body:
-      'Each station and plug has its own QR sticker. Scan it with your phone to land straight on that charger.',
-    step3Title: 'Top up your wallet',
-    step3Body:
-      'Charging is prepaid — top up with QPay once, then start a charge in one tap whenever you need it.',
-    step4Title: 'Get your receipt',
-    step4Body:
-      'After a charge, request an e-Barimt tax receipt in one tap. Stuck on anything? Ask the assistant in the corner.',
+  guide: {
     skip: 'Skip',
-    back: 'Back',
-    next: 'Next',
-    done: 'Get started',
+    next: 'Next →',
+    done: 'Got it ✓',
+    close: 'Close the guide',
+    dontShowAgain: "Don't show again",
+    menuItem: 'Guide',
+    replay: 'Show the intro again',
+    steps: {
+      accountNav: {
+        tag: 'Account',
+        title: 'Your account dashboard',
+        description:
+          'Your profile, wallet, charging history and e-Barimt receipts are all one tap away in this menu.',
+      },
+      wallet: {
+        tag: 'Wallet',
+        title: 'Top up your wallet',
+        description:
+          'Charging is prepaid. Top up with QPay here, then keep an eye on your balance and every transaction.',
+      },
+      sessions: {
+        tag: 'History',
+        title: 'Charging history',
+        description:
+          'Every charge with its energy, cost and time. A charge in progress shows up here too.',
+      },
+      chargeTag: {
+        tag: 'Charge',
+        title: 'Scan the QR to charge',
+        description:
+          'Scan the QR sticker on a charger with your phone camera to open that plug and start. This is your charge code — support may ask for it.',
+      },
+      map: {
+        tag: 'Stations',
+        title: 'Find a charger nearby',
+        description:
+          'The map on the home page shows every station with free plugs, power and price, updated live.',
+      },
+      menu: {
+        tag: 'Menu',
+        title: 'Your menu',
+        description:
+          'Open your account, replay this guide or sign out from here. Happy charging!',
+      },
+    },
   },
 
   notifications: {
     label: 'Notifications',
     empty: 'No notifications yet.',
+    sessionStarted: 'Charging started',
+    sessionStartedBody: '{station} · charging is under way',
+    sessionFinished: 'Charging finished',
+    unknownStation: 'Charging station',
   },
 
   download: {
@@ -1846,30 +1877,61 @@ export const mn: Dictionary = {
     open: 'Туслах нээх',
   },
 
-  onboarding: {
-    title: 'Eplug-д тавтай морил',
-    subtitleGuest: 'Нэвтрэхээсээ өмнө товч танилцуулга',
-    step1Title: 'Цэнэглэх станц хайх',
-    step1Body:
-      '"Станц хайх" хэсгээс сүлжээн дэх бүх станцыг шууд холболтын төлөвтэй, зайгаар эрэмбэлэгдсэнээр харна.',
-    step2Title: 'QR код уншуулах',
-    step2Body:
-      'Станц болон залгуур бүр дээр өөрийн QR стикер байдаг. Үүнийг утасаараа уншуулахад шууд тухайн цэгт очно.',
-    step3Title: 'Хэтэвчээ цэнэглэх',
-    step3Body:
-      'Цэнэглэлт урьдчилан төлбөртэй — QPay-ээр нэг удаа цэнэглээд, дараа нь хэзээ ч нэг товчоор эхлүүлнэ.',
-    step4Title: 'Баримтаа аваарай',
-    step4Body:
-      'Цэнэглэлтийн дараа нэг товчоор е-баримт хүсэх боломжтой. Асуудал гарвал буланд байгаа туслахаас асуугаарай.',
+  guide: {
     skip: 'Алгасах',
-    back: 'Буцах',
-    next: 'Дараах',
-    done: 'Эхлэх',
+    next: 'Дараах →',
+    done: 'Ойлголоо ✓',
+    close: 'Зааврыг хаах',
+    dontShowAgain: 'Дахиж харахгүй',
+    menuItem: 'Заавар үзэх',
+    replay: 'Танилцуулгыг дахин үзэх',
+    steps: {
+      accountNav: {
+        tag: 'Бүртгэл',
+        title: 'Таны бүртгэлийн самбар',
+        description:
+          'Хувийн мэдээлэл, хэтэвч, цэнэглэлтийн түүх, е-баримт — бүгд энэ цэснээс нэг товшилтоор нээгдэнэ.',
+      },
+      wallet: {
+        tag: 'Хэтэвч',
+        title: 'Хэтэвчээ цэнэглээрэй',
+        description:
+          'Цэнэглэлт урьдчилсан төлбөртэй. QPay-ээр хэтэвчээ цэнэглээд, үлдэгдэл болон гүйлгээгээ эндээс хянаарай.',
+      },
+      sessions: {
+        tag: 'Түүх',
+        title: 'Цэнэглэлтийн түүх',
+        description:
+          'Цэнэглэлт бүрийн кВт·ц, төлбөр, хугацааг эндээс харна. Явагдаж буй цэнэглэлт ч энд харагдана.',
+      },
+      chargeTag: {
+        tag: 'Цэнэглэх',
+        title: 'QR уншуулж цэнэглэх',
+        description:
+          'Станцын залгуур дээрх QR кодыг утасныхаа камераар уншуулахад тухайн цэг шууд нээгдэж, цэнэглэлтээ эхлүүлнэ. Энэ бол таны цэнэглэх код — дэмжлэгт хандахад хэрэг болно.',
+      },
+      map: {
+        tag: 'Станц',
+        title: 'Ойролцоох станц хайх',
+        description:
+          'Нүүр хуудасны газрын зураг дээр станц бүрийн сул залгуур, хүчин чадал, үнийг шууд харна.',
+      },
+      menu: {
+        tag: 'Цэс',
+        title: 'Таны цэс',
+        description:
+          'Бүртгэл рүүгээ орох, энэ зааврыг дахин үзэх, системээс гарах — бүгд эндээс. Амжилттай цэнэглээрэй!',
+      },
+    },
   },
 
   notifications: {
     label: 'Мэдэгдэл',
     empty: 'Одоогоор мэдэгдэл алга.',
+    sessionStarted: 'Цэнэглэлт эхэллээ',
+    sessionStartedBody: '{station} · цэнэглэж байна',
+    sessionFinished: 'Цэнэглэлт дууслаа',
+    unknownStation: 'Цэнэглэх станц',
   },
 
   download: {

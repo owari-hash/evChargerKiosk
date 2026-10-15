@@ -6,11 +6,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { PublicUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { clearUserStorage } from '@/lib/user-scope';
 import { useI18n } from './i18n-provider';
 import { LocaleSwitcher } from './locale-switcher';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
+import { useStartGuide } from './spotlight-guide';
 import { buttonClass } from './ui/button';
 import { useSlidingIndicator } from './ui/use-sliding-indicator';
 
@@ -20,6 +22,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const startGuide = useStartGuide();
 
   const nav = [
     { href: '/', label: d.nav.home },
@@ -35,6 +38,8 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   async function signOut() {
     setSigningOut(true);
     await fetch('/app-api/auth/logout', { method: 'POST' });
+    // The next driver on this browser must not inherit this one's bell or chat.
+    if (user) clearUserStorage(user.id);
     setOpen(false);
     setSigningOut(false);
     router.replace('/');
@@ -69,6 +74,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               key={item.href}
               ref={itemRef(item.href)}
               href={item.href}
+              data-tour={item.href === '/' ? 'nav-map' : undefined}
               aria-current={isActive(item.href) ? 'page' : undefined}
               className={cn(
                 'relative rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200',
@@ -91,7 +97,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
                 <span aria-hidden className="hidden h-5 w-px bg-border md:block" />
                 <NotificationBell />
                 <span aria-hidden className="hidden h-5 w-px bg-border md:block" />
-                <div className="hidden md:block">
+                <div className="hidden md:block" data-tour="user-menu">
                   <UserMenu user={user} compact />
                 </div>
               </>
@@ -115,6 +121,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={d.common.toggleNav}
+            data-tour="nav-toggle"
             className="grid size-9 place-items-center rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted md:hidden"
           >
             <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -157,6 +164,16 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
                   >
                     {d.common.myAccount}
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      startGuide();
+                    }}
+                    className={buttonClass('ghost', 'md')}
+                  >
+                    {d.guide.menuItem}
+                  </button>
                   <button
                     type="button"
                     onClick={signOut}

@@ -122,6 +122,8 @@ export interface PublicUser {
   locale: string;
   createdAt: string;
   lastLoginAt?: string;
+  /** First-run guides this account has not finished yet, e.g. 'app', 'web'. Absent on older APIs. */
+  pendingGuides?: string[];
 }
 
 export interface ApiError {

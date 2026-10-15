@@ -47,10 +47,10 @@ export function AccountNav() {
   const pathname = usePathname();
   const { d } = useI18n();
 
-  const items: { href: string; label: string; icon: () => ReactNode }[] = [
+  const items: { href: string; label: string; icon: () => ReactNode; tour?: string }[] = [
     { href: '/account', label: d.account.nav.overview, icon: OverviewIcon },
-    { href: '/account/wallet', label: d.account.nav.wallet, icon: WalletIcon },
-    { href: '/account/sessions', label: d.account.nav.sessions, icon: SessionsIcon },
+    { href: '/account/wallet', label: d.account.nav.wallet, icon: WalletIcon, tour: 'nav-wallet' },
+    { href: '/account/sessions', label: d.account.nav.sessions, icon: SessionsIcon, tour: 'nav-sessions' },
     { href: '/account/ebarimt', label: d.account.nav.ebarimt, icon: EbarimtIcon },
   ];
 
@@ -62,6 +62,7 @@ export function AccountNav() {
   return (
     <nav
       aria-label={d.account.title}
+      data-tour="account-nav"
       className="-mx-4 overflow-x-auto px-4 md:mx-0 md:self-start md:overflow-visible md:px-0 md:sticky md:top-20"
     >
       <ul className="relative flex min-w-max gap-1 md:min-w-0 md:flex-col md:gap-0.5">
@@ -82,6 +83,7 @@ export function AccountNav() {
               <Link
                 ref={itemRef(item.href)}
                 href={item.href}
+                data-tour={item.tour}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'relative flex h-11 items-center gap-2.5 rounded-xl px-3.5 text-sm font-medium transition-colors duration-200 md:w-full',

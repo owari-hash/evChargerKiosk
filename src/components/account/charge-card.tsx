@@ -31,7 +31,7 @@ export function ChargeCard({ user }: { user: PublicUser }) {
   }
 
   return (
-    <Card>
+    <Card data-tour="charge-tag">
       <CardHeader>
         <CardTitle>{t.title}</CardTitle>
       </CardHeader>

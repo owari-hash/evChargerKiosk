@@ -206,12 +206,18 @@ html {
   animation: modal-pop-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-@keyframes toast-in {
-  from { opacity: 0; transform: translate(-50%, -8px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+/* One card in the ToastHost stack; the stack itself does the centring. */
+.toast-card {
+  animation: toast-card-in 200ms ease-out both;
+}
+
+@keyframes toast-card-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .toast-card,
   .modal-backdrop,
   .modal-pop {
     animation: none;
@@ -519,4 +525,240 @@ html {
   .ev-cluster__inner {
     transition: none;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Spotlight guide (components/spotlight-guide.tsx): driver.js's popover dressed
+   as the mobile app's coach card. The card is dark green in both themes, so
+   it reads the same over the dimmed light or dark page.
+   --------------------------------------------------------------------------- */
+.driver-popover.evg-popover {
+  font-family: var(--font-sans);
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 22px;
+  min-width: 0;
+  width: min(360px, calc(100vw - 32px));
+  max-width: min(360px, calc(100vw - 32px));
+  color: #fff;
+}
+
+.evg-popover .driver-popover-title,
+.evg-popover .driver-popover-description,
+.evg-popover .driver-popover-footer,
+.evg-popover .driver-popover-close-btn,
+.evg-popover .driver-popover-progress-text {
+  display: none !important;
+}
+
+/* Arrow tinted to the card edge it leaves from. */
+.evg-popover .driver-popover-arrow { border-width: 8px; }
+.evg-popover .driver-popover-arrow-side-bottom { border-bottom-color: #14532d; }
+.evg-popover .driver-popover-arrow-side-top { border-top-color: #042419; }
+.evg-popover .driver-popover-arrow-side-left { border-left-color: #093928; }
+.evg-popover .driver-popover-arrow-side-right { border-right-color: #093928; }
+
+.evg-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  padding: 16px 18px 15px;
+  background: linear-gradient(135deg, #14532d 0%, #093928 52%, #042419 100%);
+  border: 1.2px solid rgb(52 211 153 / 0.35);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.35), 0 2px 10px rgb(16 185 129 / 0.08), 0 24px 48px -20px rgb(0 0 0 / 0.6);
+  animation: evg-card-in 320ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.evg-glow {
+  position: absolute;
+  top: -28px;
+  right: -28px;
+  width: 112px;
+  height: 112px;
+  border-radius: 9999px;
+  background: rgb(52 211 153 / 0.11);
+  pointer-events: none;
+}
+
+.evg-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  color: rgb(255 255 255 / 0.6);
+  transition: background-color 150ms, color 150ms;
+}
+.evg-close:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
+
+.evg-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 30px;
+}
+
+.evg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgb(52 211 153 / 0.18);
+  border: 1px solid rgb(52 211 153 / 0.45);
+  color: #6ee7b7;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.evg-tag svg { color: #34d399; }
+
+.evg-count {
+  color: rgb(255 255 255 / 0.55);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.evg-title {
+  position: relative;
+  margin-top: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.evg-desc {
+  position: relative;
+  margin-top: 6px;
+  color: rgb(209 250 229 / 0.95);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.evg-check {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  cursor: pointer;
+  color: rgb(255 255 255 / 0.72);
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+}
+.evg-check input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.evg-check-box {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1.5px solid rgb(52 211 153 / 0.6);
+  background: rgb(255 255 255 / 0.04);
+  transition: background-color 150ms, border-color 150ms;
+}
+.evg-check-box::after {
+  content: '';
+  width: 8px;
+  height: 4.5px;
+  margin-top: -2px;
+  border-left: 2px solid #042419;
+  border-bottom: 2px solid #042419;
+  transform: rotate(-45deg) scale(0);
+  transition: transform 150ms;
+}
+.evg-check input:checked + .evg-check-box { background: #34d399; border-color: #34d399; }
+.evg-check input:checked + .evg-check-box::after { transform: rotate(-45deg) scale(1); }
+.evg-check input:focus-visible + .evg-check-box { outline: 2px solid #6ee7b7; outline-offset: 2px; }
+.evg-check:hover { color: #fff; }
+
+.evg-foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.evg-skip {
+  padding: 6px 4px;
+  color: rgb(255 255 255 / 0.6);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: color 150ms;
+}
+.evg-skip:hover { color: #fff; }
+
+.evg-dots { display: flex; align-items: center; gap: 5px; }
+.evg-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.22);
+  transition: width 300ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 300ms;
+}
+.evg-dot.is-active { width: 18px; background: #34d399; box-shadow: 0 0 3px rgb(52 211 153 / 0.25); }
+
+.evg-next {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #10b981;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 12px -2px rgb(16 185 129 / 0.5);
+  transition: background-color 150ms, transform 150ms;
+}
+.evg-next:hover { background: #059669; transform: translateY(-1px); }
+.evg-next:focus-visible,
+.evg-skip:focus-visible,
+.evg-close:focus-visible { outline: 2px solid rgb(110 231 183 / 0.55); outline-offset: 2px; }
+
+.evg-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10001;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: 16px;
+  border: 2px solid #34d399;
+  animation: evg-pulse 1.6s ease-in-out infinite;
+  transition: opacity 200ms;
+}
+
+@keyframes evg-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(52 211 153 / 0.45), 0 0 12px rgb(16 185 129 / 0.25); }
+  50% { box-shadow: 0 0 0 7px rgb(52 211 153 / 0), 0 0 18px rgb(16 185 129 / 0.4); }
+}
+
+@keyframes evg-card-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evg-ring, .evg-card { animation: none; }
 }

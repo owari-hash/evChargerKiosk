@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { formatMoney } from '@/lib/utils';
+import { useEffect } from 'react';
+import { formatMoney, intlLocale } from '@/lib/utils';
 import { useI18n } from '@/components/i18n-provider';
 import { pushNotification } from '@/lib/notifications-store';
+import { showToast } from '@/lib/toast-store';
+import { scopedKey } from '@/lib/user-scope';
 
 interface WalletEntry {
   id: string;
@@ -29,22 +31,33 @@ const TYPE_LABEL: Record<WalletEntry['type'], { mn: string; en: string }> = {
  * ledger entry appears — a top-up settling, a charge being deducted, a
  * refund. There is no driver-facing live event stream (only the CSMS console
  * has one), so this trades a little latency for not needing to build one.
+ *
+ * The last-seen marker is stored per driver, so a different driver signing in
+ * on the same browser gets their own silent baseline. Mounted (keyed by user
+ * id) for signed-in drivers only; the toast itself goes through `ToastHost`.
  */
-export function WalletWatcher({ signedIn }: { signedIn: boolean }) {
+export function WalletWatcher({ userId }: { userId: string }) {
   const { locale } = useI18n();
-  const [toast, setToast] = useState<{ entry: WalletEntry; key: number } | null>(null);
-  const lastSeenId = useRef<string | null>(null);
-  const primed = useRef(false);
 
   useEffect(() => {
-    if (!signedIn) return;
+    const storageKey = scopedKey(LAST_SEEN_KEY, userId);
+    let lastSeenId: string | null;
     try {
-      lastSeenId.current = window.localStorage.getItem(LAST_SEEN_KEY);
+      lastSeenId = window.localStorage.getItem(storageKey);
     } catch {
-      lastSeenId.current = null;
+      lastSeenId = null;
     }
 
     let cancelled = false;
+
+    function remember(id: string) {
+      lastSeenId = id;
+      try {
+        window.localStorage.setItem(storageKey, id);
+      } catch {
+        // Private mode — this just re-announces the same entry next load.
+      }
+    }
 
     async function poll() {
       try {
@@ -54,34 +67,29 @@ export function WalletWatcher({ signedIn }: { signedIn: boolean }) {
         const latest = body.entries?.[0];
         if (!latest || cancelled) return;
 
-        if (lastSeenId.current === null) {
-          // First poll this session: record the baseline silently, so
-          // history from before the widget mounted never pops a toast.
-          lastSeenId.current = latest.id;
-          primed.current = true;
-          try {
-            window.localStorage.setItem(LAST_SEEN_KEY, latest.id);
-          } catch {
-            // Private mode — this just re-announces the same entry next load.
-          }
+        if (lastSeenId === null) {
+          // First poll for this driver on this browser: record the baseline
+          // silently, so history from before never pops a toast.
+          remember(latest.id);
           return;
         }
 
-        if (latest.id !== lastSeenId.current) {
-          lastSeenId.current = latest.id;
-          try {
-            window.localStorage.setItem(LAST_SEEN_KEY, latest.id);
-          } catch {
-            // Nothing to persist; the toast itself still shows this once.
-          }
-          setToast({ entry: latest, key: Date.now() });
+        if (latest.id !== lastSeenId) {
+          remember(latest.id);
           const label = TYPE_LABEL[latest.type]?.[locale === 'en' ? 'en' : 'mn'] ?? latest.type;
           const positive = latest.amount >= 0;
-          pushNotification({
+          const text = `${positive ? '+' : ''}${formatMoney(latest.amount, intlLocale(locale))}${
+            latest.description ? ` · ${latest.description}` : ''
+          }`;
+          // Another tab may have spotted the same entry first.
+          const filed = pushNotification({
             kind: 'wallet',
             title: label,
-            body: `${positive ? '+' : ''}${formatMoney(latest.amount, locale)}${latest.description ? ` · ${latest.description}` : ''}`,
+            body: text,
+            href: '/account/wallet',
+            dedupeKey: `wallet:${latest.id}`,
           });
+          if (filed) showToast({ kind: positive ? 'wallet-in' : 'wallet-out', title: label, body: text });
         }
       } catch {
         // Offline or a transient failure — the next poll tries again.
@@ -94,46 +102,7 @@ export function WalletWatcher({ signedIn }: { signedIn: boolean }) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [signedIn, locale]);
+  }, [userId, locale]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 6000);
-    return () => window.clearTimeout(id);
-  }, [toast]);
-
-  if (!toast) return null;
-
-  const label = TYPE_LABEL[toast.entry.type]?.[locale === 'en' ? 'en' : 'mn'] ?? toast.entry.type;
-  const positive = toast.entry.amount >= 0;
-
-  return (
-    <div
-      key={toast.key}
-      role="status"
-      className="fixed left-1/2 top-4 z-50 w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 animate-[toast-in_0.2s_ease-out]"
-    >
-      <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-xl">
-        <span
-          className={`mt-1 h-2 w-2 shrink-0 rounded-full ${positive ? 'bg-brand' : 'bg-warning'}`}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{label}</p>
-          <p className="text-sm text-muted">
-            {positive ? '+' : ''}
-            {formatMoney(toast.entry.amount, locale)}
-            {toast.entry.description ? ` · ${toast.entry.description}` : ''}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setToast(null)}
-          aria-label="close"
-          className="text-muted hover:text-foreground"
-        >
-          ×
-        </button>
-      </div>
-    </div>
-  );
+  return null;
 }

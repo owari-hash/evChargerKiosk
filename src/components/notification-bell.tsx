@@ -1,17 +1,21 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { getSnapshot, markAllRead, subscribe } from '@/lib/notifications-store';
 import { formatDateTime } from '@/lib/utils';
 import { useI18n } from '@/components/i18n-provider';
+import { NotificationIcon } from '@/components/notification-icon';
 
 const EMPTY = { items: [], unread: 0 };
 
 /**
- * The bell button in the header: wallet changes and announcements the
- * driver has already seen once as a toast or a modal, kept here so they can
- * find them again. Same role as the admin console's bell, scaled down to
- * one driver's own history instead of the whole network's.
+ * The bell button in the header: wallet changes, announcements and charging
+ * sessions starting or finishing that the driver has already seen once as a
+ * toast or a modal, kept here so they can find them again. Entries with a
+ * link open it (a session opens the charging history). Same role as the
+ * admin console's bell, scaled down to one driver's own history instead of
+ * the whole network's.
  */
 export function NotificationBell() {
   const { d, locale } = useI18n();
@@ -58,31 +62,44 @@ export function NotificationBell() {
             {items.length === 0 ? (
               <p className="px-4 py-6 text-center text-xs text-muted">{d.notifications.empty}</p>
             ) : (
-              items.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 border-b border-border px-4 py-3 last:border-0">
-                  {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- small avatar-sized thumbnail; not worth a remotePatterns entry for next/image.
-                    <img
-                      src={item.imageUrl}
-                      alt=""
-                      width={40}
-                      height={40}
-                      className="size-10 shrink-0 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <span
-                      className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                        item.kind === 'announcement' ? 'bg-brand' : 'bg-muted'
-                      }`}
-                    />
-                  )}
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-sm font-medium text-foreground">{item.title}</p>
-                    <p className="mt-0.5 line-clamp-2 text-xs text-muted">{item.body}</p>
-                    <p className="mt-1 text-[11px] text-muted/70">{formatDateTime(item.at, locale)}</p>
+              items.map((item) => {
+                const content = (
+                  <>
+                    {item.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- small avatar-sized thumbnail; not worth a remotePatterns entry for next/image.
+                      <img
+                        src={item.imageUrl}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="size-10 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <NotificationIcon kind={item.kind} />
+                    )}
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted">{item.body}</p>
+                      <p className="mt-1 text-[11px] text-muted/70">{formatDateTime(item.at, locale)}</p>
+                    </div>
+                  </>
+                );
+                const row = 'flex items-start gap-3 border-b border-border px-4 py-3 last:border-0';
+                return item.href ? (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`${row} transition hover:bg-surface-muted`}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={item.id} className={row}>
+                    {content}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

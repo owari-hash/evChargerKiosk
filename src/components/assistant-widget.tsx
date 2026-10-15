@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/i18n-provider';
+import { scopedKey } from '@/lib/user-scope';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -13,10 +14,11 @@ interface ChatMessage {
 const STORAGE_KEY = 'eplug-assistant-history';
 const MAX_STORED = 20;
 
-function loadHistory(): ChatMessage[] {
+/** The chat is stored per driver (`guest` while signed out), never shared between them. */
+function loadHistory(key: string): ChatMessage[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -29,9 +31,9 @@ function loadHistory(): ChatMessage[] {
   }
 }
 
-function saveHistory(messages: ChatMessage[]): void {
+function saveHistory(key: string, messages: ChatMessage[]): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED)));
+    window.localStorage.setItem(key, JSON.stringify(messages.slice(-MAX_STORED)));
   } catch {
     // Private mode or full storage — the conversation just will not persist.
   }
@@ -44,11 +46,13 @@ function saveHistory(messages: ChatMessage[]): void {
  * is resent with every turn, same contract as the backend's `/app-api/assistant`
  * (itself a port of turees' aiTuslakh — see that route's own docstring).
  */
-export function AssistantWidget({ signedIn }: { signedIn: boolean }) {
+export function AssistantWidget({ userId }: { userId: string | null }) {
+  const signedIn = userId !== null;
+  const storageKey = scopedKey(STORAGE_KEY, userId);
   const { d } = useI18n();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(storageKey));
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +60,8 @@ export function AssistantWidget({ signedIn }: { signedIn: boolean }) {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (messages.length) saveHistory(messages);
-  }, [messages]);
+    if (messages.length) saveHistory(storageKey, messages);
+  }, [storageKey, messages]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
@@ -124,7 +128,7 @@ export function AssistantWidget({ signedIn }: { signedIn: boolean }) {
     setMessages([]);
     setError(null);
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(storageKey);
     } catch {
       // Nothing to clean up if storage is unavailable.
     }

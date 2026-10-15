@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { PublicUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { clearUserStorage } from '@/lib/user-scope';
 import { useI18n } from './i18n-provider';
+import { useStartGuide } from './spotlight-guide';
 
 /** Avatar button showing the user's initial; opens a small menu with account + sign out. */
 export function UserMenu({ user, compact = false }: { user: PublicUser; compact?: boolean }) {
@@ -14,6 +16,7 @@ export function UserMenu({ user, compact = false }: { user: PublicUser; compact?
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const startGuide = useStartGuide();
   const displayName = user.name?.trim() || user.email || user.phone || '';
   // A phone-only account would otherwise show "+" from the country code.
   const initial = (displayName.replace(/^\+\d{3}/, '').charAt(0) || '?').toUpperCase();
@@ -37,6 +40,8 @@ export function UserMenu({ user, compact = false }: { user: PublicUser; compact?
   async function signOut() {
     setSigningOut(true);
     await fetch('/app-api/auth/logout', { method: 'POST' });
+    // The next driver on this browser must not inherit this one's bell or chat.
+    clearUserStorage(user.id);
     setOpen(false);
     setSigningOut(false);
     router.replace('/');
@@ -86,6 +91,21 @@ export function UserMenu({ user, compact = false }: { user: PublicUser; compact?
             </svg>
             {d.common.myAccount}
           </Link>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              startGuide();
+            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-surface-muted"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4 text-muted">
+              <circle cx="12" cy="12" r="9" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" />
+            </svg>
+            {d.guide.menuItem}
+          </button>
           <button
             type="button"
             role="menuitem"

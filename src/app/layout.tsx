@@ -5,8 +5,11 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { AssistantWidget } from '@/components/assistant-widget';
 import { WalletWatcher } from '@/components/wallet-watcher';
+import { SessionWatcher } from '@/components/session-watcher';
+import { ToastHost } from '@/components/toast-host';
+import { UserScope } from '@/components/user-scope';
 import { AnnouncementModal } from '@/components/announcement-modal';
-import { OnboardingTour } from '@/components/onboarding-tour';
+import { SpotlightGuide } from '@/components/spotlight-guide';
 import { I18nProvider } from '@/components/i18n-provider';
 import { getCurrentUser } from '@/lib/driver-api';
 import { getLocale } from '@/lib/i18n';
@@ -61,10 +64,22 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
           <SiteHeader user={user} />
           <main className="flex-1">{children}</main>
           <SiteFooter />
-          <AssistantWidget signedIn={user !== null} />
-          <WalletWatcher signedIn={user !== null} />
-          <AnnouncementModal signedIn={user !== null} />
-          <OnboardingTour signedIn={user !== null} />
+          {/* Everything below that keeps per-driver state is keyed by the user
+              id, so signing out or switching drivers starts it afresh. */}
+          <UserScope userId={user?.id ?? null} />
+          <AssistantWidget key={`assistant-${user?.id ?? 'guest'}`} userId={user?.id ?? null} />
+          {user ? (
+            <>
+              <WalletWatcher key={`wallet-${user.id}`} userId={user.id} />
+              <SessionWatcher key={`sessions-${user.id}`} />
+            </>
+          ) : null}
+          <AnnouncementModal key={`news-${user?.id ?? 'guest'}`} userId={user?.id ?? null} />
+          <ToastHost />
+          <SpotlightGuide
+            signedIn={user !== null}
+            pending={user?.pendingGuides?.includes('web') ?? false}
+          />
         </I18nProvider>
       </body>
     </html>

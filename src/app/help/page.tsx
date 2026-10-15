@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Alert, ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
+import { GuideReplayButton } from '@/components/spotlight-guide';
+import { buttonClass } from '@/components/ui/button';
+import { getCurrentUser } from '@/lib/driver-api';
 import { publicEnv } from '@/lib/env';
 import { format, getTranslations, type Dictionary } from '@/lib/i18n';
 
@@ -66,7 +69,7 @@ function AccordionList({ entries }: { entries: Entry[] }) {
 }
 
 export default async function HelpPage() {
-  const { d } = await getTranslations();
+  const [{ d }, user] = await Promise.all([getTranslations(), getCurrentUser()]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-14 sm:pt-8">
@@ -133,6 +136,13 @@ export default async function HelpPage() {
               <CardTitle>{d.help.moreTitle}</CardTitle>
             </CardHeader>
             <CardBody className="flex flex-1 flex-col justify-center space-y-2">
+              {/* The guide walks the account area, so it is offered to signed-in drivers only. */}
+              {user ? (
+                <GuideReplayButton
+                  label={d.guide.replay}
+                  className={buttonClass('secondary', 'md', 'w-full')}
+                />
+              ) : null}
               <ButtonLink href="/account/wallet" variant="secondary" size="md" className="w-full">
                 {d.wallet.title}
               </ButtonLink>

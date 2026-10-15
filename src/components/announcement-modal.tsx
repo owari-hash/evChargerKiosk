@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { pushNotification } from '@/lib/notifications-store';
 import { useI18n } from '@/components/i18n-provider';
+import { useGuideActive } from '@/lib/overlay-lock';
+import { scopedKey } from '@/lib/user-scope';
 
 interface Announcement {
   id: string;
@@ -16,9 +18,10 @@ interface Announcement {
 const SEEN_KEY = 'eplug-announcements-seen';
 const POLL_MS = 5 * 60_000;
 
-function seenIds(): Set<string> {
+/** Dismissed announcements are remembered per driver, not per browser. */
+function seenIds(userId: string): Set<string> {
   try {
-    const raw = window.localStorage.getItem(SEEN_KEY);
+    const raw = window.localStorage.getItem(scopedKey(SEEN_KEY, userId));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     return new Set(Array.isArray(parsed) ? parsed : []);
   } catch {
@@ -26,12 +29,12 @@ function seenIds(): Set<string> {
   }
 }
 
-function markSeen(id: string): void {
+function markSeen(userId: string, id: string): void {
   try {
-    const ids = seenIds();
+    const ids = seenIds(userId);
     ids.add(id);
     // Keep the set from growing forever on an account with years of history.
-    window.localStorage.setItem(SEEN_KEY, JSON.stringify([...ids].slice(-200)));
+    window.localStorage.setItem(scopedKey(SEEN_KEY, userId), JSON.stringify([...ids].slice(-200)));
   } catch {
     // Private mode — the same announcement just shows again next visit.
   }
@@ -42,12 +45,15 @@ function markSeen(id: string): void {
  * newest one they have not dismissed yet. Closing it files the announcement
  * into the notification bell's history instead of losing it outright.
  */
-export function AnnouncementModal({ signedIn }: { signedIn: boolean }) {
+export function AnnouncementModal({ userId }: { userId: string | null }) {
   const { d } = useI18n();
   const [current, setCurrent] = useState<Announcement | null>(null);
+  // Held back while the spotlight guide runs; it shows once the guide ends.
+  const guideActive = useGuideActive();
 
   useEffect(() => {
-    if (!signedIn) return;
+    if (!userId) return;
+    const owner = userId;
 
     let cancelled = false;
 
@@ -56,7 +62,7 @@ export function AnnouncementModal({ signedIn }: { signedIn: boolean }) {
         const res = await fetch('/app-api/app/announcements', { cache: 'no-store' });
         if (!res.ok || cancelled) return;
         const body = (await res.json()) as { announcements?: Announcement[] };
-        const seen = seenIds();
+        const seen = seenIds(owner);
         const unseen = (body.announcements ?? []).find((a) => !seen.has(a.id));
         if (unseen) setCurrent((prev) => prev ?? unseen);
       } catch {
@@ -70,11 +76,11 @@ export function AnnouncementModal({ signedIn }: { signedIn: boolean }) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [signedIn]);
+  }, [userId]);
 
   function close() {
-    if (!current) return;
-    markSeen(current.id);
+    if (!current || !userId) return;
+    markSeen(userId, current.id);
     pushNotification({
       kind: 'announcement',
       title: current.title,
@@ -84,7 +90,7 @@ export function AnnouncementModal({ signedIn }: { signedIn: boolean }) {
     setCurrent(null);
   }
 
-  if (!current) return null;
+  if (!current || guideActive) return null;
 
   return (
     <Modal onClose={close} maxWidth="sm">
