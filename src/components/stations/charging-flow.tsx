@@ -495,7 +495,7 @@ export function ChargingFlow({
 
       {step !== 'connector' && (
         <Card className="p-4 sm:p-5">
-          <h2 className="text-base font-semibold text-foreground">{d.stations.connectorsTitle}</h2>
+          <h2 className="text-base font-semibold text-foreground">{t.gunsTitle}</h2>
           <ConnectorPicker
             className="mt-4"
             connectors={ordered}
@@ -690,7 +690,7 @@ function ConnectorPicker({
   }
 
   return (
-    <ul className={cn('space-y-2', className)} role={onChoose ? 'radiogroup' : undefined} aria-label={d.stations.connectorsTitle}>
+    <ul className={cn('space-y-2', className)} role={onChoose ? 'radiogroup' : undefined} aria-label={d.flow.gunsTitle}>
       {connectors.map((c) => {
         const isFree = free.some((f) => f.connectorId === c.connectorId);
         const selectable = Boolean(onChoose) && isFree && !disabled;
