@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/i18n-provider';
@@ -13,6 +13,56 @@ interface ChatMessage {
 
 const STORAGE_KEY = 'eplug-assistant-history';
 const MAX_STORED = 20;
+
+/** Where the driver dragged the launcher: which side, and px from the bottom. */
+interface Dock {
+  side: 'left' | 'right';
+  bottom: number;
+}
+
+const DOCK_KEY = 'eplug-assistant-dock';
+const EDGE = 20;
+const BUTTON = 56;
+/** Movement past this many px turns a press into a drag, not a tap. */
+const DRAG_SLOP = 6;
+
+const DEFAULT_DOCK = JSON.stringify({ side: 'right', bottom: EDGE } satisfies Dock);
+const dockListeners = new Set<() => void>();
+
+/** The stored dock as a string, so the snapshot is stable between reads. */
+function readDock(): string {
+  try {
+    return window.localStorage.getItem(DOCK_KEY) ?? DEFAULT_DOCK;
+  } catch {
+    return DEFAULT_DOCK;
+  }
+}
+
+function subscribeDock(listener: () => void): () => void {
+  dockListeners.add(listener);
+  return () => dockListeners.delete(listener);
+}
+
+function parseDock(raw: string): Dock {
+  try {
+    const parsed = JSON.parse(raw) as Partial<Dock>;
+    if ((parsed.side === 'left' || parsed.side === 'right') && typeof parsed.bottom === 'number') {
+      return { side: parsed.side, bottom: parsed.bottom };
+    }
+  } catch {
+    // Unreadable value: fall back to the default corner.
+  }
+  return JSON.parse(DEFAULT_DOCK) as Dock;
+}
+
+function saveDock(dock: Dock): void {
+  try {
+    window.localStorage.setItem(DOCK_KEY, JSON.stringify(dock));
+  } catch {
+    // Blocked storage: the spot just will not be remembered.
+  }
+  dockListeners.forEach((l) => l());
+}
 
 /** The chat is stored per driver (`guest` while signed out), never shared between them. */
 function loadHistory(key: string): ChatMessage[] {
@@ -58,6 +108,48 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // The launcher can be dragged out of the way of page content (it sat on the
+  // footer links on phones) and snaps to the nearer side edge when let go.
+  const dock = parseDock(useSyncExternalStore(subscribeDock, readDock, () => DEFAULT_DOCK));
+  const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
+  const pressRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+
+  function clampBottom(bottom: number): number {
+    return Math.min(Math.max(bottom, EDGE), window.innerHeight - BUTTON - EDGE);
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+    if (e.button !== 0) return;
+    pressRef.current = { x: e.clientX, y: e.clientY, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    const press = pressRef.current;
+    if (!press) return;
+    if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) < DRAG_SLOP) return;
+    press.moved = true;
+    setDrag({
+      x: Math.min(Math.max(e.clientX - BUTTON / 2, EDGE), window.innerWidth - BUTTON - EDGE),
+      y: Math.min(Math.max(e.clientY - BUTTON / 2, EDGE), window.innerHeight - BUTTON - EDGE),
+    });
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLButtonElement>) {
+    const press = pressRef.current;
+    pressRef.current = null;
+    if (!press?.moved) {
+      setOpen((o) => !o);
+      return;
+    }
+    const next: Dock = {
+      side: e.clientX < window.innerWidth / 2 ? 'left' : 'right',
+      bottom: clampBottom(window.innerHeight - e.clientY - BUTTON / 2),
+    };
+    setDrag(null);
+    saveDock(next);
+  }
 
   useEffect(() => {
     if (messages.length) saveHistory(storageKey, messages);
@@ -135,7 +227,18 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
+    <div
+      className={cn(
+        'fixed z-40 flex flex-col gap-3',
+        dock.side === 'left' ? 'items-start' : 'items-end',
+        drag ? '' : 'transition-[left,right,bottom] duration-200 ease-out',
+      )}
+      style={
+        drag
+          ? { left: drag.x, top: drag.y }
+          : { bottom: dock.bottom, [dock.side]: EDGE }
+      }
+    >
       {open ? (
         <div className="flex h-[32rem] max-h-[70vh] w-80 max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -216,9 +319,25 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
 
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => {
+          pressRef.current = null;
+          setDrag(null);
+        }}
+        onKeyDown={(e) => {
+          // Pointer handlers replace onClick, so keep the keyboard working.
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setOpen((o) => !o);
+          }
+        }}
         aria-label={open ? d.assistant.close : d.assistant.open}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-contrast shadow-lg transition hover:bg-brand-strong active:scale-95"
+        className={cn(
+          'flex h-14 w-14 touch-none select-none items-center justify-center rounded-full bg-brand text-brand-contrast shadow-lg transition hover:bg-brand-strong',
+          drag ? 'scale-105 cursor-grabbing shadow-2xl' : 'cursor-grab active:scale-95',
+        )}
       >
         {open ? <CloseIcon /> : <ChatIcon />}
       </button>
