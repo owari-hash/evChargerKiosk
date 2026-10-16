@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
-import { Alert, Button, ButtonLink, Card, CardBody, CardHeader, CardTitle, Field, Select } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import {
   noteStartRequested,
@@ -14,12 +14,13 @@ import {
 import type { ChargingSession, StationAvailability, StationConnector } from '@/lib/types';
 import {
   cn,
+  connectorStatusLabel,
+  connectorStatusTone,
   formatDuration,
   formatKwh,
   formatMoney,
   formatPower,
   formatPowerKw,
-  formatTariff,
   intlLocale,
 } from '@/lib/utils';
 
@@ -30,6 +31,11 @@ const STARTING_MS = 1_000;
 /** Regular station status poll interval. */
 const IDLE_MS = 3_000;
 
+/**
+ * Internal states of the flow. The driver only ever sees four steps (see
+ * `VISIBLE_STEP`): the states after "start" happen on their own, so they are
+ * shown as the status of the last step rather than as steps of their own.
+ */
 export type FlowStep =
   | 'signin'
   | 'tag'
@@ -41,19 +47,24 @@ export type FlowStep =
   | 'stopping'
   | 'done';
 
-const STEPS: FlowStep[] = [
-  'signin',
-  'tag',
-  'connector',
-  'plug',
-  'start',
-  'preparing',
-  'charging',
-  'stopping',
-  'done',
-];
+const VISIBLE_STEP: Record<FlowStep, number> = {
+  signin: 0,
+  // The charge tag is issued with the account, so there is nothing for the
+  // driver to do here; it is part of signing in and only surfaces if missing.
+  tag: 0,
+  connector: 1,
+  plug: 2,
+  start: 3,
+  preparing: 3,
+  charging: 3,
+  stopping: 3,
+  done: 3,
+};
 
 const AUTOMATIC: ReadonlySet<FlowStep> = new Set(['preparing', 'charging', 'stopping', 'done']);
+
+/** Connector states that carry a running session's live readings. */
+const LIVE_STATUSES = new Set(['Charging', 'SuspendedEV', 'SuspendedEVSE', 'Finishing']);
 
 interface LiveState {
   availability: StationAvailability;
@@ -69,12 +80,35 @@ export interface ChargingFlowProps {
   connectors: StationConnector[];
   availability: StationAvailability;
   tariffPerKwh?: number;
+  /**
+   * When the station last talked to the network, already formatted on the
+   * server (browsers without Mongolian locale data format dates differently,
+   * which broke hydration). Shown only while offline.
+   */
+  lastSeenLabel?: string;
   signedIn: boolean;
   hasIdTag: boolean;
   remoteStartEnabled: boolean;
   /** Gun chosen for the driver, e.g. by scanning the QR sticker on it. */
   initialConnectorId?: number;
-  onLiveUpdate?: (live: LiveState) => void;
+  /** Where sign-in should send the driver back to, query string included. */
+  returnTo: string;
+}
+
+/**
+ * Guns a driver may start right now.
+ *
+ * `Preparing` is included deliberately: on DC hardware the gun enters that
+ * state the moment a cable is plugged into the car, which is precisely when
+ * the driver wants to start. A gun already running a session is excluded.
+ */
+function freeConnectors(connectors: StationConnector[]): StationConnector[] {
+  return connectors.filter(
+    (c) =>
+      c.availability === 'Operative' &&
+      !c.currentTransactionId &&
+      (c.status === 'Available' || c.status === 'Preparing'),
+  );
 }
 
 export function ChargingFlow({
@@ -82,11 +116,12 @@ export function ChargingFlow({
   connectors,
   availability,
   tariffPerKwh,
+  lastSeenLabel,
   signedIn,
   hasIdTag,
   remoteStartEnabled,
   initialConnectorId,
-  onLiveUpdate,
+  returnTo,
 }: ChargingFlowProps) {
   const { d, locale } = useI18n();
   const intl = intlLocale(locale);
@@ -106,9 +141,8 @@ export function ChargingFlow({
    * A finished session the driver has acknowledged.
    *
    * The API keeps returning their most recent session forever, and the step
-   * machine treats any session as "done" — so once one completed, the flow was
-   * stuck on step 9 permanently and a reload landed straight back on it.
-   * Dismissing it locally is what lets them start another charge.
+   * machine treats any session as "done". Dismissing it locally is what lets
+   * them start another charge.
    */
   const [dismissedSessionId, setDismissedSessionId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -116,37 +150,23 @@ export function ChargingFlow({
   const [staleFeed, setStaleFeed] = useState(false);
   const [showEbarimtModal, setShowEbarimtModal] = useState(false);
 
-  /**
-   * Guns a driver may start right now.
-   *
-   * `Preparing` is included deliberately: on DC hardware the gun enters that
-   * state the moment a cable is plugged into the car, which is precisely when
-   * the driver wants to start. Filtering to `Available` alone made the one gun
-   * they were standing at disappear from the picker, leaving only the empty one.
-   * A gun already running a session is excluded.
-   */
-  const free = live.connectors.filter(
-    (c) =>
-      c.availability === 'Operative' &&
-      !c.currentTransactionId &&
-      (c.status === 'Available' || c.status === 'Preparing'),
-  );
-  // Seeded from the sticker when the driver arrived by QR, so the gun they
-  // are standing at is already chosen.
-  const [connectorId, setConnectorId] = useState(
-    initialConnectorId ? String(initialConnectorId) : '',
-  );
+  const free = freeConnectors(live.connectors);
 
   /**
-   * The gun the start request will name. Empty until the driver chooses, or
-   * until a QR sticker chose for them.
+   * The gun the start request will name. It is never guessed: picking "the
+   * only free gun" silently targeted the gun the driver was NOT standing at.
    *
-   * It is never guessed. The station rejects a RemoteStartTransaction that does
-   * not name a connector, but guessing one is worse than refusing to start:
-   * picking "the only free gun" silently targeted the gun the driver was NOT
-   * standing at, and started it with no car attached.
+   * A QR sticker preselects its gun, but only when that gun is actually free —
+   * otherwise the driver lands on the picker with a note saying why.
    */
-  const targetConnectorId = connectorId;
+  const [connectorId, setConnectorId] = useState(() =>
+    initialConnectorId !== undefined &&
+    freeConnectors(connectors).some((c) => c.connectorId === initialConnectorId)
+      ? String(initialConnectorId)
+      : '',
+  );
+  // A chosen gun that someone else has since taken no longer counts.
+  const chosen = free.find((c) => String(c.connectorId) === connectorId);
 
   const session =
     live.session && live.session.transactionId === dismissedSessionId ? null : live.session;
@@ -165,11 +185,15 @@ export function ChargingFlow({
     requested: awaitingStation,
     session,
     sessionConnector,
-    hasFreeConnector: free.length > 0,
-    hasConnector: Boolean(targetConnectorId),
+    hasConnector: Boolean(chosen),
   });
 
-  // This flow already shows its own "charging" and "done" steps for the
+  const scannedUnavailable =
+    initialConnectorId !== undefined &&
+    step === 'connector' &&
+    !free.some((c) => c.connectorId === initialConnectorId);
+
+  // This flow already shows its own "charging" and "done" states for the
   // session on screen; the site-wide SessionWatcher files those in the bell
   // without a second pop-up on top.
   useEffect(() => registerChargingFlow(), []);
@@ -186,13 +210,12 @@ export function ChargingFlow({
       });
       if (!res.ok) throw new Error('live feed unavailable');
       const data = (await res.json()) as LiveState;
-      setLive(data);
-      onLiveUpdate?.(data);
+      setLive((prev) => mergeLive(prev, data));
       setStaleFeed(false);
     } catch {
       setStaleFeed(true);
     }
-  }, [stationId, onLiveUpdate]);
+  }, [stationId, setLive]);
 
   useEffect(() => {
     const interval = awaitingStation ? STARTING_MS : AUTOMATIC.has(step) ? LIVE_MS : IDLE_MS;
@@ -200,16 +223,27 @@ export function ChargingFlow({
     return () => clearInterval(timer);
   }, [refresh, step, awaitingStation]);
 
+  function choose(id: number) {
+    setConnectorId(String(id));
+    setPlugged(false);
+    setError(null);
+  }
+
+  function chooseAnother() {
+    setConnectorId('');
+    setPlugged(false);
+    setError(null);
+  }
+
   async function start() {
+    if (!chosen) return;
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          targetConnectorId ? { connectorId: Number(targetConnectorId) } : {},
-        ),
+        body: JSON.stringify({ connectorId: chosen.connectorId }),
       });
       const payload = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
       if (!res.ok) throw new Error(payload.error ?? d.start.requestFailed);
@@ -230,43 +264,35 @@ export function ChargingFlow({
 
   /**
    * The driver says the cable is in; this checks it against what the station
-   * itself is reporting before taking their word for it.
-   *
-   * A connector the station still calls `Available` has not seen a cable —
-   * pressing Start from there just gets refused a step later, which reads as
-   * a broken charger rather than an unplugged one. `Preparing` (or further
-   * along, if they are quick) is the station's own signal that a cable landed,
-   * so that is what gates the step instead of a bare button press.
+   * itself is reporting. A connector the station still calls `Available` has
+   * not seen a cable, and Start would just be refused a step later.
    */
   function confirmPlugged() {
-    const target = live.connectors.find((c) => String(c.connectorId) === targetConnectorId);
     const looksPlugged =
-      target != null && target.status !== 'Available' && target.status !== 'Unavailable' && target.status !== 'Faulted';
+      chosen != null && chosen.status !== 'Available';
     if (!looksPlugged) {
-      setError(d.flow.plugNotDetected);
+      setError(t.plugNotDetected);
       return;
     }
     setError(null);
     setPlugged(true);
   }
 
-  /**
-   * Releases the cable after the session has ended.
-   *
-   * The gun stays latched in `Finishing` until the station is told to let go,
-   * and this hardware offers the driver no way to do that at the unit — so
-   * without this button they are physically attached to the charger.
-   */
   /** Clears the finished session so the driver can charge again. */
   function startAnother() {
     if (live.session) setDismissedSessionId(live.session.transactionId);
     setPlugged(false);
     setRequested(false);
-    setConnectorId(initialConnectorId ? String(initialConnectorId) : '');
+    setConnectorId('');
     setError(null);
     void refresh();
   }
 
+  /**
+   * Releases the cable after the session has ended. The gun stays latched in
+   * `Finishing` until the station is told to let go, and this hardware offers
+   * the driver no way to do that at the unit.
+   */
   async function unlock() {
     const transactionId = live.session?.transactionId;
     if (!transactionId) return;
@@ -278,13 +304,13 @@ export function ChargingFlow({
         status?: string;
         error?: string;
       };
-      if (!res.ok) throw new Error(payload.error ?? d.flow.unlockFailed);
+      if (!res.ok) throw new Error(payload.error ?? t.unlockFailed);
       if (payload.status && payload.status !== 'Unlocked') {
-        throw new Error(format(d.flow.unlockRejected, { status: payload.status }));
+        throw new Error(format(t.unlockRejected, { status: payload.status }));
       }
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : d.flow.unlockFailed);
+      setError(err instanceof Error ? err.message : t.unlockFailed);
     } finally {
       setBusy(false);
     }
@@ -307,116 +333,154 @@ export function ChargingFlow({
     }
   }
 
-  const stepIndex = STEPS.indexOf(step);
+  const visibleStep = VISIBLE_STEP[step];
+  const offline = live.availability === 'offline' && !active;
+  const steps = [t.stepSignIn, t.stepConnector, t.stepPlug, t.stepCharge];
+  const chosenLabel = chosen ? connectorSummary(chosen, d, intl) : '';
+  // Scanned gun first, so a driver standing at it finds it without comparing.
+  const ordered =
+    initialConnectorId === undefined
+      ? live.connectors
+      : [...live.connectors].sort(
+          (a, b) =>
+            Number(b.connectorId === initialConnectorId) -
+            Number(a.connectorId === initialConnectorId),
+        );
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.title}</CardTitle>
-          <p className="mt-1 text-xs text-muted">
-            {format(t.stepOf, { n: stepIndex + 1, total: STEPS.length })}
-          </p>
-        </CardHeader>
+    <div className="space-y-4">
+      <Stepper steps={steps} current={visibleStep} finished={step === 'done'} label={t.title} />
 
-        <CardBody className="space-y-4">
-          {!remoteStartEnabled && !active && (
+      <Card className="p-4 sm:p-5">
+        <div className="space-y-4">
+          {offline && (
+            <Alert tone="warning" title={d.status.availability.offline}>
+              {t.stationOffline}
+              {lastSeenLabel && (
+                <span className="mt-1 block text-xs opacity-80">
+                  {format(t.lastSeenHint, { time: lastSeenLabel })}
+                </span>
+              )}
+            </Alert>
+          )}
+
+          {!remoteStartEnabled && !active && !offline && (
             <Alert tone="info" title={t.localOnlyTitle}>
               {t.localOnlyBody}
             </Alert>
           )}
 
-          {live.availability === 'offline' && !active && (
-            <Alert tone="warning" title={d.status.availability.offline}>
-              {t.stationOffline}
-            </Alert>
+          {step === 'signin' && (
+            <ActionBlock title={t.stepSignIn} body={t.signInBody}>
+              <ButtonLink href={`/login?next=${encodeURIComponent(returnTo)}`}>
+                {d.start.signInCta}
+              </ButtonLink>
+            </ActionBlock>
           )}
 
-          {session && (
-            <div className="space-y-3">
-              {active && <LiveReadout session={active} intl={intl} tariffPerKwh={live.tariffPerKwh} />}
-              {session.ebarimt && (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-foreground flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 font-bold text-emerald-600 dark:text-emerald-400">
-                        ✓ И-Баримт үүссэн
-                      </span>
-                      {session.ebarimt.lottery && (
-                        <span className="font-mono font-bold">
-                          Сугалаа №: {session.ebarimt.lottery}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted">
-                      {session.ebarimt.type === 'B2B_RECEIPT' ? 'Байгууллагын баримт' : 'Хувь хүний баримт'}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
-                    onClick={() => setShowEbarimtModal(true)}
-                  >
-                    И-Баримт харах
-                  </Button>
-                </div>
+          {step === 'tag' && (
+            <ActionBlock title={t.stepSignIn} body={t.tagPendingBody}>
+              <ButtonLink href="/account" variant="secondary">
+                {t.tagPendingCta}
+              </ButtonLink>
+            </ActionBlock>
+          )}
+
+          {step === 'connector' && (
+            <div>
+              <h2 className="text-base font-semibold text-foreground">{t.stepConnector}</h2>
+              <p className="mt-1 text-sm text-muted">
+                {free.length === 0 && !offline ? t.connectorBusy : t.connectorBody}
+              </p>
+              {scannedUnavailable && free.length > 0 && (
+                <p className="mt-2 text-sm font-medium text-warning">{t.scannedUnavailable}</p>
               )}
+              <ConnectorPicker
+                className="mt-4"
+                connectors={ordered}
+                free={free}
+                selectedId={chosen?.connectorId}
+                scannedId={initialConnectorId}
+                onChoose={choose}
+                disabled={offline}
+              />
             </div>
           )}
 
-          <ol
-            aria-label={t.title}
-            className="scroll-none flex snap-x gap-2 overflow-x-auto pb-2"
-          >
-            {STEPS.map((key, index) => (
-              <StepRow
-                key={key}
-                step={key}
-                index={index}
-                currentIndex={stepIndex}
-                title={t[`s${index + 1}Title` as keyof typeof t] as string}
-              />
-            ))}
-          </ol>
+          {step === 'plug' && (
+            <ActionBlock
+              title={t.stepPlug}
+              body={format(t.plugBody, { connector: chosenLabel })}
+            >
+              <Button type="button" onClick={confirmPlugged}>
+                {t.plugConfirm}
+              </Button>
+              <Button type="button" variant="ghost" onClick={chooseAnother}>
+                {t.changeConnector}
+              </Button>
+            </ActionBlock>
+          )}
 
-          <div className="grid gap-4 rounded-2xl bg-brand-soft/70 p-4 ring-1 ring-brand/25 sm:grid-cols-[minmax(0,1fr)_minmax(14rem,0.8fr)] sm:items-center">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                {t[`s${stepIndex + 1}Title` as keyof typeof t] as string}
-                <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-contrast">
-                  {t.current}
-                </span>
-              </p>
-              <p className="mt-1 text-sm leading-5 text-muted">
-                {t[`s${stepIndex + 1}Body` as keyof typeof t] as string}
-              </p>
+          {step === 'start' && (
+            <ActionBlock
+              title={t.stepCharge}
+              body={format(t.startBody, { connector: chosenLabel })}
+            >
+              <Button type="button" onClick={() => void start()} loading={busy} disabled={offline}>
+                {busy ? t.starting : t.startNow}
+              </Button>
+              <Button type="button" variant="ghost" onClick={chooseAnother} disabled={busy}>
+                {t.changeConnector}
+              </Button>
+            </ActionBlock>
+          )}
+
+          {step === 'preparing' && <StatusLine title={t.waitingTitle} body={t.waitingBody} pending />}
+
+          {step === 'charging' && active && (
+            <div className="space-y-4">
+              <StatusLine title={t.chargingTitle} body={t.chargingBody} />
+              <LiveReadout session={active} intl={intl} tariffPerKwh={live.tariffPerKwh} />
+              <Button type="button" variant="danger" onClick={() => void stop()} loading={busy}>
+                {busy ? t.stopping : t.stopNow}
+              </Button>
             </div>
-            <div className="min-w-0">
-              <StepAction
-                step={step}
-                stationId={stationId}
-                free={free}
-                connectorId={connectorId}
-                canStart={Boolean(targetConnectorId)}
-                onUnlock={() => void unlock()}
-                onStartAnother={startAnother}
-                onConnector={setConnectorId}
-                onPlugged={confirmPlugged}
-                onStart={() => void start()}
-                onStop={() => void stop()}
-                onOpenEbarimt={() => setShowEbarimtModal(true)}
-                busy={busy}
-                session={session}
-                intl={intl}
-              />
+          )}
+
+          {step === 'stopping' && <StatusLine title={t.stoppingTitle} body={t.stoppingBody} pending />}
+
+          {step === 'done' && session && (
+            <div className="space-y-4">
+              <StatusLine title={t.doneTitle} body={t.doneBody} />
+              <SessionSummary session={session} intl={intl} />
+              {session.ebarimt && (
+                <p className="text-sm text-foreground">
+                  <span className="font-semibold text-brand-strong">✓ {t.ebarimtIssued}</span>
+                  {session.ebarimt.lottery && (
+                    <span className="ml-2 font-mono text-xs text-muted">
+                      {format(d.account.ebarimt.lotteryLabel, { id: session.ebarimt.lottery })}
+                    </span>
+                  )}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => void unlock()} loading={busy}>
+                  {t.unlockNow}
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setShowEbarimtModal(true)}>
+                  {session.ebarimt ? d.account.ebarimt.viewButton : t.ebarimtGet}
+                </Button>
+                <Link
+                  href="/account/sessions"
+                  className="inline-flex h-9 items-center px-2 text-sm font-semibold text-brand hover:underline"
+                >
+                  {t.viewReceipt}
+                </Link>
+                <Button type="button" size="sm" onClick={startAnother}>
+                  {t.startAnother}
+                </Button>
+              </div>
             </div>
-          </div>
-
-          <p className="text-xs text-muted">{t.autoNote}</p>
-
-          {free.length === 0 && !active && live.availability !== 'offline' && (
-            <p className="text-sm text-muted">{t.connectorBusy}</p>
           )}
 
           {staleFeed && <p className="text-xs text-warning">{t.refreshFailed}</p>}
@@ -426,8 +490,21 @@ export function ChargingFlow({
               {error}
             </Alert>
           )}
-        </CardBody>
+        </div>
       </Card>
+
+      {step !== 'connector' && (
+        <Card className="p-4 sm:p-5">
+          <h2 className="text-base font-semibold text-foreground">{d.stations.connectorsTitle}</h2>
+          <ConnectorPicker
+            className="mt-4"
+            connectors={ordered}
+            free={free}
+            selectedId={chosen?.connectorId ?? active?.connectorId}
+            scannedId={initialConnectorId}
+          />
+        </Card>
+      )}
 
       {showEbarimtModal && session && (
         <EbarimtModal
@@ -438,8 +515,13 @@ export function ChargingFlow({
           }}
         />
       )}
-    </>
+    </div>
   );
+}
+
+/** An empty connector list is a hiccup in the feed, not a station without guns. */
+function mergeLive(prev: LiveState, next: LiveState): LiveState {
+  return { ...next, connectors: next.connectors?.length ? next.connectors : prev.connectors };
 }
 
 function resolveStep(input: {
@@ -449,8 +531,7 @@ function resolveStep(input: {
   requested: boolean;
   session: ChargingSession | null;
   sessionConnector: StationConnector | undefined;
-  hasFreeConnector: boolean;
-  /** A specific gun has been chosen, by the driver or by a scanned sticker. */
+  /** A free gun has been chosen, by the driver or by a scanned sticker. */
   hasConnector: boolean;
 }): FlowStep {
   const { session, sessionConnector } = input;
@@ -467,217 +548,234 @@ function resolveStep(input: {
   if (session) return 'done';
 
   if (input.requested) return 'preparing';
-  // No gun free: the connector step shows why. No gun chosen: it shows the
-  // picker. The station refuses a start that does not name one, so the driver
-  // must get past this step before the start button is offered at all.
-  if (!input.hasFreeConnector) return 'connector';
+  // The station refuses a start that does not name a gun, so the driver must
+  // choose one before the start button is offered at all.
   if (!input.hasConnector) return 'connector';
   if (!input.plugged) return 'plug';
   return 'start';
 }
 
-function StepRow({
-  step,
-  index,
-  currentIndex,
-  title,
-}: {
-  step: FlowStep;
-  index: number;
-  currentIndex: number;
-  title: string;
-}) {
-  const { d } = useI18n();
-  const state = index < currentIndex ? 'done' : index === currentIndex ? 'current' : 'todo';
+function connectorSummary(
+  c: StationConnector,
+  d: ReturnType<typeof useI18n>['d'],
+  intl: string,
+): string {
+  return [
+    format(d.start.connectorOption, { id: c.connectorId }),
+    c.type,
+    c.powerKw ? formatPowerKw(c.powerKw, intl) : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
 
+function Stepper({
+  steps,
+  current,
+  finished,
+  label,
+}: {
+  steps: string[];
+  current: number;
+  finished: boolean;
+  label: string;
+}) {
   return (
-    <li
-      className={cn(
-        'flex min-w-[7.25rem] flex-1 snap-start items-start gap-2 rounded-xl p-2.5 transition',
-        state === 'current' && 'bg-brand-soft ring-1 ring-brand/30',
-        state === 'done' && 'bg-surface-muted/70',
-        state === 'todo' && 'bg-surface-muted/35',
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          'grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold',
-          state === 'done' && 'bg-brand text-brand-contrast',
-          state === 'current' && 'bg-brand text-brand-contrast',
-          state === 'todo' && 'bg-surface text-muted ring-1 ring-border',
-        )}
-      >
-        {state === 'done' ? '✓' : index + 1}
-      </span>
-      <div className="min-w-0">
-        <p
-          className={cn(
-            'text-xs font-semibold leading-4',
-            state === 'todo' ? 'text-muted' : 'text-foreground',
-          )}
-        >
-          {title}
-        </p>
-        {state === 'todo' && AUTOMATIC.has(step) && (
-          <p className="mt-1 text-[10px] font-medium leading-3 text-muted">{d.flow.waiting}</p>
-        )}
-        {state === 'current' && (
-          <span className="mt-1 inline-flex rounded-full bg-brand px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-contrast">
-            {d.flow.current}
-          </span>
-        )}
-      </div>
-    </li>
+    <ol aria-label={label} className="grid grid-cols-4 gap-1.5">
+      {steps.map((title, index) => {
+        const state =
+          finished || index < current ? 'done' : index === current ? 'current' : 'todo';
+        return (
+          <li
+            key={title}
+            aria-current={state === 'current' ? 'step' : undefined}
+            className="min-w-0"
+          >
+            <div
+              className={cn(
+                'h-1.5 rounded-full',
+                state === 'todo' ? 'bg-surface-muted ring-1 ring-border' : 'bg-brand',
+              )}
+            />
+            <p
+              className={cn(
+                'mt-2 flex items-start gap-1.5 text-xs leading-4 sm:text-sm',
+                state === 'todo' ? 'text-muted' : 'font-semibold text-foreground',
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  'grid size-4 shrink-0 place-items-center rounded-full text-[10px] font-bold sm:size-5 sm:text-[11px]',
+                  state === 'todo'
+                    ? 'bg-surface-muted text-muted ring-1 ring-border'
+                    : 'bg-brand text-brand-contrast',
+                )}
+              >
+                {state === 'done' ? '✓' : index + 1}
+              </span>
+              <span className="min-w-0 break-words">{title}</span>
+            </p>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
-function StepAction({
-  step,
-  stationId,
-  free,
-  connectorId,
-  onConnector,
-  onPlugged,
-  onStart,
-  onStop,
-  onUnlock,
-  onStartAnother,
-  onOpenEbarimt,
-  busy,
-  canStart,
-  session,
-  intl,
+function ActionBlock({
+  title,
+  body,
+  children,
 }: {
-  step: FlowStep;
-  stationId: string;
-  free: StationConnector[];
-  connectorId: string;
-  onConnector: (value: string) => void;
-  onPlugged: () => void;
-  onStart: () => void;
-  onStop: () => void;
-  onUnlock: () => void;
-  onStartAnother: () => void;
-  onOpenEbarimt?: () => void;
-  busy: boolean;
-  /** False until a specific gun is identified; the station refuses otherwise. */
-  canStart: boolean;
-  session: ChargingSession | null;
-  intl: string;
+  title: string;
+  body: string;
+  children: React.ReactNode;
 }) {
-  const { d } = useI18n();
-  const t = d.flow;
+  return (
+    <div>
+      <h2 className="text-base font-semibold text-foreground">{title}</h2>
+      <p className="mt-1 text-sm leading-6 text-muted">{body}</p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div>
+    </div>
+  );
+}
 
-  switch (step) {
-    case 'signin':
-      return (
-        <ButtonLink href={`/login?next=/stations/${encodeURIComponent(stationId)}`} size="sm">
-          {d.start.signInCta}
-        </ButtonLink>
-      );
+function StatusLine({ title, body, pending = false }: { title: string; body: string; pending?: boolean }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        aria-hidden
+        className={cn(
+          'mt-1 size-3 shrink-0 rounded-full bg-brand',
+          pending && 'animate-pulse',
+        )}
+      />
+      <div className="min-w-0" role="status">
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-muted">{body}</p>
+      </div>
+    </div>
+  );
+}
 
-    case 'tag':
-      return (
-        <ButtonLink href="/account" variant="secondary" size="sm">
-          {d.start.linkTagCta}
-        </ButtonLink>
-      );
+/**
+ * The station's guns, one row each with type, power and status.
+ *
+ * With `onChoose` it is the picker: free guns are buttons and choosing one
+ * moves the flow on. Without it, it is a read-only status list.
+ */
+function ConnectorPicker({
+  connectors,
+  free,
+  selectedId,
+  scannedId,
+  onChoose,
+  disabled = false,
+  className,
+}: {
+  connectors: StationConnector[];
+  free: StationConnector[];
+  selectedId?: number;
+  scannedId?: number;
+  onChoose?: (id: number) => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const { d, locale } = useI18n();
+  const intl = intlLocale(locale);
 
-    case 'connector':
-      if (free.length === 0) return <p className="text-xs text-muted">{t.connectorBusy}</p>;
-      return (
-        <Field label={d.start.connectorLabel} htmlFor="flow-connector">
-          <Select
-            id="flow-connector"
-            value={connectorId}
-            onChange={(event) => onConnector(event.target.value)}
-          >
-            <option value="">{d.start.anyConnector}</option>
-            {free.map((c) => (
-              <option key={c.connectorId} value={c.connectorId}>
-                {format(d.start.connectorOption, { id: c.connectorId })}
-                {c.type ? ` · ${c.type}` : ''}
-                {c.powerKw ? ` · ${formatPowerKw(c.powerKw, intl)}` : ''}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      );
-
-    case 'plug':
-      return (
-        <Button type="button" variant="secondary" size="sm" onClick={onPlugged}>
-          {t.plugConfirm}
-        </Button>
-      );
-
-    case 'start':
-      return (
-        <Button
-          type="button"
-          onClick={onStart}
-          loading={busy}
-          size="sm"
-          disabled={!canStart}
-        >
-          {busy ? t.starting : t.startNow}
-        </Button>
-      );
-
-    case 'preparing':
-      return null;
-
-    case 'charging':
-      return (
-        <Button type="button" variant="danger" size="sm" onClick={onStop} loading={busy}>
-          {busy ? t.stopping : t.stopNow}
-        </Button>
-      );
-
-    case 'stopping':
-      return null;
-
-    case 'done':
-      return (
-        <div className="space-y-3">
-          {session && session.feeAmount != null && session.feeAmount > 0 && (
-            <FeeBreakdown session={session} intl={intl} />
-          )}
-          <div className="flex flex-wrap gap-2 items-center">
-            {session && (
-              <Button
-                type="button"
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
-                onClick={onOpenEbarimt}
-              >
-                И-Баримт харах / авах
-              </Button>
-            )}
-            {session && (
-              <Button type="button" size="sm" variant="secondary" onClick={onUnlock}>
-                {t.unlockNow}
-              </Button>
-            )}
-            {session && (
-              <Link
-                href="/account/sessions"
-                className="inline-flex h-9 items-center rounded-xl bg-surface-muted px-3 text-xs font-semibold text-foreground ring-1 ring-border transition hover:bg-surface"
-              >
-                {t.viewReceipt}
-              </Link>
-            )}
-            <Button type="button" variant="secondary" size="sm" onClick={onStartAnother}>
-              {t.startAnother}
-            </Button>
-          </div>
-        </div>
-      );
-
-    default:
-      return null;
+  if (connectors.length === 0) {
+    return <p className={cn('text-sm text-muted', className)}>{d.stations.noConnectors}</p>;
   }
+
+  return (
+    <ul className={cn('space-y-2', className)} role={onChoose ? 'radiogroup' : undefined} aria-label={d.stations.connectorsTitle}>
+      {connectors.map((c) => {
+        const isFree = free.some((f) => f.connectorId === c.connectorId);
+        const selectable = Boolean(onChoose) && isFree && !disabled;
+        const selected = c.connectorId === selectedId;
+        // Live readings outlive the session that produced them, so they are
+        // shown only while a transaction is actually running on the gun.
+        const live = LIVE_STATUSES.has(c.status) && Boolean(c.currentTransactionId);
+        const faultCode =
+          c.status === 'Faulted' && c.errorCode && c.errorCode !== 'NoError' ? c.errorCode : undefined;
+
+        const content = (
+          <>
+            <span
+              aria-hidden
+              className={cn(
+                'grid size-10 shrink-0 place-items-center rounded-xl text-sm font-semibold',
+                selected ? 'bg-brand text-brand-contrast' : 'bg-surface-muted text-foreground',
+              )}
+            >
+              {c.connectorId}
+            </span>
+            <span className="min-w-0 flex-1">
+              {c.connectorId === scannedId && (
+                <span className="block text-xs font-semibold text-brand-strong">
+                  {d.stations.scannedConnector}
+                </span>
+              )}
+              <span className="block text-sm font-semibold text-foreground">
+                <span className="sr-only">{format(d.stations.connectorN, { id: c.connectorId })}</span>
+                {c.type ?? d.stations.plugTypeMissing}
+                {c.powerKw ? ` · ${formatPowerKw(c.powerKw, intl)}` : ''}
+              </span>
+              {(live || c.availability === 'Inoperative' || faultCode) && (
+                <span className="mt-0.5 block text-xs text-muted">
+                  {live && c.lastPowerW !== undefined &&
+                    format(d.stations.nowPower, { power: formatPower(c.lastPowerW, intl) })}
+                  {live && c.lastSocPercent !== undefined &&
+                    ` · ${format(d.stations.battery, { percent: Math.round(c.lastSocPercent) })}`}
+                  {c.availability === 'Inoperative' && d.stations.outOfService}
+                  {faultCode && ` · ${faultCode}`}
+                </span>
+              )}
+            </span>
+            <Badge tone={connectorStatusTone(c.status)} className="shrink-0">
+              {connectorStatusLabel(c.status, locale)}
+            </Badge>
+            {selectable && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4 shrink-0 text-muted" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+              </svg>
+            )}
+          </>
+        );
+
+        const rowClass = cn(
+          'flex w-full items-center gap-3 rounded-xl p-3 text-left ring-1 transition',
+          selected ? 'bg-brand-soft ring-brand/40' : 'bg-surface-muted/40 ring-border',
+        );
+
+        return (
+          <li key={c.connectorId}>
+            {onChoose ? (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                disabled={!selectable}
+                onClick={() => onChoose(c.connectorId)}
+                className={cn(
+                  rowClass,
+                  selectable
+                    ? 'cursor-pointer hover:bg-brand-soft hover:ring-brand/40 focus-visible:outline-2 focus-visible:outline-brand'
+                    : 'cursor-not-allowed opacity-60',
+                )}
+              >
+                {content}
+              </button>
+            ) : (
+              <div className={rowClass}>{content}</div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function LiveReadout({
@@ -700,44 +798,47 @@ function LiveReadout({
       : undefined;
 
   return (
-    <div className="rounded-2xl bg-surface-muted/60 p-4 ring-1 ring-border">
-      <p className="text-xs font-medium text-muted">
-        {format(t.sessionId, { id: session.transactionId })}
-      </p>
-      <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Metric label={t.liveEnergy} value={formatKwh(session.energyKwh, intl)} strong />
-        <Metric label={t.livePower} value={formatPower(session.lastPowerW, intl)} strong />
-        <Metric
-          label={t.liveBattery}
-          value={session.lastSocPercent != null ? `${session.lastSocPercent}%` : '—'}
-        />
-        <Metric label={t.liveElapsed} value={formatDuration(session.startTimestamp, undefined, intl)} />
-        <Metric
-          label={t.liveCost}
-          value={estimate != null ? `≈ ${formatMoney(estimate, intl)}` : formatMoney(session.cost, intl)}
-        />
-        <Metric label={d.stations.price} value={formatTariff(tariffPerKwh, intl)} />
-      </dl>
-    </div>
+    <dl className="grid grid-cols-2 gap-3 rounded-2xl bg-surface-muted/60 p-4 ring-1 ring-border sm:grid-cols-3">
+      <Metric label={t.liveEnergy} value={formatKwh(session.energyKwh, intl)} strong />
+      <Metric label={t.livePower} value={formatPower(session.lastPowerW, intl)} strong />
+      <Metric
+        label={t.liveBattery}
+        value={session.lastSocPercent != null ? `${session.lastSocPercent}%` : '—'}
+      />
+      <Metric label={t.liveElapsed} value={formatDuration(session.startTimestamp, undefined, intl)} />
+      <Metric
+        label={t.liveCost}
+        value={estimate != null ? `≈ ${formatMoney(estimate, intl)}` : formatMoney(session.cost, intl)}
+      />
+    </dl>
   );
 }
 
-/** Energy cost, service fee and total of a finished session billed with a fee. */
-function FeeBreakdown({ session, intl }: { session: ChargingSession; intl: string }) {
+/** Energy, cost and — when a service fee applied — its breakdown. */
+function SessionSummary({ session, intl }: { session: ChargingSession; intl: string }) {
   const { d } = useI18n();
   const t = d.account.sessions;
+  const hasFee = session.feeAmount != null && session.feeAmount > 0;
 
   return (
-    <dl className="max-w-xs space-y-1 rounded-xl bg-surface-muted/60 p-3 text-xs ring-1 ring-border">
+    <dl className="max-w-sm space-y-1 rounded-xl bg-surface-muted/60 p-3 text-sm ring-1 ring-border">
       <div className="flex justify-between gap-4">
-        <dt className="text-muted">{t.energyCost}</dt>
-        <dd className="font-semibold text-foreground">{formatMoney(session.energyCost, intl)}</dd>
+        <dt className="text-muted">{d.flow.liveEnergy}</dt>
+        <dd className="font-semibold text-foreground">{formatKwh(session.energyKwh, intl)}</dd>
       </div>
-      <div className="flex justify-between gap-4">
-        <dt className="text-muted">{format(t.serviceFee, { percent: session.feePercent ?? '—' })}</dt>
-        <dd className="font-semibold text-foreground">{formatMoney(session.feeAmount, intl)}</dd>
-      </div>
-      <div className="flex justify-between gap-4 border-t border-border/50 pt-1">
+      {hasFee && (
+        <>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted">{t.energyCost}</dt>
+            <dd className="font-semibold text-foreground">{formatMoney(session.energyCost, intl)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted">{format(t.serviceFee, { percent: session.feePercent ?? '—' })}</dt>
+            <dd className="font-semibold text-foreground">{formatMoney(session.feeAmount, intl)}</dd>
+          </div>
+        </>
+      )}
+      <div className={cn('flex justify-between gap-4', hasFee && 'border-t border-border/50 pt-1')}>
         <dt className="text-muted">{t.total}</dt>
         <dd className="font-bold text-foreground">{formatMoney(session.cost, intl)}</dd>
       </div>

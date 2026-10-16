@@ -62,6 +62,7 @@ async function driverApi<T>(path: string): Promise<T> {
 
 /** The signed-in driver, or null. Deduplicated across one render. */
 export const getCurrentUser = cache(async (): Promise<PublicUser | null> => {
+  { const { mockMode, mockUser } = await import('@/lib/dev-mock-TEMP'); const m = mockMode((await cookies()).toString()); if (m) return mockUser(m); } // TEMP-MOCK
   if (!(await sessionCookie())) return null;
   try {
     return (await driverApi<{ user: PublicUser }>('/auth/me')).user;
@@ -106,7 +107,9 @@ export interface StationLoad {
 /** A station by either identifier; `station` is null for one that does not exist. */
 export async function getStation(id: string): Promise<StationLoad> {
   try {
-    return await driverApi<StationLoad>(`/stations/${encodeURIComponent(id)}`);
+    const r = await driverApi<StationLoad>(`/stations/${encodeURIComponent(id)}`);
+    { const { mockMode, mockStation } = await import('@/lib/dev-mock-TEMP'); const m = mockMode((await cookies()).toString()); if (m && r.station) return { ...r, station: mockStation(m, r.station) }; } // TEMP-MOCK
+    return r;
   } catch (err) {
     if ((err as DriverApiError).status === 404) return { station: null, remoteStartEnabled: false };
     throw err;

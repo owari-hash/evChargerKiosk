@@ -16,18 +16,16 @@ export const dynamic = 'force-dynamic';
 
 interface TariffData {
   stations: Station[];
-  demo: boolean;
-  warning?: string;
   failed: boolean;
 }
 
 async function loadTariffs(): Promise<TariffData> {
   try {
-    const { stations, demo, warning } = await listStations({ limit: 200 });
-    return { stations, demo, warning, failed: false };
+    const { stations } = await listStations({ limit: 200 });
+    return { stations, failed: false };
   } catch (err) {
     console.error('[pricing] could not load tariffs', err);
-    return { stations: [], demo: false, failed: true };
+    return { stations: [], failed: true };
   }
 }
 
@@ -62,16 +60,6 @@ export default async function PricingPage() {
               <div>
                 <dt className="font-semibold text-foreground">{d.pricing.perPointTitle}</dt>
                 <dd className="mt-1 text-muted">{d.pricing.perPointBody}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-foreground">{d.pricing.shownTitle}</dt>
-                <dd className="mt-1 text-muted">
-                  {d.pricing.shownBodyPrefix}{' '}
-                  <Link href="/stations" className="font-medium text-brand hover:underline">
-                    {d.stations.title}
-                  </Link>{' '}
-                  {d.pricing.shownBodySuffix}
-                </dd>
               </div>
               <div>
                 <dt className="font-semibold text-foreground">{d.pricing.recordedTitle}</dt>

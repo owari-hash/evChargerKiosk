@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Alert, ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
+import { ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { GuideReplayButton } from '@/components/spotlight-guide';
 import { buttonClass } from '@/components/ui/button';
 import { getCurrentUser } from '@/lib/driver-api';
@@ -111,9 +111,7 @@ export default async function HelpPage() {
             </CardHeader>
             <CardBody className="space-y-3 text-sm text-muted">
               <p>{d.help.contactBody}</p>
-              <Alert tone="warning" title={d.help.contactPlaceholderTitle}>
-                {d.help.contactPlaceholderBody}
-              </Alert>
+              <p>{d.help.contactPlaceholderBody}</p>
             </CardBody>
           </Card>
 
@@ -144,7 +142,7 @@ export default async function HelpPage() {
                 />
               ) : null}
               <ButtonLink href="/account/wallet" variant="secondary" size="md" className="w-full">
-                {d.wallet.title}
+                {d.account.nav.wallet}
               </ButtonLink>
               <ButtonLink href="/pricing" variant="secondary" size="md" className="w-full">
                 {d.help.howPricingWorks}

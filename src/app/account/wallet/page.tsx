@@ -8,9 +8,10 @@ import { getCurrentUser, getWallet } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 import type { Wallet, WalletConfig, WalletEntry } from '@/lib/types';
 
-export const metadata: Metadata = {
-  title: 'Хэтэвч',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getTranslations();
+  return { title: d.account.nav.wallet };
+}
 
 /** Never cache a balance — it changes the moment a session ends or a top-up lands. */
 export const dynamic = 'force-dynamic';

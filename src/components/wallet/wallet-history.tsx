@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
-import type { WalletEntry } from '@/lib/types';
-import type { ChargingSession } from '@/lib/types';
+import type { ChargingSession, WalletEntry } from '@/lib/types';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { format } from '@/components/i18n-provider';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';
@@ -35,58 +34,48 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
                 const credit = entry.amount > 0;
                 const eb = entry.ebarimt;
 
-                const dummySession: ChargingSession = {
-                  transactionId: entry.transactionId || Number(entry.id.replace(/\D/g, '').slice(0, 8)) || 1001,
-                  status: 'Completed',
-                  chargePointId: entry.chargePointId || 'CP-001',
-                  connectorId: entry.connectorId || 1,
-                  idTag: entry.idTag || 'DRIVER',
-                  startTimestamp: entry.createdAt,
-                  stopTimestamp: entry.createdAt,
-                  energyKwh: 0,
-                  cost: Math.abs(entry.amount),
-                  ebarimt: eb || {
-                    receiptId: `REC-${Date.now()}`,
-                    type: 'B2C_RECEIPT',
-                    qrData: `https://ebarimt.mn/qr/${Date.now()}`,
-                    lottery: `EB${Math.floor(10000000 + Math.random() * 90000000)}`,
-                    merchantTin: '37900846788',
-                    totalAmount: Math.abs(entry.amount),
-                    totalVAT: Math.round((Math.abs(entry.amount) - Math.abs(entry.amount) / 1.1) * 100) / 100,
-                    status: 'SUCCESS',
-                    issuedAt: entry.createdAt,
-                  },
-                };
+                // Only a receipt the PosAPI actually issued gets a button — a
+                // made-up lottery number or receipt id would pass as a real one.
+                const issued = !!eb?.receiptId && (eb.status === 'SUCCESS' || eb.status === 'REFUNDED');
+                const receiptSession: ChargingSession | null = issued
+                  ? {
+                      transactionId: entry.transactionId ?? 0,
+                      status: 'Completed',
+                      chargePointId: entry.chargePointId ?? '',
+                      connectorId: entry.connectorId ?? 0,
+                      idTag: entry.idTag ?? '',
+                      startTimestamp: entry.createdAt,
+                      stopTimestamp: entry.createdAt,
+                      energyKwh: 0,
+                      cost: Math.abs(entry.amount),
+                      ebarimt: eb,
+                    }
+                  : null;
 
                 return (
                   <li key={entry.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 hover:bg-surface-muted/30 transition">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {entry.description || d.wallet.history.type[entry.type]}
-                        </p>
-                        {eb && (
-                          <span className="inline-flex items-center rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand-strong ring-1 ring-brand/20">
-                            ✓ И-Баримт {eb.lottery ? `(${eb.lottery})` : ''}
-                          </span>
-                        )}
-                      </div>
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {entry.description || d.wallet.history.type[entry.type]}
+                      </p>
                       <p className="mt-1 text-xs text-muted">
-                        {d.wallet.history.type[entry.type]} ·{' '}
+                        {entry.description && `${d.wallet.history.type[entry.type]} · `}
                         {formatDateTime(entry.createdAt, intl)}
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="text-xs font-medium"
-                        onClick={() => setSelectedSession(dummySession)}
-                      >
-                        И-Баримт
-                      </Button>
+                      {receiptSession && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="text-xs font-medium"
+                          onClick={() => setSelectedSession(receiptSession)}
+                        >
+                          {d.account.ebarimt.viewButton}
+                        </Button>
+                      )}
 
                       <div className="text-right">
                         <p
