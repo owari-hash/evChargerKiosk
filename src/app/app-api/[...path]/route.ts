@@ -80,7 +80,6 @@ async function handler(req: NextRequest, ctx: Ctx): Promise<Response> {
   if (upstream.status === 204 || upstream.status === 205 || upstream.status === 304) {
     return new Response(null, { status: upstream.status, headers: out });
   }
-  { const { mockMode, mockLive } = await import('@/lib/dev-mock-TEMP'); const m = mockMode(req.headers.get('cookie')); if (m && path.at(-1) === 'live' && upstream.ok) return NextResponse.json(mockLive(m, await upstream.json()), { headers: out }); } // TEMP-MOCK
   return new Response(await upstream.arrayBuffer(), { status: upstream.status, headers: out });
 }
 
