@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
 import { Alert, Badge, Button, ButtonLink, Card } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
+import { GuestAuthFlow } from './guest-auth-flow';
+import { QuickPayModal } from './quick-pay-modal';
 import {
   noteStartRequested,
   registerChargingFlow,
@@ -149,6 +151,9 @@ export function ChargingFlow({
   const [error, setError] = useState<string | null>(null);
   const [staleFeed, setStaleFeed] = useState(false);
   const [showEbarimtModal, setShowEbarimtModal] = useState(false);
+  const [authed, setAuthed] = useState(signedIn);
+  const [tagged, setTagged] = useState(hasIdTag);
+  const [showQuickPay, setShowQuickPay] = useState(false);
 
   const free = freeConnectors(live.connectors);
 
@@ -179,8 +184,8 @@ export function ChargingFlow({
   const awaitingStation = requested && !active;
 
   const step = resolveStep({
-    signedIn,
-    hasIdTag,
+    signedIn: authed,
+    hasIdTag: tagged,
     plugged,
     requested: awaitingStation,
     session,
@@ -246,7 +251,12 @@ export function ChargingFlow({
         body: JSON.stringify({ connectorId: chosen.connectorId }),
       });
       const payload = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
-      if (!res.ok) throw new Error(payload.error ?? d.start.requestFailed);
+      if (!res.ok) {
+        if (res.status === 402 || payload.error?.includes('Хэтэвч')) {
+          setShowQuickPay(true);
+        }
+        throw new Error(payload.error ?? d.start.requestFailed);
+      }
       if (payload.status && payload.status !== 'Accepted') {
         throw new Error(format(d.start.rejectedBody, { status: payload.status }));
       }
@@ -371,11 +381,15 @@ export function ChargingFlow({
           )}
 
           {step === 'signin' && (
-            <ActionBlock title={t.stepSignIn} body={t.signInBody}>
-              <ButtonLink href={`/login?next=${encodeURIComponent(returnTo)}`}>
-                {d.start.signInCta}
-              </ButtonLink>
-            </ActionBlock>
+            <GuestAuthFlow
+              returnTo={returnTo}
+              onSuccess={() => {
+                setAuthed(true);
+                setTagged(true);
+                setError(null);
+                void refresh();
+              }}
+            />
           )}
 
           {step === 'tag' && (
@@ -428,6 +442,14 @@ export function ChargingFlow({
             >
               <Button type="button" onClick={() => void start()} loading={busy} disabled={offline}>
                 {busy ? t.starting : t.startNow}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowQuickPay(true)}
+                disabled={busy}
+              >
+                Хэтэвч цэнэглэх (QPay)
               </Button>
               <Button type="button" variant="ghost" onClick={chooseAnother} disabled={busy}>
                 {t.changeConnector}
@@ -515,6 +537,16 @@ export function ChargingFlow({
           }}
         />
       )}
+
+      <QuickPayModal
+        open={showQuickPay}
+        onClose={() => setShowQuickPay(false)}
+        onSuccess={() => {
+          setShowQuickPay(false);
+          setError(null);
+          void refresh();
+        }}
+      />
     </div>
   );
 }

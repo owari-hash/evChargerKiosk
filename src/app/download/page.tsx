@@ -140,12 +140,14 @@ function WebStrip({
   note,
   host,
   action,
+  href = '/stations',
 }: {
   id: string;
   name: string;
   note: string;
   host: string;
   action: string;
+  href?: string;
 }) {
   return (
     <section
@@ -168,11 +170,9 @@ function WebStrip({
         </div>
       </div>
 
-      {/* Relative, not the absolute address: on a kiosk or a staging build this
-          must land on the site being shown, not jump to the public domain. */}
       <Link
-        href="/"
-        className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-semibold text-brand ring-1 ring-brand/35 transition hover:bg-brand-soft"
+        href={href}
+        className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-brand px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand/90"
       >
         {action}
       </Link>

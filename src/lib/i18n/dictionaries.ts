@@ -809,8 +809,8 @@ export const en = {
     },
     web: {
       name: 'Web',
-      goToHomepage: 'Go to the homepage',
-      note: 'Nothing to install — find a charger and manage your account from any browser.',
+      goToHomepage: 'Charge directly',
+      note: 'No app needed — find a charger and start direct pay & charge from any browser.',
     },
     guide: {
       title: 'How it works',
@@ -1802,9 +1802,9 @@ export const mn: Dictionary = {
       note: 'Android 7.0 ба түүнээс дээш хувилбар шаардана.',
     },
     web: {
-      name: 'Вэб',
-      goToHomepage: 'Нүүр хуудас руу очих',
-      note: 'Татах шаардлагагүй — ямар ч хөтчөөс станц хайж, бүртгэлээ удирдана.',
+      name: 'Вэб хувилбар',
+      goToHomepage: 'Шууд цэнэглэх',
+      note: 'Апп татах шаардлагагүй — ямар ч хөтчөөс станцаа сонгон шууд төлж цэнэглэнэ.',
     },
     guide: {
       title: 'Хэрхэн ажилладаг вэ',
