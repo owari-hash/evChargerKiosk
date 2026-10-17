@@ -142,11 +142,18 @@ export function ChargingFlow({
   /**
    * A finished session the driver has acknowledged.
    *
-   * The API keeps returning their most recent session forever, and the step
-   * machine treats any session as "done". Dismissing it locally is what lets
-   * them start another charge.
+   * The API keeps returning their most recent session for up to 15 mins.
+   * Dismissing it locally (stored in sessionStorage) lets them start another charge immediately.
    */
-  const [dismissedSessionId, setDismissedSessionId] = useState<number | null>(null);
+  const [dismissedSessionId, setDismissedSessionId] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem(`dismissed_session_${stationId}`);
+      return stored ? Number(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staleFeed, setStaleFeed] = useState(false);
@@ -154,6 +161,24 @@ export function ChargingFlow({
   const [authed, setAuthed] = useState(signedIn);
   const [tagged, setTagged] = useState(hasIdTag);
   const [showQuickPay, setShowQuickPay] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  const fetchWallet = useCallback(async () => {
+    if (!authed) return;
+    try {
+      const res = await fetch('/app-api/wallet?limit=1', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.wallet?.balance !== undefined) {
+          setWalletBalance(data.wallet.balance);
+        }
+      }
+    } catch {}
+  }, [authed]);
+
+  useEffect(() => {
+    void fetchWallet();
+  }, [fetchWallet]);
 
   const free = freeConnectors(live.connectors);
 
@@ -173,8 +198,21 @@ export function ChargingFlow({
   // A chosen gun that someone else has since taken no longer counts.
   const chosen = free.find((c) => String(c.connectorId) === connectorId);
 
+  // A completed session older than 15 minutes must not block starting a new session.
+  const isRecentStop = (s: ChargingSession | null) => {
+    if (!s) return false;
+    if (s.status === 'Active') return true;
+    if (!s.stopTimestamp) return true;
+    return Date.now() - new Date(s.stopTimestamp).getTime() < 15 * 60 * 1000;
+  };
+
+  const rawSession = live.session;
   const session =
-    live.session && live.session.transactionId === dismissedSessionId ? null : live.session;
+    rawSession &&
+    rawSession.transactionId !== dismissedSessionId &&
+    isRecentStop(rawSession)
+      ? rawSession
+      : null;
   const active = session?.status === 'Active' ? session : null;
 
   const sessionConnector = active
@@ -242,6 +280,11 @@ export function ChargingFlow({
 
   async function start() {
     if (!chosen) return;
+    if (walletBalance !== null && walletBalance < 1000) {
+      setShowQuickPay(true);
+      setError('Хэтэвчний үлдэгдэл хүрэлцэхгүй байна (хамгийн багадаа 1,000₮). Цэнэглэхээсээ өмнө хэтэвчээ цэнэглэнэ үү.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -290,7 +333,12 @@ export function ChargingFlow({
 
   /** Clears the finished session so the driver can charge again. */
   function startAnother() {
-    if (live.session) setDismissedSessionId(live.session.transactionId);
+    if (live.session) {
+      setDismissedSessionId(live.session.transactionId);
+      try {
+        sessionStorage.setItem(`dismissed_session_${stationId}`, String(live.session.transactionId));
+      } catch {}
+    }
     setPlugged(false);
     setRequested(false);
     setConnectorId('');
@@ -440,6 +488,25 @@ export function ChargingFlow({
               title={t.stepCharge}
               body={format(t.startBody, { connector: chosenLabel })}
             >
+              {walletBalance !== null && (
+                <div className="mb-3 rounded-lg border border-border/50 bg-background/50 p-2.5 text-xs">
+                  <span className="text-muted">Хэтэвчний үлдэгдэл: </span>
+                  <span
+                    className={
+                      walletBalance < 1000
+                        ? 'font-bold text-warning'
+                        : 'font-bold text-foreground'
+                    }
+                  >
+                    {walletBalance.toLocaleString('mn-MN')}₮
+                  </span>
+                  {walletBalance < 1000 && (
+                    <span className="ml-1.5 font-medium text-warning">
+                      (Цэнэглэлт эхлүүлэхэд доод тал нь 1,000₮ шаардлагатай)
+                    </span>
+                  )}
+                </div>
+              )}
               <Button type="button" onClick={() => void start()} loading={busy} disabled={offline}>
                 {busy ? t.starting : t.startNow}
               </Button>
@@ -541,7 +608,8 @@ export function ChargingFlow({
       <QuickPayModal
         open={showQuickPay}
         onClose={() => setShowQuickPay(false)}
-        onSuccess={() => {
+        onSuccess={(newBalance) => {
+          setWalletBalance(newBalance);
           setShowQuickPay(false);
           setError(null);
           void refresh();
