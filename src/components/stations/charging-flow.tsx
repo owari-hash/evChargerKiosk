@@ -198,19 +198,11 @@ export function ChargingFlow({
   // A chosen gun that someone else has since taken no longer counts.
   const chosen = free.find((c) => String(c.connectorId) === connectorId);
 
-  // A completed session older than 15 minutes must not block starting a new session.
-  const isRecentStop = (s: ChargingSession | null) => {
-    if (!s) return false;
-    if (s.status === 'Active') return true;
-    if (!s.stopTimestamp) return true;
-    return Date.now() - new Date(s.stopTimestamp).getTime() < 15 * 60 * 1000;
-  };
-
   const rawSession = live.session;
   const session =
     rawSession &&
     rawSession.transactionId !== dismissedSessionId &&
-    isRecentStop(rawSession)
+    rawSession.status === 'Active'
       ? rawSession
       : null;
   const active = session?.status === 'Active' ? session : null;
