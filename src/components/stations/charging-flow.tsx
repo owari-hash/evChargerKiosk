@@ -180,6 +180,16 @@ export function ChargingFlow({
     void fetchWallet();
   }, [fetchWallet]);
 
+  useEffect(() => {
+    const onFocus = () => void fetchWallet();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [fetchWallet]);
+
   const free = freeConnectors(live.connectors);
 
   /**
@@ -231,6 +241,10 @@ export function ChargingFlow({
     hasConnector: Boolean(chosen),
   });
 
+  useEffect(() => {
+    void fetchWallet();
+  }, [step, fetchWallet]);
+
   const scannedUnavailable =
     initialConnectorId !== undefined &&
     step === 'connector' &&
@@ -264,7 +278,8 @@ export function ChargingFlow({
     } catch {
       setStaleFeed(true);
     }
-  }, [stationId, setLive]);
+    void fetchWallet();
+  }, [stationId, setLive, fetchWallet]);
 
   useEffect(() => {
     const interval = awaitingStation ? STARTING_MS : AUTOMATIC.has(step) ? LIVE_MS : IDLE_MS;
@@ -349,6 +364,7 @@ export function ChargingFlow({
     setRequested(false);
     setConnectorId('');
     setError(null);
+    void fetchWallet();
     void refresh();
   }
 
@@ -491,44 +507,111 @@ export function ChargingFlow({
           )}
 
           {step === 'start' && (
-            <ActionBlock
-              title={t.stepCharge}
-              body={format(t.startBody, { connector: chosenLabel })}
-            >
-              {walletBalance !== null && (
-                <div className="mb-3 rounded-lg border border-border/50 bg-background/50 p-2.5 text-xs">
-                  <span className="text-muted">Хэтэвчний үлдэгдэл: </span>
-                  <span
-                    className={
-                      walletBalance < 1000
-                        ? 'font-bold text-warning'
-                        : 'font-bold text-foreground'
-                    }
-                  >
-                    {walletBalance.toLocaleString('mn-MN')}₮
-                  </span>
-                  {walletBalance < 1000 && (
-                    <span className="ml-1.5 font-medium text-warning">
-                      (Цэнэглэлт эхлүүлэхэд доод тал нь 1,000₮ шаардлагатай)
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-foreground">{t.stepCharge}</h2>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {format(t.startBody, { connector: chosenLabel })}
+                  </p>
+                </div>
+                {walletBalance !== null && (
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-surface-muted/60 px-3 py-1 text-xs shadow-xs">
+                    <span className="text-muted">Хэтэвчний үлдэгдэл:</span>
+                    <span
+                      className={
+                        walletBalance < 1000
+                          ? 'font-bold text-amber-500'
+                          : 'font-bold text-foreground'
+                      }
+                    >
+                      {walletBalance.toLocaleString('mn-MN')}₮
                     </span>
-                  )}
+                    {walletBalance < 1000 && (
+                      <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                        (Доод тал нь 1,000₮)
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {ordered.length > 1 && (
+                <div className="rounded-xl border border-border/50 bg-surface-muted/20 p-2.5 sm:p-3">
+                  <div className="mb-2 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-foreground">Хошуу сонгох:</span>
+                    <span className="text-muted">{free.length} бэлэн</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ordered.map((c) => {
+                      const isSelected = c.connectorId === chosen?.connectorId;
+                      const isFree = free.some((f) => f.connectorId === c.connectorId);
+                      return (
+                        <button
+                          key={c.connectorId}
+                          type="button"
+                          disabled={!isFree || busy}
+                          onClick={() => choose(c.connectorId)}
+                          className={cn(
+                            'flex items-center justify-between gap-2 rounded-lg p-2.5 text-left text-xs font-medium transition ring-1',
+                            isSelected
+                              ? 'bg-brand text-brand-contrast ring-brand'
+                              : isFree
+                                ? 'bg-background hover:bg-surface-muted ring-border text-foreground'
+                                : 'bg-surface-muted/30 opacity-50 ring-border cursor-not-allowed text-muted',
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span
+                              className={cn(
+                                'size-2 shrink-0 rounded-full',
+                                isSelected ? 'bg-white' : isFree ? 'bg-emerald-500' : 'bg-muted',
+                              )}
+                            />
+                            <span className="font-semibold">Хошуу {c.connectorId}</span>
+                            {c.powerKw ? <span className="opacity-80">· {c.powerKw}kW</span> : null}
+                          </div>
+                          {isSelected && (
+                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider">
+                              Сонгосон
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
-              <Button type="button" onClick={() => void start()} loading={busy} disabled={offline}>
-                {busy ? t.starting : t.startNow}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setShowQuickPay(true)}
-                disabled={busy}
-              >
-                Хэтэвч цэнэглэх (QPay)
-              </Button>
-              <Button type="button" variant="ghost" onClick={chooseAnother} disabled={busy}>
-                {t.changeConnector}
-              </Button>
-            </ActionBlock>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <Button
+                  type="button"
+                  className="h-11 sm:h-12 w-full text-xs sm:text-sm font-semibold justify-center"
+                  onClick={() => void start()}
+                  loading={busy}
+                  disabled={offline}
+                >
+                  {busy ? t.starting : t.startNow}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-11 sm:h-12 w-full text-xs sm:text-sm font-semibold justify-center"
+                  onClick={() => setShowQuickPay(true)}
+                  disabled={busy}
+                >
+                  Хэтэвч цэнэглэх (QPay)
+                </Button>
+              </div>
+
+              {ordered.length <= 1 && (
+                <div className="flex justify-end pt-0.5">
+                  <Button type="button" variant="ghost" size="sm" onClick={chooseAnother} disabled={busy}>
+                    {t.changeConnector}
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
 
           {step === 'preparing' && <StatusLine title={t.waitingTitle} body={t.waitingBody} pending />}
@@ -591,13 +674,19 @@ export function ChargingFlow({
 
       {step !== 'connector' && (
         <Card className="p-4 sm:p-5">
-          <h2 className="text-base font-semibold text-foreground">{t.gunsTitle}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-foreground">{t.gunsTitle}</h2>
+            {!active && free.length > 1 && (
+              <span className="text-xs text-muted">Хошуу дээр дарж сонгох боломжтой</span>
+            )}
+          </div>
           <ConnectorPicker
             className="mt-4"
             connectors={ordered}
             free={free}
             selectedId={chosen?.connectorId ?? active?.connectorId}
             scannedId={initialConnectorId}
+            onChoose={!active && !busy ? choose : undefined}
           />
         </Card>
       )}
