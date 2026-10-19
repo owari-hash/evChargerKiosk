@@ -563,7 +563,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           <div className="border-t border-border pt-4">
             <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
             <p className="mt-1 text-xs text-muted">{d.account.profile.ebarimtHint}</p>
-            <div className="mt-3 max-w-sm">
+            <div className="mt-3 max-w-sm space-y-2">
               <Field
                 label={d.account.profile.ebarimtCustomerNoLabel}
                 htmlFor="profile-ebarimt-customer-no"
@@ -588,6 +588,40 @@ export function ProfileForm({ user }: ProfileFormProps) {
                   }}
                 />
               </Field>
+
+              {(() => {
+                const phone8 = (account.phone || '').replace(/\D/g, '').slice(-8);
+                const isPhoneMatch = phone8.length === 8 && ebarimtCustomerNo === phone8;
+
+                if (isPhoneMatch) {
+                  return (
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-brand-strong">
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                      </svg>
+                      <span>Таны баталгаажсан утасны дугаартай таарч байна (Бодит бүртгэл)</span>
+                    </div>
+                  );
+                }
+
+                if (phone8.length === 8) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        touched();
+                        setEbarimtCustomerNo(phone8);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs text-brand hover:underline"
+                    >
+                      <span>💡 Баталгаажсан дугаараа ашиглах:</span>
+                      <span className="font-semibold">{phone8}</span>
+                    </button>
+                  );
+                }
+
+                return null;
+              })()}
             </div>
           </div>
 
