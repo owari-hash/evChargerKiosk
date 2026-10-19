@@ -494,8 +494,7 @@ export const en = {
     localOnlyBody:
       'This network starts sessions on the unit. Hold your charge tag against the reader and plug in — this page then follows along.',
     plugConfirm: 'Confirm',
-    plugNotDetected:
-      "The station does not see a cable on this connector yet. Plug it in firmly, then try again.",
+    plugNotDetected: 'Please check your connection again.',
     refreshFailed: 'Live updates paused — reconnecting…',
     viewReceipt: 'See this session',
     unlockNow: 'Release the cable',
@@ -508,7 +507,7 @@ export const en = {
   },
 
   start: {
-    couldNotStartTitle: 'Could not start',
+    couldNotStartTitle: 'Failed',
     requestFailed: 'The request could not be sent',
     signInCta: 'Sign in to start',
     connectorOption: 'Connector {id}',
@@ -1488,8 +1487,7 @@ export const mn: Dictionary = {
     localOnlyBody:
       'Энэ сүлжээнд цэнэглэлтийг станц дээр нь эхлүүлдэг. Картаа уншуулаад хошуугаа залгахад энэ хуудас өөрөө шинэчлэгдэнэ.',
     plugConfirm: 'Баталгаажуулах',
-    plugNotDetected:
-      'Станц энэ хошуунд залгалт мэдрэхгүй байна. Хошуугаа бататгаж залгаад дахин оролдоно уу.',
+    plugNotDetected: 'Та холболтоо дахин шалгана уу',
     refreshFailed: 'Шууд мэдээлэл түр тасарлаа — дахин холбогдож байна…',
     viewReceipt: 'Энэ цэнэглэлтийг харах',
     unlockNow: 'Хошуу сугалах',
@@ -1502,7 +1500,7 @@ export const mn: Dictionary = {
   },
 
   start: {
-    couldNotStartTitle: 'Эхлүүлж чадсангүй',
+    couldNotStartTitle: 'Амжилтгүй',
     requestFailed: 'Хүсэлтийг илгээж чадсангүй',
     signInCta: 'Нэвтэрч эхлүүлэх',
     connectorOption: 'Хошуу {id}',
