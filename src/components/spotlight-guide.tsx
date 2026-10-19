@@ -88,27 +88,13 @@ function resolveSteps(): { key: StepKey; element: Element }[] {
   return found;
 }
 
-/** Starts the guide from anywhere: right away inside the account area, or after navigating there. */
+/** Starts the guide from anywhere: disabled per operator requirements. */
 export function useStartGuide(): () => void {
-  const router = useRouter();
-  const pathname = usePathname();
-  return useCallback(() => {
-    if (isInAccount(pathname)) {
-      window.dispatchEvent(new Event(START_EVENT));
-    } else {
-      writeSession(REPLAY_FLAG, '1');
-      router.push(GUIDE_HOME);
-    }
-  }, [pathname, router]);
+  return useCallback(() => {}, []);
 }
 
-export function GuideReplayButton({ className, label }: { className?: string; label: string }) {
-  const startGuide = useStartGuide();
-  return (
-    <button type="button" onClick={startGuide} className={className}>
-      {label}
-    </button>
-  );
+export function GuideReplayButton(_props: { className?: string; label: string }) {
+  return null;
 }
 
 /** A pulsing ring kept over the highlighted element; a fixed overlay, so no ancestor can clip it. */
@@ -251,7 +237,11 @@ function renderCard({ popover, driver, index, total, copy, stepKey, mode, dontSh
   requestAnimationFrame(() => next.focus({ preventScroll: true }));
 }
 
-export function SpotlightGuide({ signedIn, pending }: { signedIn: boolean; pending: boolean }) {
+export function SpotlightGuide({ signedIn: _signedIn, pending: _pending }: { signedIn: boolean; pending: boolean }) {
+  return null;
+}
+
+function _DisabledSpotlightGuide({ signedIn, pending }: { signedIn: boolean; pending: boolean }) {
   const { d } = useI18n();
   const router = useRouter();
   const pathname = usePathname();

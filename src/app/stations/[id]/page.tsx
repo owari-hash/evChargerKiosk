@@ -82,26 +82,27 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   ].filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-5 sm:py-8">
-      <Link
-        href="/stations"
-        className="inline-flex items-center justify-center size-9 rounded-xl bg-surface-muted/70 ring-1 ring-border text-muted transition hover:text-brand hover:bg-brand/10 hover:ring-brand/30"
-        aria-label={d.stations.allChargers}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-      </Link>
-
-      <header className="mt-3">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl min-w-0 flex-1 break-words">
-            {station.name}
-          </h1>
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6">
+      <header className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Link
+              href="/stations"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted/70 ring-1 ring-border text-muted transition hover:text-brand hover:bg-brand/10 hover:ring-brand/30 active:scale-95"
+              aria-label={d.stations.allChargers}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="size-5" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
+              {station.name}
+            </h1>
+          </div>
           {directions && (
             <a
               href={directions}
-              className="mt-1 inline-flex shrink-0 items-center justify-center size-9 rounded-xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20 active:scale-95"
               aria-label={d.stations.directions}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
@@ -110,11 +111,9 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
             </a>
           )}
         </div>
-        <p className="mt-1 text-sm text-muted break-words">
-          {station.address || d.stations.addressMissing}
-        </p>
+
         {facts.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {facts.map((fact) => (
               <span
                 key={fact}

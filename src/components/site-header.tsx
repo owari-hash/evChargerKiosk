@@ -12,7 +12,6 @@ import { LocaleSwitcher } from './locale-switcher';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
-import { useStartGuide } from './spotlight-guide';
 import { buttonClass } from './ui/button';
 import { useSlidingIndicator } from './ui/use-sliding-indicator';
 
@@ -22,7 +21,6 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const startGuide = useStartGuide();
 
   const nav = [
     { href: '/', label: d.nav.home },
@@ -164,16 +162,6 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
                   >
                     {d.common.myAccount}
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      startGuide();
-                    }}
-                    className={buttonClass('ghost', 'md')}
-                  >
-                    {d.guide.menuItem}
-                  </button>
                   <button
                     type="button"
                     onClick={signOut}

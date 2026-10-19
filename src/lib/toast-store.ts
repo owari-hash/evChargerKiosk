@@ -6,7 +6,12 @@
  * drawing on top of each other at the same fixed position.
  */
 
-export type ToastKind = 'wallet-in' | 'wallet-out' | 'session-started' | 'session-finished';
+export type ToastKind =
+  | 'wallet-in'
+  | 'wallet-out'
+  | 'session-started'
+  | 'session-finished'
+  | 'announcement';
 
 export interface Toast {
   id: string;

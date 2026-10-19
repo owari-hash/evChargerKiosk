@@ -588,11 +588,26 @@ export function ChargingFlow({
 
           {step === 'charging' && active && (
             <div className="space-y-4">
-              <StatusLine title={t.chargingTitle} body={t.chargingBody} />
+              <div className="flex items-center justify-between gap-3">
+                <StatusLine title={t.chargingTitle} pending />
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  className="!size-10 !p-0 shrink-0 rounded-xl"
+                  onClick={() => void stop()}
+                  loading={busy}
+                  aria-label={t.stopNow}
+                  title={t.stopNow}
+                >
+                  {!busy && (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden>
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                  )}
+                </Button>
+              </div>
               <LiveReadout session={active} intl={intl} tariffPerKwh={live.tariffPerKwh} />
-              <Button type="button" variant="danger" onClick={() => void stop()} loading={busy}>
-                {busy ? t.stopping : t.stopNow}
-              </Button>
             </div>
           )}
 
@@ -807,19 +822,20 @@ function ActionBlock({
   );
 }
 
-function StatusLine({ title, body, pending = false }: { title: string; body: string; pending?: boolean }) {
+function StatusLine({ title, body, pending = false }: { title: string; body?: string; pending?: boolean }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className={cn('flex gap-3', body ? 'items-start' : 'items-center')}>
       <span
         aria-hidden
         className={cn(
-          'mt-1 size-3 shrink-0 rounded-full bg-brand',
+          'size-3 shrink-0 rounded-full bg-brand',
+          body && 'mt-1',
           pending && 'animate-pulse',
         )}
       />
       <div className="min-w-0" role="status">
         <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-muted">{body}</p>
+        {body && <p className="mt-1 text-sm leading-6 text-muted">{body}</p>}
       </div>
     </div>
   );

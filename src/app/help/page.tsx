@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
-import { GuideReplayButton } from '@/components/spotlight-guide';
 import { buttonClass } from '@/components/ui/button';
 import { getCurrentUser } from '@/lib/driver-api';
 import { publicEnv } from '@/lib/env';
@@ -134,13 +133,6 @@ export default async function HelpPage() {
               <CardTitle>{d.help.moreTitle}</CardTitle>
             </CardHeader>
             <CardBody className="flex flex-1 flex-col justify-center space-y-2">
-              {/* The guide walks the account area, so it is offered to signed-in drivers only. */}
-              {user ? (
-                <GuideReplayButton
-                  label={d.guide.replay}
-                  className={buttonClass('secondary', 'md', 'w-full')}
-                />
-              ) : null}
               <ButtonLink href="/account/wallet" variant="secondary" size="md" className="w-full">
                 {d.account.nav.wallet}
               </ButtonLink>
