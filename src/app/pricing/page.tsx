@@ -6,6 +6,15 @@ import { format, getTranslations } from '@/lib/i18n';
 import type { Station } from '@/lib/types';
 import { formatMoney, formatPowerKw, intlLocale } from '@/lib/utils';
 
+/** Returns the base tariff per kWh without the service fee markup. */
+function stationBaseTariff(station: Station): number | undefined {
+  if (station.baseTariffPerKwh !== undefined) return station.baseTariffPerKwh;
+  if (station.tariffPerKwh === undefined) return undefined;
+  if (station.feePercent)
+    return Math.round(station.tariffPerKwh / (1 + station.feePercent / 100));
+  return station.tariffPerKwh;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getTranslations();
   return { title: d.pricing.metaTitle, description: d.pricing.metaDescription };
@@ -106,7 +115,9 @@ export default async function PricingPage() {
                     </div>
                     <div className="shrink-0 text-right">
                       <span className="text-sm font-bold text-foreground block">
-                        {formatMoney(station.tariffPerKwh, intl, 2)}
+                        {stationBaseTariff(station) !== undefined
+                          ? `${stationBaseTariff(station)}₮`
+                          : '—'}
                       </span>
                       {station.maxPowerKw ? (
                         <span className="text-xs text-muted font-medium mt-0.5 block">
@@ -164,7 +175,9 @@ export default async function PricingPage() {
                           {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
-                          {formatMoney(station.tariffPerKwh, intl, 2)}
+                          {stationBaseTariff(station) !== undefined
+                            ? `${stationBaseTariff(station)}₮`
+                            : '—'}
                         </td>
                       </tr>
                     ))}

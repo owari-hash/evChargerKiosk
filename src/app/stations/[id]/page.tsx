@@ -66,13 +66,19 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   const user = await getCurrentUser();
   const directions = directionsUrl(station);
 
+  const baseTariff =
+    station.baseTariffPerKwh ??
+    (station.tariffPerKwh !== undefined && station.feePercent
+      ? Math.round(station.tariffPerKwh / (1 + station.feePercent / 100))
+      : station.tariffPerKwh);
+
   const facts = [
     station.maxPowerKw
       ? format(d.stations.upToPower, { power: formatPowerKw(station.maxPowerKw, intl) })
       : undefined,
-    station.tariffPerKwh === undefined
+    baseTariff === undefined
       ? undefined
-      : format(d.stations.perKwh, { price: formatMoney(station.tariffPerKwh, intl, 2) }),
+      : format(d.stations.perKwh, { price: `${baseTariff}₮` }),
   ].filter(Boolean);
 
   return (

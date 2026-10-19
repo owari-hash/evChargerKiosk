@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Field, Input } from '@/components/ui';
 
 interface GuestAuthFlowProps {
@@ -16,6 +16,29 @@ export function GuestAuthFlow({ returnTo, onSuccess }: GuestAuthFlowProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCountdown = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCountdown(60);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          timerRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const cleanPhone = phone.replace(/[\s\-]/g, '');
 
@@ -47,6 +70,7 @@ export function GuestAuthFlow({ returnTo, onSuccess }: GuestAuthFlowProps) {
       }
 
       setStep('code');
+      startCountdown();
       if (data.devCode) {
         setDevCode(data.devCode);
         setCode(data.devCode);
@@ -200,10 +224,10 @@ export function GuestAuthFlow({ returnTo, onSuccess }: GuestAuthFlowProps) {
               type="button"
               variant="ghost"
               onClick={() => void handleSendCode()}
-              disabled={loading}
+              disabled={loading || countdown > 0}
               className="text-xs text-muted"
             >
-              Код дахин илгээх
+              {countdown > 0 ? `Код дахин илгээх (${countdown}с)` : 'Код дахин илгээх'}
             </Button>
           </div>
         </form>
