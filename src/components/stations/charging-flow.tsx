@@ -156,6 +156,8 @@ export function ChargingFlow({
   const [showQuickPay, setShowQuickPay] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isInternal, setIsInternal] = useState(false);
+  const [minStartBalance, setMinStartBalance] = useState<number>(1000);
+  const [requireBalanceToStart, setRequireBalanceToStart] = useState(false);
 
   const fetchWallet = useCallback(async () => {
     if (!authed) return;
@@ -168,6 +170,12 @@ export function ChargingFlow({
         }
         if (data?.isInternal || data?.wallet?.isInternal) {
           setIsInternal(true);
+        }
+        if (typeof data?.config?.minStartBalance === 'number') {
+          setMinStartBalance(data.config.minStartBalance);
+        }
+        if (typeof data?.config?.requireBalanceToStart === 'boolean') {
+          setRequireBalanceToStart(data.config.requireBalanceToStart);
         }
       }
     } catch {}
@@ -298,9 +306,9 @@ export function ChargingFlow({
 
   async function start() {
     if (!chosen) return;
-    if (!isInternal && walletBalance !== null && walletBalance < 1000) {
+    if (!isInternal && requireBalanceToStart && walletBalance !== null && walletBalance < minStartBalance) {
       setShowQuickPay(true);
-      setError('Хэтэвчний үлдэгдэл хүрэлцэхгүй байна (хамгийн багадаа 1,000₮). Цэнэглэхээсээ өмнө хэтэвчээ цэнэглэнэ үү.');
+      setError(`Хэтэвчний үлдэгдэл хүрэлцэхгүй байна (хамгийн багадаа ${minStartBalance.toLocaleString('mn-MN')}₮). Цэнэглэхээсээ өмнө хэтэвчээ цэнэглэнэ үү.`);
       return;
     }
     setBusy(true);
@@ -337,8 +345,11 @@ export function ChargingFlow({
    * The driver says the cable is in; this checks it against what the station
    * itself is reporting. A connector the station still calls `Available` has
    * not seen a cable, and Start would just be refused a step later.
+   *
+   * Once the cable is confirmed, charging starts immediately — there is no
+   * separate «Цэнэглэлт эхлүүлэх» step. The confirmation IS the start trigger.
    */
-  function confirmPlugged() {
+  async function confirmPlugged() {
     const looksPlugged =
       chosen != null && chosen.status !== 'Available';
     if (!looksPlugged) {
@@ -346,7 +357,10 @@ export function ChargingFlow({
       return;
     }
     setError(null);
+    // Mark as plugged so resolveStep moves to 'start', then fire start()
+    // immediately — the driver already confirmed; no second button needed.
     setPlugged(true);
+    await start();
   }
 
   /** Clears the finished session so the driver can charge again. */
@@ -511,16 +525,16 @@ export function ChargingFlow({
                     <span className="text-muted">Хэтэвчний үлдэгдэл:</span>
                     <span
                       className={
-                        walletBalance < 1000
+                        requireBalanceToStart && walletBalance < minStartBalance
                           ? 'font-bold text-amber-500'
                           : 'font-bold text-foreground'
                       }
                     >
                       {walletBalance.toLocaleString('mn-MN')}₮
                     </span>
-                    {walletBalance < 1000 && (
+                    {requireBalanceToStart && walletBalance < minStartBalance && (
                       <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                        (Доод тал нь 1,000₮)
+                        (Доод тал нь {minStartBalance.toLocaleString('mn-MN')}₮)
                       </span>
                     )}
                   </div>
