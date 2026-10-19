@@ -26,15 +26,22 @@ const BUTTON = 56;
 /** Movement past this many px turns a press into a drag, not a tap. */
 const DRAG_SLOP = 6;
 
-const DEFAULT_DOCK = JSON.stringify({ side: 'right', bottom: EDGE } satisfies Dock);
+/** Returns the default dock position — 35% up from the bottom on the right side,
+ *  so the button spawns roughly in the centre-right of the viewport, matching
+ *  the position shown on mobile. Falls back to 245px on the server. */
+function getDefaultDock(): Dock {
+  const h = typeof window !== 'undefined' ? window.innerHeight : 700;
+  return { side: 'right', bottom: Math.round(h * 0.35) };
+}
+
 const dockListeners = new Set<() => void>();
 
 /** The stored dock as a string, so the snapshot is stable between reads. */
 function readDock(): string {
   try {
-    return window.localStorage.getItem(DOCK_KEY) ?? DEFAULT_DOCK;
+    return window.localStorage.getItem(DOCK_KEY) ?? JSON.stringify(getDefaultDock());
   } catch {
-    return DEFAULT_DOCK;
+    return JSON.stringify(getDefaultDock());
   }
 }
 
@@ -50,9 +57,9 @@ function parseDock(raw: string): Dock {
       return { side: parsed.side, bottom: parsed.bottom };
     }
   } catch {
-    // Unreadable value: fall back to the default corner.
+    // Unreadable value: fall back to the default position.
   }
-  return JSON.parse(DEFAULT_DOCK) as Dock;
+  return getDefaultDock();
 }
 
 function saveDock(dock: Dock): void {
@@ -111,7 +118,7 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
 
   // The launcher can be dragged out of the way of page content (it sat on the
   // footer links on phones) and snaps to the nearer side edge when let go.
-  const dock = parseDock(useSyncExternalStore(subscribeDock, readDock, () => DEFAULT_DOCK));
+  const dock = parseDock(useSyncExternalStore(subscribeDock, readDock, () => JSON.stringify(getDefaultDock())));
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const pressRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 

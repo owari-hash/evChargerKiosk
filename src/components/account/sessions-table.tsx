@@ -326,7 +326,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     <span suppressHydrationWarning className="block font-medium text-foreground text-xs sm:text-sm">
                       {formatDateTime(session.startTimestamp)}
                     </span>
-                    <span suppressHydrationWarning className="mt-0.5 block text-xs text-muted">
+                    <span suppressHydrationWarning className="mt-0.5 block text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       ⏱ {duration(session)}
                     </span>
                   </td>
