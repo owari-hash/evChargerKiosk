@@ -276,22 +276,22 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           <caption className="sr-only">{d.account.sessions.caption}</caption>
           <thead className="border-b border-border/80 bg-surface-muted/50">
             <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <th scope="col" className="px-4 py-3 text-left">
+              <th scope="col" className="px-4 py-3 text-center">
                 {d.account.sessions.station}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-left">
+              <th scope="col" className="px-3.5 py-3 text-center">
                 {d.account.sessions.started}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-left">
+              <th scope="col" className="px-3.5 py-3 text-center">
                 {d.account.sessions.energy}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-left">
+              <th scope="col" className="px-3.5 py-3 text-center">
                 {d.account.sessions.cost}
               </th>
               <th scope="col" className="px-3.5 py-3 text-center">
                 {d.account.sessions.status}
               </th>
-              <th scope="col" className="px-4 py-3 text-right">
+              <th scope="col" className="px-4 py-3 text-center">
                 <span className="sr-only">{d.account.sessions.actions}</span>
               </th>
             </tr>
@@ -304,7 +304,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
               return (
                 <tr
                   key={session.transactionId}
-                  className="transition-colors hover:bg-surface-muted/30"
+                  className="group transition-colors hover:bg-surface-muted/30"
                 >
                   {/* Station & Connector */}
                   <td className="px-4 py-3.5 align-middle">
@@ -315,7 +315,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     >
                       {session.stationName ?? session.chargePointId}
                     </Link>
-                    <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted">
+                    <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <span className="size-1.5 rounded-full bg-brand/60" />
                       {format(d.account.sessions.connector, { id: session.connectorId })}
                     </span>
@@ -349,7 +349,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                       {formatMoney(session.cost)}
                     </span>
                     {session.feeAmount && session.feeAmount > 0 ? (
-                      <span className="mt-0.5 block text-[11px] leading-tight text-muted">
+                      <span className="mt-0.5 block text-[11px] leading-tight text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                         {d.account.sessions.energyCost}: {formatMoney(session.energyCost)}
                         <span className="block text-muted/80">
                           {format(d.account.sessions.feeShort, { percent: session.feePercent ?? '—' })}{' '}
