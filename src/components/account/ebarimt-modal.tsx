@@ -131,13 +131,13 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
 
           {ebarimt?.status === 'SUCCESS' ? (
             <div className="space-y-4 text-center">
-              <Alert tone="success" title="И-Баримт амжилттай олгогдлоо!">
-                {ebarimt.type === 'B2B_RECEIPT'
-                  ? `Байгууллагын регистрт (${ebarimt.customerTin}) бүртгэгдлээ.`
-                  : ebarimt.customerNo
-                    ? `И-Баримтын хэрэглэгчийн кодоор (${ebarimt.customerNo}) автоматаар бүртгэгдлээ.`
-                    : 'Хувь хүний И-Баримт амжилттай үүслээ.'}
-              </Alert>
+              {ebarimt.customerNo ? (
+                <Alert tone="success" title="Бүртгэгдсэн" />
+              ) : ebarimt.type === 'B2B_RECEIPT' ? (
+                <Alert tone="success" title={`Байгууллагын регистрт (${ebarimt.customerTin}) бүртгэгдлээ.`} />
+              ) : (
+                <Alert tone="success" title="И-Баримт амжилттай олгогдлоо!" />
+              )}
 
               {qrUrl && (
                 <div className="flex flex-col items-center justify-center p-2">
@@ -202,13 +202,11 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
                 <Field label="И-Баримтын код (Хялбар бүртгэл)" htmlFor="b2c-customer-no">
                   <Input
                     id="b2c-customer-no"
-                    placeholder="8 оронтой код эсвэл утасны дугаар (сонголтот)"
+                    placeholder="8 оронтой код эсвэл утасны дугаар"
                     value={customerNo}
                     onChange={(e) => setCustomerNo(e.target.value)}
                   />
-                  <p className="mt-1 text-[11px] text-muted">
-                    8 оронтой кодоо оруулбал баримт таны E-Barimt дансанд шууд бүртгэгдэнэ. Хоосон үлдээвэл цаасан/QR баримт үүснэ.
-                  </p>
+                  
                 </Field>
               )}
 

@@ -56,35 +56,28 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       role="status"
-      className="toast-card pointer-events-auto flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-xl"
+      className="toast-card pointer-events-auto flex items-start gap-3.5 rounded-2xl border border-border/80 bg-surface/95 backdrop-blur-md p-4 shadow-2xl ring-1 ring-black/10 dark:ring-white/10 transition-all animate-in fade-in slide-in-from-top-2 duration-200"
     >
-      <NotificationIcon kind={toast.kind} />
+      <NotificationIcon kind={toast.kind} size="md" />
       {toast.href ? (
-        <button type="button" onClick={open} className="min-w-0 flex-1 text-left">
-          <ToastText toast={toast} />
+        <button type="button" onClick={open} className="min-w-0 flex-1 text-left cursor-pointer group">
+          <p className="text-sm font-bold text-foreground tracking-tight group-hover:text-brand transition">{toast.title}</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-muted/90 leading-snug">{toast.body}</p>
         </button>
       ) : (
         <div className="min-w-0 flex-1">
-          <ToastText toast={toast} />
+          <p className="text-sm font-bold text-foreground tracking-tight">{toast.title}</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-muted/90 leading-snug">{toast.body}</p>
         </div>
       )}
       <button
         type="button"
         onClick={() => dismissToast(toast.id)}
         aria-label={d.common.close}
-        className="text-muted hover:text-foreground"
+        className="size-6 -mr-1 -mt-1 shrink-0 rounded-lg text-muted/70 hover:text-foreground hover:bg-surface-muted inline-flex items-center justify-center transition cursor-pointer text-base"
       >
-        ×
+        ✕
       </button>
     </div>
-  );
-}
-
-function ToastText({ toast }: { toast: Toast }) {
-  return (
-    <>
-      <p className="text-sm font-semibold text-foreground">{toast.title}</p>
-      <p className="text-sm text-muted">{toast.body}</p>
-    </>
   );
 }

@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { getSnapshot, markAllRead, subscribe } from '@/lib/notifications-store';
+import { getSnapshot, markAllRead, subscribe, type NotificationItem } from '@/lib/notifications-store';
 import { formatDateTime } from '@/lib/utils';
 import { useI18n } from '@/components/i18n-provider';
 import { NotificationIcon } from '@/components/notification-icon';
+import { Modal, ModalHeader, Button } from '@/components/ui';
 
 const EMPTY = { items: [], unread: 0 };
 
@@ -20,6 +21,7 @@ const EMPTY = { items: [], unread: 0 };
 export function NotificationBell() {
   const { d, locale } = useI18n();
   const [open, setOpen] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState<NotificationItem | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const { items, unread } = useSyncExternalStore(subscribe, getSnapshot, () => EMPTY);
 
@@ -43,7 +45,7 @@ export function NotificationBell() {
         type="button"
         onClick={toggle}
         aria-label={d.notifications.label}
-        className="relative grid size-8 place-items-center rounded-[10px] text-muted transition hover:bg-surface hover:text-foreground"
+        className="relative grid size-8 place-items-center rounded-[10px] text-muted transition hover:bg-surface hover:text-foreground cursor-pointer"
       >
         <BellIcon />
         {unread > 0 ? (
@@ -54,56 +56,116 @@ export function NotificationBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
+        <div className="absolute right-0 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl ring-1 ring-black/5 dark:ring-white/10">
           <div className="border-b border-border px-4 py-3 text-center text-sm font-semibold text-foreground">
             {d.notifications.label}
           </div>
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto divide-y divide-border/60">
             {items.length === 0 ? (
               <p className="px-4 py-6 text-center text-xs text-muted">{d.notifications.empty}</p>
             ) : (
-              items.map((item) => {
-                const content = (
-                  <>
-                    {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- small avatar-sized thumbnail; not worth a remotePatterns entry for next/image.
-                      <img
-                        src={item.imageUrl}
-                        alt=""
-                        width={40}
-                        height={40}
-                        className="size-10 shrink-0 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <NotificationIcon kind={item.kind} />
-                    )}
-                    <div className="min-w-0 flex-1 text-left">
-                      <p className="text-sm font-medium text-foreground">{item.title}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted">{item.body}</p>
-                      <p className="mt-1 text-[11px] text-muted/70">{formatDateTime(item.at, locale)}</p>
-                    </div>
-                  </>
-                );
-                const row = 'flex items-start gap-3 border-b border-border px-4 py-3 last:border-0';
-                return item.href ? (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={`${row} transition hover:bg-surface-muted`}
-                  >
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={item.id} className={row}>
-                    {content}
+              items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedNotif(item);
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-start gap-3 p-3.5 text-left transition hover:bg-surface-muted/60 cursor-pointer group"
+                >
+                  {item.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      width={40}
+                      height={40}
+                      className="size-10 shrink-0 rounded-xl object-cover ring-1 ring-border group-hover:scale-105 transition"
+                    />
+                  ) : (
+                    <NotificationIcon kind={item.kind} size="md" className="group-hover:scale-105 transition" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground group-hover:text-brand transition">{item.title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted/90 leading-snug">{item.body}</p>
+                    <p className="mt-1 text-[11px] text-muted/70">{formatDateTime(item.at, locale)}</p>
                   </div>
-                );
-              })
+                </button>
+              ))
             )}
           </div>
         </div>
       ) : null}
+
+      {/* Bigger Detail Modal */}
+      {selectedNotif && (
+        <Modal
+          onClose={() => setSelectedNotif(null)}
+          maxWidth="md"
+        >
+          <ModalHeader
+            title={d.notifications.label}
+            onClose={() => setSelectedNotif(null)}
+          />
+          <div className="space-y-4 p-6 pt-5">
+            <div className="flex items-start gap-3.5">
+              {selectedNotif.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={selectedNotif.imageUrl}
+                  alt=""
+                  className="size-14 rounded-2xl object-cover ring-1 ring-border shadow-md shrink-0"
+                />
+              ) : (
+                <NotificationIcon kind={selectedNotif.kind} size="lg" />
+              )}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-foreground tracking-tight leading-snug">
+                  {selectedNotif.title}
+                </h3>
+                <p className="mt-1 text-xs text-muted/70">
+                  {formatDateTime(selectedNotif.at, locale)}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-surface-muted/60 p-4 border border-border/50 text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
+              {selectedNotif.body}
+            </div>
+
+            {selectedNotif.imageUrl && (
+              <div className="overflow-hidden rounded-xl border border-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedNotif.imageUrl}
+                  alt={selectedNotif.title}
+                  className="max-h-72 w-full object-cover"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              {selectedNotif.href ? (
+                <Link
+                  href={selectedNotif.href}
+                  onClick={() => setSelectedNotif(null)}
+                  className="inline-flex h-9 items-center justify-center rounded-xl bg-brand px-4 text-xs font-semibold text-brand-contrast transition hover:bg-brand/90"
+                >
+                  Нээх
+                </Link>
+              ) : null}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSelectedNotif(null)}
+              >
+                Хаах
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

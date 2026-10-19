@@ -625,7 +625,7 @@ export const en = {
       'Charging is billed per kilowatt-hour. Each charge point has its own tariff, set by the operator and shown before you plug in.',
     title: 'Pricing',
     intro:
-      'You pay for the energy you take, measured in kilowatt-hours. There is no single network price: every charge point carries its own tariff, set by the operator who runs it. The tariff that applies to you is always shown on the station page before you start.',
+      'Charging is billed per kilowatt-hour (kWh). Each charging point has its own tariff.',
     howTitle: 'How a charge is priced',
     energyTitle: 'Energy, not time',
     energyBody:
@@ -653,6 +653,7 @@ export const en = {
     caption: 'Charge points with their price per kilowatt-hour and maximum power',
     colChargePoint: 'Charge point',
     colPlugs: 'Plugs',
+    colAvailable: 'Available',
     colMaxPower: 'Max power',
     colPrice: 'Unit price',
     footnote:
@@ -1622,7 +1623,7 @@ export const mn: Dictionary = {
       'Цэнэглэлтийн төлбөрийг киловатт-цагаар тооцно. Цэнэглэх цэг бүр операторынхоо тогтоосон өөрийн тарифтай бөгөөд залгахаас өмнө харагдана.',
     title: 'Үнэ тариф',
     intro:
-      'Та авсан эрчим хүчнийхээ төлбөрийг киловатт-цагаар төлнө. Сүлжээний нэгдсэн үнэ гэж байхгүй: цэнэглэх цэг бүр ажиллуулж буй операторынхоо тогтоосон өөрийн тарифтай. Танд хамаарах тариф станцын хуудсанд эхлэхээс өмнө үргэлж харагдана.',
+      'Цэнэглэлтийн төлбөрийг авсан эрчим хүчээр (кВт·ц) тооцно. Цэнэглэх цэг бүр өөрийн тарифтай.',
     howTitle: 'Төлбөрийг хэрхэн тооцох вэ',
     energyTitle: 'Хугацаа биш, эрчим хүч',
     energyBody:
@@ -1650,6 +1651,7 @@ export const mn: Dictionary = {
     caption: 'Цэнэглэх цэгүүд, киловатт-цагийн үнэ болон дээд хүчин чадлын хамт',
     colChargePoint: 'Цэнэглэх цэг',
     colPlugs: 'Холбогч',
+    colAvailable: 'Сул холбогч',
     colMaxPower: 'Дээд чадал',
     colPrice: 'Нэгж кВт',
     footnote:

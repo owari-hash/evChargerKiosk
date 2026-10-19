@@ -216,16 +216,29 @@ export function StationFinder({
             htmlFor="station-search"
             className="sm:col-span-2 lg:col-span-1"
           >
-            <Input
-              id="station-search"
-              type="search"
-              value={filters.search}
-              placeholder={d.stations.searchPlaceholder}
-              autoComplete="off"
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, search: event.target.value }))
-              }
-            />
+            <div className="flex gap-2">
+              <div className="min-w-0 flex-1">
+                <Input
+                  id="station-search"
+                  type="search"
+                  value={filters.search}
+                  placeholder={d.stations.searchPlaceholder}
+                  autoComplete="off"
+                  onChange={(event) =>
+                    setFilters((current) => ({ ...current, search: event.target.value }))
+                  }
+                />
+              </div>
+              <Button
+                type="button"
+                variant={filters.origin ? 'primary' : 'secondary'}
+                onClick={locate}
+                loading={locating}
+                className="shrink-0"
+              >
+                {d.stations.nearMe}
+              </Button>
+            </div>
           </Field>
 
           <Field label={d.stations.statusLabel} htmlFor="station-status">
@@ -280,32 +293,33 @@ export function StationFinder({
           </Field>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Button type="button" variant="secondary" onClick={locate} loading={locating}>
-            {d.stations.nearMe}
-          </Button>
-          {filters.origin && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setFilters((current) => ({ ...current, origin: null }))}
-            >
-              {d.stations.stopSortingByDistance}
-            </Button>
-          )}
-          {hasFilters && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setGeoError(null);
-                setFilters(EMPTY_FILTERS);
-              }}
-            >
-              {d.stations.clearFilters}
-            </Button>
-          )}
-        </div>
+        {(filters.origin || hasFilters) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {filters.origin && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilters((current) => ({ ...current, origin: null }))}
+              >
+                ✕ {d.stations.stopSortingByDistance}
+              </Button>
+            )}
+            {hasFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setGeoError(null);
+                  setFilters(EMPTY_FILTERS);
+                }}
+              >
+                ✕ {d.stations.clearFilters}
+              </Button>
+            )}
+          </div>
+        )}
 
         {geoError && (
           <p role="alert" className="mt-3 text-sm text-danger">

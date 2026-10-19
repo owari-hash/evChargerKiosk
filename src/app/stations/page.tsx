@@ -66,9 +66,6 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           {d.stations.title}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-          {d.stations.subtitle}
-        </p>
       </header>
 
       <Suspense fallback={<FinderFallback />}>

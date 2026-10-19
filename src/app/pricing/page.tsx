@@ -60,14 +60,6 @@ export default async function PricingPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-foreground">{d.pricing.currentTitle}</h2>
-            <p className="mt-1 text-sm text-muted">
-              {priced.length > 0
-                ? format(d.pricing.pricedCount, {
-                    priced: priced.length,
-                    total: stations.length,
-                  })
-                : d.pricing.noneCount}
-            </p>
           </div>
           <ButtonLink href="/stations" variant="secondary" size="md">
             {d.stations.title}
@@ -100,18 +92,20 @@ export default async function PricingPage() {
                       >
                         {station.name}
                       </Link>
-                      {station.connectorTypes.length > 0 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {station.connectorTypes.map((t) => (
-                            <span
-                              key={t}
-                              className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand ring-1 ring-brand/20"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {station.connectorTypes.map((t) => (
+                          <span
+                            key={t}
+                            className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand ring-1 ring-brand/20"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500 ring-1 ring-emerald-500/20">
+                          <span className="size-1.5 rounded-full bg-emerald-500" />
+                          {station.availableConnectors} / {station.totalConnectors} {d.pricing.colAvailable.toLowerCase()}
+                        </span>
+                      </div>
                     </div>
                     <div className="shrink-0 text-right space-y-1">
                       <div className="flex items-center justify-end gap-1.5">
@@ -144,6 +138,9 @@ export default async function PricingPage() {
                       <th scope="col" className="px-4 py-3">
                         {d.pricing.colChargePoint}
                       </th>
+                      <th scope="col" className="px-4 py-3 text-center">
+                        {d.pricing.colAvailable}
+                      </th>
                       <th scope="col" className="px-4 py-3 text-right">
                         {d.pricing.colMaxPower}
                       </th>
@@ -175,6 +172,12 @@ export default async function PricingPage() {
                             </div>
                           )}
                         </th>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-500 ring-1 ring-emerald-500/20">
+                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                            {station.availableConnectors} / {station.totalConnectors}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-right tabular-nums text-muted">
                           {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
                         </td>
