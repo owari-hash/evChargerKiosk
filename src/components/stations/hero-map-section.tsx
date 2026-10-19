@@ -1445,6 +1445,18 @@ function Sheet({
                   {selected.address || d.stations.addressMissing}
                 </p>
               </div>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20 active:scale-95"
+                aria-label={t.directions}
+                title={t.directions}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
+                </svg>
+              </a>
               <button
                 type="button"
                 onClick={() => onToggleFavorite(selected.id)}
@@ -1657,13 +1669,6 @@ function StationRows({ id, stations, favorites, onSelect, emptyLabel, intl }: St
   );
 }
 
-const FRESHNESS_TONE: Record<StationFreshness, string> = {
-  live: 'bg-emerald-500',
-  hour: 'bg-amber-400',
-  stale: 'bg-slate-400',
-  unknown: 'bg-slate-400',
-};
-
 function StationDetail({
   station,
   carPorts,
@@ -1677,13 +1682,6 @@ function StationDetail({
 }) {
   const { d } = useI18n();
   const t = d.home.map;
-
-  const freshness = {
-    live: t.freshLive,
-    hour: t.freshHour,
-    stale: t.freshStale,
-    unknown: t.freshUnknown,
-  }[station.freshness];
 
   // The station's plugs that fit the car the driver picked, if they picked one.
   const fits = station.connectorTypes.filter((type) => carPorts.includes(type));
@@ -1712,11 +1710,6 @@ function StationDetail({
           <span className="text-muted">· {formatDistance(station.distanceKm, intl)}</span>
         )}
       </div>
-
-      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-        <span aria-hidden className={cn('inline-block size-1.5 rounded-full', FRESHNESS_TONE[station.freshness])} />
-        {freshness}
-      </p>
 
       {carPorts.length > 0 && (
         <p
@@ -1757,7 +1750,7 @@ function StationDetail({
         </div>
       )}
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex items-center gap-2">
         <Link
           href={`/stations/${encodeURIComponent(station.id)}`}
           className="inline-flex h-11 flex-1 items-center justify-center rounded-2xl bg-brand px-4 text-sm font-semibold text-brand-contrast transition hover:bg-brand-strong"
@@ -1768,9 +1761,13 @@ function StationDetail({
           href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-muted px-4 text-sm font-semibold text-foreground ring-1 ring-border transition hover:bg-surface"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20 active:scale-95"
+          aria-label={t.directions}
+          title={t.directions}
         >
-          {t.directions}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
+          </svg>
         </a>
       </div>
     </div>

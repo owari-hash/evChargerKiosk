@@ -499,7 +499,7 @@ export function ChargingFlow({
           {step === 'plug' && (
             <ActionBlock
               title={t.stepPlug}
-              body={t.plugBody}
+              body={chosenLabel ? `${chosenLabel} — ${t.plugBody}` : t.plugBody}
             >
               <Button type="button" onClick={confirmPlugged}>
                 {t.plugConfirm}
@@ -515,6 +515,9 @@ export function ChargingFlow({
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-3">
                 <div className="min-w-0">
                   <h2 className="text-base font-bold text-foreground">{t.stepCharge}</h2>
+                  {chosenLabel && (
+                    <p className="mt-0.5 text-xs text-muted">{chosenLabel}</p>
+                  )}
                 </div>
                 {isInternal ? (
                   <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold shadow-xs">
@@ -743,6 +746,7 @@ function connectorSummary(
 ): string {
   return [
     format(d.start.connectorOption, { id: c.connectorId }),
+    c.label,
     c.type,
     c.powerKw ? formatPowerKw(c.powerKw, intl) : undefined,
   ]
@@ -900,11 +904,18 @@ function ConnectorPicker({
                   {d.stations.scannedConnector}
                 </span>
               )}
-              <span className="block text-sm font-semibold text-foreground">
-                <span className="sr-only">{format(d.stations.connectorN, { id: c.connectorId })}</span>
-                {c.type ?? d.stations.plugTypeMissing}
-                {c.powerKw ? ` · ${formatPowerKw(c.powerKw, intl)}` : ''}
-              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground">
+                  <span className="sr-only">{format(d.stations.connectorN, { id: c.connectorId })}</span>
+                  {c.type ?? d.stations.plugTypeMissing}
+                  {c.powerKw ? ` · ${formatPowerKw(c.powerKw, intl)}` : ''}
+                </span>
+                {c.label && (
+                  <span className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-xs font-semibold text-brand ring-1 ring-inset ring-brand/25">
+                    {c.label}
+                  </span>
+                )}
+              </div>
               {(live || c.availability === 'Inoperative' || faultCode) && (
                 <span className="mt-0.5 block text-xs text-muted">
                   {live && c.lastPowerW !== undefined &&
