@@ -541,81 +541,46 @@ export function ChargingFlow({
                 )}
               </div>
 
-              {ordered.length > 1 && (
-                <div className="rounded-xl border border-border/50 bg-surface-muted/20 p-2.5 sm:p-3">
-                  <div className="mb-2 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-foreground">Хошуу сонгох:</span>
-                    <span className="text-muted">{free.length} бэлэн</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {ordered.map((c) => {
-                      const isSelected = c.connectorId === chosen?.connectorId;
-                      const isFree = free.some((f) => f.connectorId === c.connectorId);
-                      return (
-                        <button
-                          key={c.connectorId}
-                          type="button"
-                          disabled={!isFree || busy}
-                          onClick={() => choose(c.connectorId)}
-                          className={cn(
-                            'flex items-center justify-between gap-2 rounded-lg p-2.5 text-left text-xs font-medium transition ring-1',
-                            isSelected
-                              ? 'bg-brand text-brand-contrast ring-brand'
-                              : isFree
-                                ? 'bg-background hover:bg-surface-muted ring-border text-foreground'
-                                : 'bg-surface-muted/30 opacity-50 ring-border cursor-not-allowed text-muted',
-                          )}
-                        >
-                          <div className="flex items-center gap-1.5 truncate">
-                            <span
-                              className={cn(
-                                'size-2 shrink-0 rounded-full',
-                                isSelected ? 'bg-white' : isFree ? 'bg-emerald-500' : 'bg-muted',
-                              )}
-                            />
-                            <span className="font-semibold">Хошуу {c.connectorId}</span>
-                            {c.powerKw ? <span className="opacity-80">· {c.powerKw}kW</span> : null}
-                          </div>
-                          {isSelected && (
-                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider">
-                              Сонгосон
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+              {/* Connector confirmed — auto-starting. Show spinner while request is in flight. */}
+              {busy && (
+                <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted">
+                  <svg className="size-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4l-3 3 3 3H4z" />
+                  </svg>
+                  <span>{t.starting}</span>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <Button
-                  type="button"
-                  className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
-                  onClick={() => void start()}
-                  loading={busy}
-                  disabled={offline}
-                >
-                  {busy ? t.starting : t.startNow}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
-                  onClick={() => setShowQuickPay(true)}
-                  disabled={busy}
-                >
-                  Хэтэвч цэнэглэх (QPay)
-                </Button>
-              </div>
-
-              {ordered.length <= 1 && (
-                <div className="flex justify-end pt-0.5">
-                  <Button type="button" variant="ghost" size="sm" onClick={chooseAnother} disabled={busy}>
-                    {t.changeConnector}
+              {/* Shown when balance is too low — lets the driver top up inline. */}
+              {!busy && requireBalanceToStart && walletBalance !== null && walletBalance < minStartBalance && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button
+                    type="button"
+                    className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
+                    onClick={() => void start()}
+                    loading={busy}
+                    disabled={offline}
+                  >
+                    {t.startNow}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
+                    onClick={() => setShowQuickPay(true)}
+                    disabled={busy}
+                  >
+                    Хэтэвч цэнэглэх (QPay)
                   </Button>
                 </div>
               )}
+
+              <div className="flex justify-end pt-0.5">
+                <Button type="button" variant="ghost" size="sm" onClick={chooseAnother} disabled={busy}>
+                  {t.changeConnector}
+                </Button>
+              </div>
             </div>
           )}
 
