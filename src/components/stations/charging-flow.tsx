@@ -82,12 +82,6 @@ export interface ChargingFlowProps {
   connectors: StationConnector[];
   availability: StationAvailability;
   tariffPerKwh?: number;
-  /**
-   * When the station last talked to the network, already formatted on the
-   * server (browsers without Mongolian locale data format dates differently,
-   * which broke hydration). Shown only while offline.
-   */
-  lastSeenLabel?: string;
   signedIn: boolean;
   hasIdTag: boolean;
   remoteStartEnabled: boolean;
@@ -118,7 +112,6 @@ export function ChargingFlow({
   connectors,
   availability,
   tariffPerKwh,
-  lastSeenLabel,
   signedIn,
   hasIdTag,
   remoteStartEnabled,
@@ -439,14 +432,7 @@ export function ChargingFlow({
       <Card className="p-4 sm:p-5">
         <div className="space-y-4">
           {offline && (
-            <Alert tone="warning" title={d.status.availability.offline}>
-              {t.stationOffline}
-              {lastSeenLabel && (
-                <span className="mt-1 block text-xs opacity-80">
-                  {format(t.lastSeenHint, { time: lastSeenLabel })}
-                </span>
-              )}
-            </Alert>
+            <Alert tone="warning" title={d.status.availability.offline} />
           )}
 
           {!remoteStartEnabled && !active && !offline && (
@@ -588,10 +574,10 @@ export function ChargingFlow({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <Button
                   type="button"
-                  className="h-11 sm:h-12 w-full text-xs sm:text-sm font-semibold justify-center"
+                  className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
                   onClick={() => void start()}
                   loading={busy}
                   disabled={offline}
@@ -601,7 +587,7 @@ export function ChargingFlow({
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-11 sm:h-12 w-full text-xs sm:text-sm font-semibold justify-center"
+                  className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
                   onClick={() => setShowQuickPay(true)}
                   disabled={busy}
                 >
@@ -782,7 +768,7 @@ function Stepper({
   label: string;
 }) {
   return (
-    <ol aria-label={label} className="grid grid-cols-4 gap-1.5">
+    <ol aria-label={label} className="grid grid-cols-4 gap-1 sm:gap-1.5">
       {steps.map((title, index) => {
         const state =
           finished || index < current ? 'done' : index === current ? 'current' : 'todo';
@@ -800,14 +786,14 @@ function Stepper({
             />
             <p
               className={cn(
-                'mt-2 flex items-start gap-1.5 text-xs leading-4 sm:text-sm',
+                'mt-1.5 flex items-start gap-1 text-[11px] leading-3.5 sm:mt-2 sm:gap-1.5 sm:text-xs md:text-sm sm:leading-4',
                 state === 'todo' ? 'text-muted' : 'font-semibold text-foreground',
               )}
             >
               <span
                 aria-hidden
                 className={cn(
-                  'grid size-4 shrink-0 place-items-center rounded-full text-[10px] font-bold sm:size-5 sm:text-[11px]',
+                  'grid size-3.5 shrink-0 place-items-center rounded-full text-[9px] font-bold sm:size-5 sm:text-[11px]',
                   state === 'todo'
                     ? 'bg-surface-muted text-muted ring-1 ring-border'
                     : 'bg-brand text-brand-contrast',
@@ -815,7 +801,7 @@ function Stepper({
               >
                 {state === 'done' ? '✓' : index + 1}
               </span>
-              <span className="min-w-0 break-words">{title}</span>
+              <span className="min-w-0 break-words leading-tight">{title}</span>
             </p>
           </li>
         );

@@ -457,7 +457,7 @@ export const en = {
     // --- the four steps a driver acts on ---
     stepSignIn: 'Sign in',
     stepConnector: 'Pick a connector',
-    stepPlug: 'Confirm',
+    stepPlug: 'Plug in',
     stepCharge: 'Charge',
     signInBody: 'Charging is paid from your wallet, so sign in first.',
     tagPendingBody:
@@ -1060,7 +1060,7 @@ export const mn: Dictionary = {
     availability: {
       available: 'Одоо сул байна',
       busy: 'Бүх холбогч завгүй',
-      offline: 'Холбогдоогүй',
+      offline: 'Идэвхгүй',
       unknown: 'Төлөв тодорхойгүй',
     },
   },
@@ -1451,7 +1451,7 @@ export const mn: Dictionary = {
     // --- the four steps a driver acts on ---
     stepSignIn: 'Нэвтрэх',
     stepConnector: 'Хошуу сонгох',
-    stepPlug: 'Баталгаажуулах',
+    stepPlug: 'Хошуугаа залгах',
     stepCharge: 'Цэнэглэх',
     signInBody: 'Цэнэглэлтийн төлбөр хэтэвчнээс тань хасагдах тул эхлээд нэвтэрнэ үү.',
     tagPendingBody:

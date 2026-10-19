@@ -89,7 +89,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
 
       <header className="mt-3">
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl min-w-0 flex-1 break-words">
             {station.name}
           </h1>
           {directions && (
@@ -127,11 +127,6 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
           connectors={station.connectors}
           availability={station.availability}
           tariffPerKwh={station.tariffPerKwh}
-          lastSeenLabel={
-            station.isOnline || !station.lastSeenAt
-              ? undefined
-              : formatDateTime(station.lastSeenAt, intl)
-          }
           signedIn={Boolean(user)}
           hasIdTag={Boolean(user?.idTag)}
           remoteStartEnabled={remoteStartEnabled}

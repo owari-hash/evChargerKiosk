@@ -78,68 +78,118 @@ export default async function PricingPage() {
         )}
 
         {stations.length > 0 && (
-          <Card className="mt-4 overflow-hidden">
-            <div className="max-h-[70vh] overflow-auto">
-              <table className="w-full min-w-[34rem] border-collapse text-sm">
-                <caption className="sr-only">{d.pricing.caption}</caption>
-                <thead className="sticky top-0 z-10">
-                  <tr className="border-b border-border bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-muted">
-                    <th scope="col" className="px-4 py-3">
-                      {d.pricing.colChargePoint}
-                    </th>
-                    <th scope="col" className="px-4 py-3">
-                      {d.pricing.colPlugs}
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right">
-                      {d.pricing.colMaxPower}
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right">
-                      {d.pricing.colPrice}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stations.map((station) => (
-                    <tr key={station.id} className="border-b border-border last:border-0">
-                      <th scope="row" className="px-4 py-3 text-left font-medium">
-                        <Link
-                          href={`/stations/${encodeURIComponent(station.id)}`}
-                          className="text-foreground hover:text-brand hover:underline"
-                        >
-                          {station.name}
-                        </Link>
-                        {station.address && (
-                          <span className="mt-0.5 block text-xs font-normal text-muted">
-                            {station.address}
-                          </span>
-                        )}
-                      </th>
-                      <td className="px-4 py-3">
-                        {station.connectorTypes.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {station.connectorTypes.map((t) => (
-                              <span
-                                key={t}
-                                className="inline-flex items-center rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-muted ring-1 ring-border"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        ) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-muted">
-                        {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
+          <>
+            {/* Mobile list view */}
+            <div className="mt-4 space-y-3 sm:hidden">
+              {stations.map((station) => (
+                <Card key={station.id} className="p-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/stations/${encodeURIComponent(station.id)}`}
+                        className="font-semibold text-foreground hover:text-brand break-words"
+                      >
+                        {station.name}
+                      </Link>
+                      {station.address && (
+                        <p className="mt-0.5 text-xs text-muted line-clamp-1">{station.address}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className="text-sm font-bold text-foreground">
                         {formatMoney(station.tariffPerKwh, intl, 2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-xs">
+                    <div className="flex flex-wrap gap-1">
+                      {station.connectorTypes.length ? (
+                        station.connectorTypes.map((t) => (
+                          <span
+                            key={t}
+                            className="inline-flex items-center rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-muted ring-1 ring-border"
+                          >
+                            {t}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </div>
+                    {station.maxPowerKw ? (
+                      <span className="text-muted font-medium">
+                        ⚡ {formatPowerKw(station.maxPowerKw, intl)}
+                      </span>
+                    ) : null}
+                  </div>
+                </Card>
+              ))}
             </div>
-          </Card>
+
+            {/* Tablet/Desktop table view */}
+            <Card className="mt-4 hidden overflow-hidden sm:block">
+              <div className="max-h-[70vh] overflow-auto">
+                <table className="w-full border-collapse text-sm">
+                  <caption className="sr-only">{d.pricing.caption}</caption>
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-border bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                      <th scope="col" className="px-4 py-3">
+                        {d.pricing.colChargePoint}
+                      </th>
+                      <th scope="col" className="px-4 py-3">
+                        {d.pricing.colPlugs}
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-right">
+                        {d.pricing.colMaxPower}
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-right">
+                        {d.pricing.colPrice}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stations.map((station) => (
+                      <tr key={station.id} className="border-b border-border last:border-0 hover:bg-surface-muted/30 transition">
+                        <th scope="row" className="px-4 py-3 text-left font-medium">
+                          <Link
+                            href={`/stations/${encodeURIComponent(station.id)}`}
+                            className="text-foreground hover:text-brand hover:underline"
+                          >
+                            {station.name}
+                          </Link>
+                          {station.address && (
+                            <span className="mt-0.5 block text-xs font-normal text-muted">
+                              {station.address}
+                            </span>
+                          )}
+                        </th>
+                        <td className="px-4 py-3">
+                          {station.connectorTypes.length ? (
+                            <div className="flex flex-wrap gap-1">
+                              {station.connectorTypes.map((t) => (
+                                <span
+                                  key={t}
+                                  className="inline-flex items-center rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-muted ring-1 ring-border"
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-muted">
+                          {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
+                          {formatMoney(station.tariffPerKwh, intl, 2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </>
         )}
 
         <p className="mt-4 text-xs text-muted">{d.pricing.footnote}</p>
