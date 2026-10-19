@@ -18,6 +18,7 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
     session.ebarimt?.type ?? 'B2C_RECEIPT',
   );
   const [customerTin, setCustomerTin] = useState(session.ebarimt?.customerTin ?? '');
+  const [customerNo, setCustomerNo] = useState(session.ebarimt?.customerNo ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ebarimt, setEbarimt] = useState<EBarimtData | undefined>(session.ebarimt);
@@ -36,6 +37,7 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
         body: JSON.stringify({
           type,
           customerTin: type === 'B2B_RECEIPT' ? customerTin.trim() : undefined,
+          customerNo: type === 'B2C_RECEIPT' ? customerNo.trim() || undefined : undefined,
         }),
       });
 
@@ -108,7 +110,9 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
               <Alert tone="success" title="И-Баримт амжилттай олгогдлоо!">
                 {ebarimt.type === 'B2B_RECEIPT'
                   ? `Байгууллагын регистрт (${ebarimt.customerTin}) бүртгэгдлээ.`
-                  : 'Хувь хүний И-Баримт амжилттай үүслээ.'}
+                  : ebarimt.customerNo
+                    ? `И-Баримтын хэрэглэгчийн кодоор (${ebarimt.customerNo}) автоматаар бүртгэгдлээ.`
+                    : 'Хувь хүний И-Баримт амжилттай үүслээ.'}
               </Alert>
 
               {qrUrl && (
@@ -169,6 +173,20 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
                   Байгууллага (B2B)
                 </button>
               </div>
+
+              {type === 'B2C_RECEIPT' && (
+                <Field label="И-Баримтын код (Хялбар бүртгэл)" htmlFor="b2c-customer-no">
+                  <Input
+                    id="b2c-customer-no"
+                    placeholder="8 оронтой код эсвэл утасны дугаар (сонголтот)"
+                    value={customerNo}
+                    onChange={(e) => setCustomerNo(e.target.value)}
+                  />
+                  <p className="mt-1 text-[11px] text-muted">
+                    8 оронтой кодоо оруулбал баримт таны E-Barimt дансанд шууд бүртгэгдэнэ. Хоосон үлдээвэл цаасан/QR баримт үүснэ.
+                  </p>
+                </Field>
+              )}
 
               {type === 'B2B_RECEIPT' && (
                 <Field label="Байгууллагын регистрийн дугаар" htmlFor="b2b-tin">

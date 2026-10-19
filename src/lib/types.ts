@@ -119,6 +119,8 @@ export interface PublicUser {
   /** The vehicle this driver charges — shown on an active session, not OCPP data. */
   vehicleBrand?: string;
   vehicleModel?: string;
+  /** 8-digit E-Barimt user code or phone number for automatic easy registration. */
+  ebarimtCustomerNo?: string;
   locale: string;
   createdAt: string;
   lastLoginAt?: string;

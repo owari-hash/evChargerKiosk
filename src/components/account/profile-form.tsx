@@ -92,6 +92,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const [email, setEmail] = useState(user.email ?? '');
   const [vehicleBrand, setVehicleBrand] = useState(user.vehicleBrand ?? '');
   const [vehicleModel, setVehicleModel] = useState(user.vehicleModel ?? '');
+  const [ebarimtCustomerNo, setEbarimtCustomerNo] = useState(user.ebarimtCustomerNo ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -144,6 +145,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           email: email.trim(),
           vehicleBrand: vehicleBrand.trim(),
           vehicleModel: vehicleModel.trim(),
+          ebarimtCustomerNo: ebarimtCustomerNo.trim(),
         }),
       });
       const data = (await res.json().catch(() => ({}))) as ProfileResponse;
@@ -159,6 +161,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       setEmail(data.user.email ?? '');
       setVehicleBrand(data.user.vehicleBrand ?? '');
       setVehicleModel(data.user.vehicleModel ?? '');
+      setEbarimtCustomerNo(data.user.ebarimtCustomerNo ?? '');
       setSaved(true);
       setEditingEmail(false);
     } catch {
@@ -272,7 +275,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
     name.trim() !== (user.name ?? '') ||
     email.trim() !== (account.email ?? '') ||
     vehicleBrand.trim() !== (user.vehicleBrand ?? '') ||
-    vehicleModel.trim() !== (user.vehicleModel ?? '');
+    vehicleModel.trim() !== (user.vehicleModel ?? '') ||
+    ebarimtCustomerNo.trim() !== (account.ebarimtCustomerNo ?? '');
 
   return (
     <>
@@ -518,6 +522,26 @@ export function ProfileForm({ user }: ProfileFormProps) {
                   onChange={(event) => {
                     touched();
                     setVehicleModel(event.target.value);
+                  }}
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
+            <p className="mt-1 text-xs text-muted">{d.account.profile.ebarimtHint}</p>
+            <div className="mt-3 max-w-sm">
+              <Field label={d.account.profile.ebarimtCustomerNoLabel} htmlFor="profile-ebarimt-customer-no">
+                <Input
+                  id="profile-ebarimt-customer-no"
+                  name="ebarimtCustomerNo"
+                  value={ebarimtCustomerNo}
+                  maxLength={20}
+                  placeholder={d.account.profile.ebarimtCustomerNoPlaceholder}
+                  onChange={(event) => {
+                    touched();
+                    setEbarimtCustomerNo(event.target.value);
                   }}
                 />
               </Field>
