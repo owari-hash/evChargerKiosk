@@ -96,13 +96,7 @@ function saveHistory(key: string, messages: ChatMessage[]): void {
   }
 }
 
-/**
- * Floating assistant button + chat panel, present on every kiosk page.
- *
- * Stateless on the server: the whole conversation lives in `localStorage` and
- * is resent with every turn, same contract as the backend's `/app-api/assistant`
- * (itself a port of turees' aiTuslakh — see that route's own docstring).
- */
+
 export function AssistantWidget({ userId }: { userId: string | null }) {
   const signedIn = userId !== null;
   const storageKey = scopedKey(STORAGE_KEY, userId);

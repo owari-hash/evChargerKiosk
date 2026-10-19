@@ -17,6 +17,7 @@ import { format, useI18n } from '@/components/i18n-provider';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import type { ChargingSession } from '@/lib/types';
 import {
+  cn,
   connectorStatusTone,
   formatDateTime,
   formatDuration,
@@ -47,6 +48,40 @@ interface SessionsTableProps {
 
 function stationHref(session: ChargingSession): string {
   return `/stations/${encodeURIComponent(session.chargePointId)}`;
+}
+
+function TableTooltip({
+  title,
+  description,
+  children,
+  align = 'center',
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+  align?: 'left' | 'center' | 'right';
+}) {
+  if (!description) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="group/tip relative inline-flex items-center">
+      {children}
+      <div
+        role="tooltip"
+        className={cn(
+          'pointer-events-none absolute bottom-full mb-2.5 z-50 hidden group-hover/tip:flex flex-col gap-0.5 rounded-xl border border-border/90 bg-surface px-3.5 py-2.5 text-left shadow-xl shadow-black/10 dark:shadow-black/60 whitespace-nowrap min-w-max transition-all duration-150 animate-in fade-in zoom-in-95',
+          align === 'left' && 'left-0',
+          align === 'center' && 'left-1/2 -translate-x-1/2',
+          align === 'right' && 'right-0'
+        )}
+      >
+        <span className="text-xs font-semibold text-foreground tracking-tight">{title}</span>
+        <span className="text-[11px] text-muted leading-relaxed">{description}</span>
+      </div>
+    </div>
+  );
 }
 
 export function SessionsTable({ sessions }: SessionsTableProps) {
@@ -304,59 +339,70 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
               return (
                 <tr
                   key={session.transactionId}
-                  className="group transition-colors hover:bg-surface-muted/30"
+                  className="group transition-colors hover:bg-surface-muted/30 hover:relative hover:z-30"
                 >
                   {/* Station & Connector */}
                   <td className="whitespace-nowrap px-4 py-3.5 align-middle">
-                    <Link
-                      href={stationHref(session)}
-                      className="block max-w-[11rem] truncate font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[14rem]"
+                    <TableTooltip
+                      align="left"
                       title={session.stationName ?? session.chargePointId}
+                      description={`${format(d.account.sessions.connector, { id: session.connectorId })}${session.stationName ? ` · ${session.chargePointId}` : ''}`}
                     >
-                      {session.stationName ?? session.chargePointId}
-                    </Link>
-                    <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <span className="size-1.5 rounded-full bg-brand/60" />
-                      {format(d.account.sessions.connector, { id: session.connectorId })}
-                    </span>
+                      <Link
+                        href={stationHref(session)}
+                        className="block max-w-[11rem] truncate font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[14rem]"
+                      >
+                        {session.stationName ?? session.chargePointId}
+                      </Link>
+                    </TableTooltip>
                   </td>
 
                   {/* Started Date & Duration */}
                   <td className="whitespace-nowrap px-3.5 py-3.5 align-middle">
-                    <span suppressHydrationWarning className="block font-medium text-foreground text-xs sm:text-sm">
-                      {formatDateTime(session.startTimestamp)}
-                    </span>
-                    <span suppressHydrationWarning className="mt-0.5 block text-xs text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      ⏱ {duration(session)}
-                    </span>
+                    <TableTooltip
+                      align="left"
+                      title={formatDateTime(session.startTimestamp)}
+                      description={`${d.account.sessions.duration}: ${duration(session)}`}
+                    >
+                      <span suppressHydrationWarning className="block font-medium text-foreground text-xs sm:text-sm">
+                        {formatDateTime(session.startTimestamp)}
+                      </span>
+                    </TableTooltip>
                   </td>
 
                   {/* Energy */}
                   <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle">
-                    <span className="block font-semibold text-foreground text-xs sm:text-sm">
-                      {formatKwh(session.energyKwh)}
-                    </span>
-                    {active && (
-                      <span className="mt-0.5 block text-xs font-medium text-brand animate-pulse">
-                        ⚡ {formatPower(session.lastPowerW)}
+                    <TableTooltip
+                      align="center"
+                      title={formatKwh(session.energyKwh)}
+                      description={
+                        active
+                          ? `⚡ ${formatPower(session.lastPowerW)} (${d.account.sessions.rightNow})`
+                          : d.account.sessions.energy
+                      }
+                    >
+                      <span className="inline-flex items-center justify-center font-semibold text-foreground text-xs sm:text-sm">
+                        {formatKwh(session.energyKwh)}
+                        {active && <span className="ml-1 text-xs text-brand animate-pulse">⚡</span>}
                       </span>
-                    )}
+                    </TableTooltip>
                   </td>
 
                   {/* Cost & Fee — right-aligned */}
                   <td className="whitespace-nowrap px-3.5 py-3.5 text-right align-middle">
-                    <span className="block font-bold text-foreground text-xs sm:text-sm">
-                      {formatMoney(session.cost)}
-                    </span>
-                    {session.feeAmount && session.feeAmount > 0 ? (
-                      <span className="mt-0.5 block text-[11px] leading-tight text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                        {d.account.sessions.energyCost}: {formatMoney(session.energyCost)}
-                        <span className="block text-muted/80">
-                          {format(d.account.sessions.feeShort, { percent: session.feePercent ?? '—' })}{' '}
-                          {formatMoney(session.feeAmount)}
-                        </span>
+                    <TableTooltip
+                      align="right"
+                      title={formatMoney(session.cost)}
+                      description={
+                        session.feeAmount && session.feeAmount > 0
+                          ? `${d.account.sessions.energyCost}: ${formatMoney(session.energyCost)} · ${format(d.account.sessions.feeShort, { percent: session.feePercent ?? '—' })}: ${formatMoney(session.feeAmount)}`
+                          : undefined
+                      }
+                    >
+                      <span className="block font-bold text-foreground text-xs sm:text-sm">
+                        {formatMoney(session.cost)}
                       </span>
-                    ) : null}
+                    </TableTooltip>
                   </td>
 
                   {/* Actions — icon-only */}
@@ -364,26 +410,47 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     <div className="flex items-center justify-center gap-1.5">
                       {stopControls(session)}
                       {session.status === 'Completed' && (
-                        <button
-                          type="button"
-                          title={session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
-                          aria-label={session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-muted text-muted transition hover:bg-surface hover:text-foreground"
-                          onClick={() => setEbarimtSession(session)}
+                        <TableTooltip
+                          align="center"
+                          title="И-Баримт"
+                          description={
+                            session.ebarimt?.status === 'SUCCESS'
+                              ? 'НӨАТ-ын баримт харах'
+                              : 'И-Баримт авах / харах'
+                          }
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
-                          </svg>
-                        </button>
+                          <button
+                            type="button"
+                            aria-label={session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-muted text-muted transition hover:bg-surface hover:text-foreground cursor-pointer"
+                            onClick={() => setEbarimtSession(session)}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
+                            </svg>
+                          </button>
+                        </TableTooltip>
                       )}
                     </div>
                   </td>
 
                   {/* Status — last */}
                   <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle">
-                    <Badge tone={meta.tone} className="px-2 py-0.5 text-xs font-medium">
-                      {d.account.sessions[meta.labelKey]}
-                    </Badge>
+                    <TableTooltip
+                      align="right"
+                      title={d.account.sessions[meta.labelKey]}
+                      description={
+                        active
+                          ? d.account.sessions.inProgress
+                          : session.status === 'Completed'
+                          ? 'Цэнэглэлт амжилттай дууссан'
+                          : undefined
+                      }
+                    >
+                      <Badge tone={meta.tone} className="px-2.5 py-0.5 text-xs font-medium">
+                        {d.account.sessions[meta.labelKey]}
+                      </Badge>
+                    </TableTooltip>
                   </td>
                 </tr>
               );
