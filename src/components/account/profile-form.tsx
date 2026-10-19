@@ -136,6 +136,38 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setError('');
     setFields({});
 
+    const trimmedEbarimt = ebarimtCustomerNo.trim();
+    if (trimmedEbarimt) {
+      if (!/^\d{8}$/.test(trimmedEbarimt)) {
+        setFields({
+          ebarimtCustomerNo: 'И-Баримтын хэрэглэгчийн код яг 8 оронтой тоо байх ёстой (жишээ нь: 12809800)',
+        });
+        setSaving(false);
+        return;
+      }
+      const bogusCodes = [
+        '00000000',
+        '11111111',
+        '22222222',
+        '33333333',
+        '44444444',
+        '55555555',
+        '66666666',
+        '77777777',
+        '88888888',
+        '99999999',
+        '12345678',
+        '87654321',
+      ];
+      if (bogusCodes.includes(trimmedEbarimt)) {
+        setFields({
+          ebarimtCustomerNo: 'Хүчингүй код байна. Өөрийн Ebarimt систем дэх бодит 8 оронтой кодоо оруулна уу.',
+        });
+        setSaving(false);
+        return;
+      }
+    }
+
     try {
       const res = await fetch('/app-api/account/profile', {
         method: 'PATCH',
@@ -532,16 +564,27 @@ export function ProfileForm({ user }: ProfileFormProps) {
             <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
             <p className="mt-1 text-xs text-muted">{d.account.profile.ebarimtHint}</p>
             <div className="mt-3 max-w-sm">
-              <Field label={d.account.profile.ebarimtCustomerNoLabel} htmlFor="profile-ebarimt-customer-no">
+              <Field
+                label={d.account.profile.ebarimtCustomerNoLabel}
+                htmlFor="profile-ebarimt-customer-no"
+                error={fields.ebarimtCustomerNo}
+              >
                 <Input
                   id="profile-ebarimt-customer-no"
                   name="ebarimtCustomerNo"
                   value={ebarimtCustomerNo}
-                  maxLength={20}
+                  maxLength={8}
                   placeholder={d.account.profile.ebarimtCustomerNoPlaceholder}
+                  aria-invalid={fields.ebarimtCustomerNo ? true : undefined}
+                  aria-describedby={describedBy('profile-ebarimt-customer-no', fields.ebarimtCustomerNo, false)}
                   onChange={(event) => {
                     touched();
-                    setEbarimtCustomerNo(event.target.value);
+                    setFields((prev) => {
+                      const next = { ...prev };
+                      delete next.ebarimtCustomerNo;
+                      return next;
+                    });
+                    setEbarimtCustomerNo(event.target.value.replace(/\D/g, ''));
                   }}
                 />
               </Field>
