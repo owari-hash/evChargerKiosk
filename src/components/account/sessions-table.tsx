@@ -276,23 +276,23 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           <caption className="sr-only">{d.account.sessions.caption}</caption>
           <thead className="border-b border-border/80 bg-surface-muted/50">
             <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <th scope="col" className="px-4 py-3 text-center">
+              <th scope="col" className="px-4 py-3 text-left">
                 {d.account.sessions.station}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-center">
+              <th scope="col" className="px-3.5 py-3 text-left">
                 {d.account.sessions.started}
               </th>
               <th scope="col" className="px-3.5 py-3 text-center">
                 {d.account.sessions.energy}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-center">
+              <th scope="col" className="px-3.5 py-3 text-right">
                 {d.account.sessions.cost}
-              </th>
-              <th scope="col" className="px-3.5 py-3 text-center">
-                {d.account.sessions.status}
               </th>
               <th scope="col" className="px-4 py-3 text-center">
                 <span className="sr-only">{d.account.sessions.actions}</span>
+              </th>
+              <th scope="col" className="px-4 py-3 text-center">
+                {d.account.sessions.status}
               </th>
             </tr>
           </thead>
@@ -307,7 +307,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   className="group transition-colors hover:bg-surface-muted/30"
                 >
                   {/* Station & Connector */}
-                  <td className="px-4 py-3.5 align-middle">
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
                     <Link
                       href={stationHref(session)}
                       className="block max-w-[11rem] truncate font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[14rem]"
@@ -322,7 +322,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </td>
 
                   {/* Started Date & Duration */}
-                  <td className="px-3.5 py-3.5 align-middle">
+                  <td className="whitespace-nowrap px-3.5 py-3.5 align-middle">
                     <span suppressHydrationWarning className="block font-medium text-foreground text-xs sm:text-sm">
                       {formatDateTime(session.startTimestamp)}
                     </span>
@@ -332,7 +332,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </td>
 
                   {/* Energy */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 align-middle">
+                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle">
                     <span className="block font-semibold text-foreground text-xs sm:text-sm">
                       {formatKwh(session.energyKwh)}
                     </span>
@@ -343,9 +343,9 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     )}
                   </td>
 
-                  {/* Cost & Fee */}
-                  <td className="px-3.5 py-3.5 align-middle">
-                    <span className="block whitespace-nowrap font-bold text-foreground text-xs sm:text-sm">
+                  {/* Cost & Fee — right-aligned */}
+                  <td className="whitespace-nowrap px-3.5 py-3.5 text-right align-middle">
+                    <span className="block font-bold text-foreground text-xs sm:text-sm">
                       {formatMoney(session.cost)}
                     </span>
                     {session.feeAmount && session.feeAmount > 0 ? (
@@ -359,31 +359,31 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     ) : null}
                   </td>
 
-                  {/* Status */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle">
+                  {/* Actions — icon-only */}
+                  <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle">
+                    <div className="flex items-center justify-center gap-1.5">
+                      {stopControls(session)}
+                      {session.status === 'Completed' && (
+                        <button
+                          type="button"
+                          title={session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
+                          aria-label={session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-muted text-muted transition hover:bg-surface hover:text-foreground"
+                          onClick={() => setEbarimtSession(session)}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Status — last */}
+                  <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle">
                     <Badge tone={meta.tone} className="px-2 py-0.5 text-xs font-medium">
                       {d.account.sessions[meta.labelKey]}
                     </Badge>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="whitespace-nowrap px-4 py-3.5 text-right align-middle">
-                    <div className="flex items-center justify-end gap-2">
-                      {stopControls(session)}
-                      {session.status === 'Completed' && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="h-8 rounded-lg px-2.5 text-xs font-semibold shadow-xs hover:bg-surface-muted"
-                          onClick={() => setEbarimtSession(session)}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1 size-3.5" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
-                          </svg>
-                          <span>{session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}</span>
-                        </Button>
-                      )}
-                    </div>
                   </td>
                 </tr>
               );
@@ -391,6 +391,8 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           </tbody>
         </table>
       </div>
+
+
 
       {ebarimtSession && (
         <EbarimtModal
