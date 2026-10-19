@@ -61,13 +61,11 @@ export function NotificationIcon({
             strokeLinejoin="round"
           />
         ) : kind === 'announcement' ? (
-          <path
-            d="M11 5L6 9H3C2.44772 9 2 9.44772 2 10V14C2 14.5523 2.44772 15 3 15H6L11 19V5ZM15.54 8.46C16.4774 9.39764 17.0041 10.6692 17.0041 11.995C17.0041 13.3208 16.4774 14.5924 15.54 15.53M19.07 4.93C20.9448 6.80527 21.9979 9.34836 21.9979 12C21.9979 14.6516 20.9448 17.1947 19.07 19.07"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+            <path d="m3 11 15-5v12L3 13v-2Z" />
+            <path d="M21 9a4 4 0 0 1 0 6" />
+          </g>
         ) : (
           <path
             d="M4 7a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v2M4 7v10a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-3M4 7a2 2 0 0 0 2 2h13a1 1 0 0 1 1 1v3m0 0h-4a1.5 1.5 0 0 0 0 3h4"

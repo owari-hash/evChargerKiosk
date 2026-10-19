@@ -144,6 +144,91 @@ export async function fetchServerNotifications(): Promise<void> {
   }
 }
 
+let activeSocket: WebSocket | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function connectNotificationSocket(targetUserId: string | null): () => void {
+  if (typeof window === 'undefined' || !targetUserId) {
+    if (activeSocket) {
+      activeSocket.close();
+      activeSocket = null;
+    }
+    return () => {};
+  }
+
+  const userId = targetUserId;
+
+  function connect() {
+    if (
+      activeSocket &&
+      (activeSocket.readyState === WebSocket.OPEN || activeSocket.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
+    const loc = window.location;
+    const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+    // If dev port 3100, backend is on 3000:
+    const host = loc.port === '3100' ? `${loc.hostname}:3000` : loc.host;
+    const url = `${protocol}//${host}/ws/notifications?userId=${encodeURIComponent(userId)}&role=driver`;
+
+    try {
+      const ws = new WebSocket(url);
+      activeSocket = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data) as {
+            type: string;
+            data?: Omit<NotificationItem, 'id' | 'at'> & { id?: string; at?: string };
+          };
+          if (payload.type === 'notification' && payload.data) {
+            const notif = payload.data;
+            pushNotification(
+              {
+                kind: notif.kind,
+                title: notif.title,
+                body: notif.body,
+                imageUrl: notif.imageUrl,
+                href: notif.href,
+                dedupeKey: notif.dedupeKey,
+              },
+              { skipServerPost: true },
+            );
+          }
+        } catch {
+          // ignore
+        }
+      };
+
+      ws.onclose = () => {
+        activeSocket = null;
+        if (owner === userId) {
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connect, 4000);
+        }
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    } catch {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connect, 6000);
+    }
+  }
+
+  connect();
+
+  return () => {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (activeSocket) {
+      activeSocket.close();
+      activeSocket = null;
+    }
+  };
+}
+
 /**
  * Points the store at the signed-in driver's list (or at nothing, when
  * `userId` is null). Switching drivers drops the previous list from memory.
@@ -157,6 +242,10 @@ export function setNotificationsOwner(userId: string | null): void {
   if (userId) {
     hydrate();
     void fetchServerNotifications();
+    connectNotificationSocket(userId);
+  } else if (activeSocket) {
+    activeSocket.close();
+    activeSocket = null;
   }
   notify();
 }
@@ -166,7 +255,10 @@ export function setNotificationsOwner(userId: string | null): void {
  *
  * Persists both to the server API and localStorage.
  */
-export function pushNotification(item: Omit<NotificationItem, 'id' | 'at'>): boolean {
+export function pushNotification(
+  item: Omit<NotificationItem, 'id' | 'at'>,
+  options?: { skipServerPost?: boolean },
+): boolean {
   hydrate();
   if (!owner) return false;
   if (item.dedupeKey) {
@@ -177,15 +269,17 @@ export function pushNotification(item: Omit<NotificationItem, 'id' | 'at'>): boo
     }
   }
 
-  // Persist to server
-  try {
-    void fetch('/app-api/notifications', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(item),
-    }).catch(() => {});
-  } catch {
-    // Network down
+  // Persist to server unless already received from server
+  if (!options?.skipServerPost) {
+    try {
+      void fetch('/app-api/notifications', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(item),
+      }).catch(() => {});
+    } catch {
+      // Network down
+    }
   }
 
   items = [
