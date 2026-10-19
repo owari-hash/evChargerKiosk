@@ -110,19 +110,6 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
     return formatDuration(session.startTimestamp, session.stopTimestamp ?? new Date(clock));
   }
 
-  /** Energy and service-fee lines under the total; only sessions billed with a fee have them. */
-  function feeBreakdown(session: ChargingSession): ReactNode {
-    if (!session.feeAmount || session.feeAmount <= 0) return null;
-    return (
-      <span className="mt-0.5 block whitespace-nowrap text-xs text-muted">
-        {d.account.sessions.energyCost} {formatMoney(session.energyCost)}
-        <span className="block">
-          {format(d.account.sessions.feeShort, { percent: session.feePercent ?? '—' })}{' '}
-          {formatMoney(session.feeAmount)}
-        </span>
-      </span>
-    );
-  }
 
   function stopControls(session: ChargingSession): ReactNode {
     if (session.status !== 'Active') return null;
@@ -185,12 +172,12 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-        <CardTitle>{d.account.sessions.title}</CardTitle>
-        <p className="text-sm text-muted">
+    <Card className="overflow-hidden border border-border/80 shadow-xs">
+      <CardHeader className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
+        <CardTitle className="text-base font-semibold">{d.account.sessions.title}</CardTitle>
+        <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted ring-1 ring-border/50">
           {format(d.account.sessions.count, { count: ordered.length })}
-        </p>
+        </span>
       </CardHeader>
 
       {(notice || error) && (
@@ -200,69 +187,81 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
         </div>
       )}
 
-      <ul className="max-h-[70vh] divide-y divide-border overflow-y-auto md:hidden">
+      {/* Mobile Card List (< md) */}
+      <ul className="divide-y divide-border/60 md:hidden">
         {ordered.map((session) => {
           const meta = STATUS_META[session.status];
           const active = session.status === 'Active';
 
           return (
-            <li key={session.transactionId} className="space-y-3 px-5 py-4">
+            <li key={session.transactionId} className="space-y-3 p-4 transition-colors hover:bg-surface-muted/20">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <Link
                     href={stationHref(session)}
-                    className="font-semibold text-foreground underline-offset-4 hover:underline"
+                    className="block truncate font-semibold text-foreground underline-offset-4 hover:text-brand hover:underline"
                   >
                     {session.stationName ?? session.chargePointId}
                   </Link>
-                  <p className="mt-0.5 text-sm text-muted">
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
+                    <span className="size-1.5 rounded-full bg-brand/60" />
                     {format(d.account.sessions.connector, { id: session.connectorId })}
                   </p>
                 </div>
-                <Badge tone={meta.tone}>{d.account.sessions[meta.labelKey]}</Badge>
+                <Badge tone={meta.tone} className="shrink-0 text-xs font-medium">
+                  {d.account.sessions[meta.labelKey]}
+                </Badge>
               </div>
 
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface-muted/40 p-3 text-xs">
                 <div>
-                  <dt className="text-muted">{d.account.sessions.started}</dt>
-                  <dd suppressHydrationWarning className="text-foreground">
+                  <span className="block text-[11px] text-muted">{d.account.sessions.started}</span>
+                  <span suppressHydrationWarning className="mt-0.5 block font-medium text-foreground">
                     {formatDateTime(session.startTimestamp)}
-                  </dd>
+                  </span>
+                  <span suppressHydrationWarning className="mt-0.5 block text-[11px] text-muted">
+                    ⏱ {duration(session)}
+                  </span>
                 </div>
                 <div>
-                  <dt className="text-muted">{d.account.sessions.duration}</dt>
-                  <dd suppressHydrationWarning className="text-foreground">
-                    {duration(session)}
-                  </dd>
+                  <span className="block text-[11px] text-muted">{d.account.sessions.energy}</span>
+                  <span className="mt-0.5 block font-semibold text-foreground text-sm">
+                    {formatKwh(session.energyKwh)}
+                  </span>
+                  {active && (
+                    <span className="mt-0.5 block text-[11px] font-medium text-brand animate-pulse">
+                      ⚡ {formatPower(session.lastPowerW)} now
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <dt className="text-muted">{d.account.sessions.energy}</dt>
-                  <dd className="text-foreground">{formatKwh(session.energyKwh)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted">{d.account.sessions.cost}</dt>
-                  <dd className="text-foreground">
-                    {formatMoney(session.cost)}
-                    {feeBreakdown(session)}
-                  </dd>
-                </div>
-                {active && (
-                  <div>
-                    <dt className="text-muted">{d.account.sessions.rightNow}</dt>
-                    <dd className="text-foreground">{formatPower(session.lastPowerW)}</dd>
+                <div className="col-span-2 flex items-center justify-between border-t border-border/40 pt-2">
+                  <span className="text-[11px] text-muted">{d.account.sessions.cost}</span>
+                  <div className="text-right">
+                    <span className="block font-bold text-foreground text-sm">
+                      {formatMoney(session.cost)}
+                    </span>
+                    {session.feeAmount && session.feeAmount > 0 ? (
+                      <span className="block text-[11px] text-muted">
+                        {d.account.sessions.energyCost} {formatMoney(session.energyCost)} · {format(d.account.sessions.feeShort, { percent: session.feePercent ?? '—' })} {formatMoney(session.feeAmount)}
+                      </span>
+                    ) : null}
                   </div>
-                )}
-              </dl>
+                </div>
+              </div>
 
-              <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
                 {stopControls(session)}
                 {session.status === 'Completed' && (
                   <Button
                     variant="secondary"
                     size="sm"
+                    className="h-8 px-2.5 text-xs font-semibold rounded-lg shadow-xs hover:bg-surface-muted"
                     onClick={() => setEbarimtSession(session)}
                   >
-                    {session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1 size-3.5" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
+                    </svg>
+                    <span>{session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}</span>
                   </Button>
                 )}
               </div>
@@ -271,85 +270,117 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
         })}
       </ul>
 
-      <div className="hidden max-h-[70vh] overflow-auto md:block">
-        <table className="w-full min-w-[48rem] text-left text-sm">
+      {/* Desktop & Tablet Table (md+) - No horizontal scroll, responsive layout */}
+      <div className="hidden md:block">
+        <table className="w-full text-left text-sm">
           <caption className="sr-only">{d.account.sessions.caption}</caption>
-          <thead className="sticky top-0 z-10 bg-surface">
-            <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted">
-              <th scope="col" className="px-5 py-3">
+          <thead className="border-b border-border/80 bg-surface-muted/50">
+            <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+              <th scope="col" className="px-4 py-3 text-left">
                 {d.account.sessions.station}
               </th>
-              <th scope="col" className="px-5 py-3">
-                {d.account.sessions.connectorHeader}
-              </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3.5 py-3 text-left">
                 {d.account.sessions.started}
               </th>
-              <th scope="col" className="px-5 py-3">
-                {d.account.sessions.duration}
-              </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3.5 py-3 text-left">
                 {d.account.sessions.energy}
               </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3.5 py-3 text-left">
                 {d.account.sessions.cost}
               </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-3.5 py-3 text-center">
                 {d.account.sessions.status}
               </th>
-              <th scope="col" className="px-5 py-3">
+              <th scope="col" className="px-4 py-3 text-right">
                 <span className="sr-only">{d.account.sessions.actions}</span>
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/50">
             {ordered.map((session) => {
               const meta = STATUS_META[session.status];
               const active = session.status === 'Active';
 
               return (
-                <tr key={session.transactionId} className="border-b border-border last:border-0">
-                  <td className="px-5 py-3">
+                <tr
+                  key={session.transactionId}
+                  className="transition-colors hover:bg-surface-muted/30"
+                >
+                  {/* Station & Connector */}
+                  <td className="px-4 py-3.5 align-middle">
                     <Link
                       href={stationHref(session)}
-                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                      className="block max-w-[11rem] truncate font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[14rem]"
+                      title={session.stationName ?? session.chargePointId}
                     >
                       {session.stationName ?? session.chargePointId}
                     </Link>
+                    <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted">
+                      <span className="size-1.5 rounded-full bg-brand/60" />
+                      {format(d.account.sessions.connector, { id: session.connectorId })}
+                    </span>
                   </td>
-                  <td className="px-5 py-3 text-muted">{session.connectorId}</td>
-                  {/* Wraps onto two lines so the status and actions stay in view. */}
-                  <td suppressHydrationWarning className="min-w-[8.5rem] px-4 py-3 text-muted">
-                    {formatDateTime(session.startTimestamp)}
+
+                  {/* Started Date & Duration */}
+                  <td className="px-3.5 py-3.5 align-middle">
+                    <span suppressHydrationWarning className="block font-medium text-foreground text-xs sm:text-sm">
+                      {formatDateTime(session.startTimestamp)}
+                    </span>
+                    <span suppressHydrationWarning className="mt-0.5 block text-xs text-muted">
+                      ⏱ {duration(session)}
+                    </span>
                   </td>
-                  <td suppressHydrationWarning className="px-5 py-3 whitespace-nowrap text-muted">
-                    {duration(session)}
-                  </td>
-                  <td className="px-5 py-3 whitespace-nowrap text-foreground">
-                    {formatKwh(session.energyKwh)}
+
+                  {/* Energy */}
+                  <td className="whitespace-nowrap px-3.5 py-3.5 align-middle">
+                    <span className="block font-semibold text-foreground text-xs sm:text-sm">
+                      {formatKwh(session.energyKwh)}
+                    </span>
                     {active && (
-                      <span className="block text-xs text-muted">
-                        {formatPower(session.lastPowerW)} now
+                      <span className="mt-0.5 block text-xs font-medium text-brand animate-pulse">
+                        ⚡ {formatPower(session.lastPowerW)}
                       </span>
                     )}
                   </td>
-                  <td className="px-5 py-3 whitespace-nowrap text-foreground">
-                    {formatMoney(session.cost)}
-                    {feeBreakdown(session)}
+
+                  {/* Cost & Fee */}
+                  <td className="px-3.5 py-3.5 align-middle">
+                    <span className="block whitespace-nowrap font-bold text-foreground text-xs sm:text-sm">
+                      {formatMoney(session.cost)}
+                    </span>
+                    {session.feeAmount && session.feeAmount > 0 ? (
+                      <span className="mt-0.5 block text-[11px] leading-tight text-muted">
+                        {d.account.sessions.energyCost}: {formatMoney(session.energyCost)}
+                        <span className="block text-muted/80">
+                          {format(d.account.sessions.feeShort, { percent: session.feePercent ?? '—' })}{' '}
+                          {formatMoney(session.feeAmount)}
+                        </span>
+                      </span>
+                    ) : null}
                   </td>
-                  <td className="px-5 py-3">
-                    <Badge tone={meta.tone}>{d.account.sessions[meta.labelKey]}</Badge>
+
+                  {/* Status */}
+                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle">
+                    <Badge tone={meta.tone} className="px-2 py-0.5 text-xs font-medium">
+                      {d.account.sessions[meta.labelKey]}
+                    </Badge>
                   </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
+
+                  {/* Actions */}
+                  <td className="whitespace-nowrap px-4 py-3.5 text-right align-middle">
+                    <div className="flex items-center justify-end gap-2">
                       {stopControls(session)}
                       {session.status === 'Completed' && (
                         <Button
                           variant="secondary"
                           size="sm"
+                          className="h-8 rounded-lg px-2.5 text-xs font-semibold shadow-xs hover:bg-surface-muted"
                           onClick={() => setEbarimtSession(session)}
                         >
-                          {session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1 size-3.5" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
+                          </svg>
+                          <span>{session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}</span>
                         </Button>
                       )}
                     </div>
