@@ -2,7 +2,13 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { getSnapshot, markAllRead, subscribe, type NotificationItem } from '@/lib/notifications-store';
+import {
+  fetchServerNotifications,
+  getSnapshot,
+  markAllRead,
+  subscribe,
+  type NotificationItem,
+} from '@/lib/notifications-store';
 import { formatDateTime } from '@/lib/utils';
 import { useI18n } from '@/components/i18n-provider';
 import { NotificationIcon } from '@/components/notification-icon';
@@ -35,8 +41,12 @@ export function NotificationBell() {
   }, [open]);
 
   function toggle() {
-    setOpen((o) => !o);
-    if (!open) markAllRead();
+    const next = !open;
+    setOpen(next);
+    if (next) {
+      void fetchServerNotifications();
+      markAllRead();
+    }
   }
 
   return (

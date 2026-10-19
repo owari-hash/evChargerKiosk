@@ -29,6 +29,7 @@ export interface NotificationItem {
    */
   dedupeKey?: string;
   at: string;
+  isRead?: boolean;
 }
 
 export const NOTIFICATIONS_KEY = 'eplug-notifications';
@@ -109,6 +110,41 @@ function listenToOtherTabs(): void {
 }
 
 /**
+ * Fetches notifications saved on the server for the current driver and syncs local state.
+ */
+export async function fetchServerNotifications(): Promise<void> {
+  if (!owner || typeof window === 'undefined') return;
+  try {
+    const res = await fetch('/app-api/notifications', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = (await res.json()) as { items?: NotificationItem[]; unread?: number };
+    if (!data || !Array.isArray(data.items)) return;
+
+    const serverItems = data.items;
+    const existingMap = new Map(items.map((i) => [i.dedupeKey ?? i.id, i]));
+
+    for (const item of serverItems) {
+      const key = item.dedupeKey ?? item.id;
+      if (!existingMap.has(key)) {
+        existingMap.set(key, item);
+      }
+    }
+
+    items = Array.from(existingMap.values())
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, MAX_ITEMS);
+
+    if (typeof data.unread === 'number') {
+      unread = data.unread;
+    }
+    persist();
+    notify();
+  } catch {
+    // Offline or network error
+  }
+}
+
+/**
  * Points the store at the signed-in driver's list (or at nothing, when
  * `userId` is null). Switching drivers drops the previous list from memory.
  */
@@ -118,29 +154,40 @@ export function setNotificationsOwner(userId: string | null): void {
   unread = 0;
   hydrated = false;
   items = [];
-  hydrate();
+  if (userId) {
+    hydrate();
+    void fetchServerNotifications();
+  }
   notify();
 }
 
 /**
  * Adds a notification to the top of the list and bumps the unread count.
  *
- * Returns false (and adds nothing) while signed out, or when an entry with
- * the same `dedupeKey` is already filed — by this tab or, since the list is
- * re-read from storage first, by another one.
+ * Persists both to the server API and localStorage.
  */
 export function pushNotification(item: Omit<NotificationItem, 'id' | 'at'>): boolean {
   hydrate();
   if (!owner) return false;
   if (item.dedupeKey) {
-    // Another tab may have filed it a moment ago without our storage event
-    // having arrived yet; the stored copy is the source of truth.
     items = readStored() ?? items;
     if (items.some((existing) => existing.dedupeKey === item.dedupeKey)) {
       notify();
       return false;
     }
   }
+
+  // Persist to server
+  try {
+    void fetch('/app-api/notifications', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(item),
+    }).catch(() => {});
+  } catch {
+    // Network down
+  }
+
   items = [
     { ...item, id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, at: new Date().toISOString() },
     ...items,
@@ -152,9 +199,19 @@ export function pushNotification(item: Omit<NotificationItem, 'id' | 'at'>): boo
 }
 
 export function markAllRead(): void {
-  if (unread === 0) return;
-  unread = 0;
-  notify();
+  if (unread > 0) {
+    unread = 0;
+    notify();
+  }
+  try {
+    void fetch('/app-api/notifications/read', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    }).catch(() => {});
+  } catch {
+    // Network down
+  }
 }
 
 export function getSnapshot(): Snapshot {
