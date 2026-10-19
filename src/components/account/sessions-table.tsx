@@ -311,22 +311,22 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           <caption className="sr-only">{d.account.sessions.caption}</caption>
           <thead className="border-b border-border/80 bg-surface-muted/50">
             <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <th scope="col" className="px-4 py-3 text-left">
+              <th scope="col" className="px-4 py-3 text-left align-middle">
                 {d.account.sessions.station}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-left">
+              <th scope="col" className="px-3.5 py-3 text-left align-middle">
                 {d.account.sessions.started}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-center">
+              <th scope="col" className="px-3.5 py-3 text-center align-middle">
                 {d.account.sessions.energy}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-right">
+              <th scope="col" className="px-3.5 py-3 text-center align-middle">
                 {d.account.sessions.cost}
               </th>
-              <th scope="col" className="px-4 py-3 text-center">
+              <th scope="col" className="px-4 py-3 text-center align-middle">
                 <span className="sr-only">{d.account.sessions.actions}</span>
               </th>
-              <th scope="col" className="px-4 py-3 text-center">
+              <th scope="col" className="px-4 py-3 text-center align-middle">
                 {d.account.sessions.status}
               </th>
             </tr>
@@ -388,10 +388,10 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     </TableTooltip>
                   </td>
 
-                  {/* Cost & Fee — right-aligned */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 text-right align-middle">
+                  {/* Cost & Fee — centered */}
+                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle">
                     <TableTooltip
-                      align="right"
+                      align="center"
                       title={formatMoney(session.cost)}
                       description={
                         session.feeAmount && session.feeAmount > 0
