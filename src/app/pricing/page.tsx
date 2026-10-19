@@ -83,7 +83,7 @@ export default async function PricingPage() {
             <div className="mt-4 space-y-3 sm:hidden">
               {stations.map((station) => (
                 <Card key={station.id} className="p-3.5">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/stations/${encodeURIComponent(station.id)}`}
@@ -91,36 +91,29 @@ export default async function PricingPage() {
                       >
                         {station.name}
                       </Link>
-                      {station.address && (
-                        <p className="mt-0.5 text-xs text-muted line-clamp-1">{station.address}</p>
+                      {station.connectorTypes.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {station.connectorTypes.map((t) => (
+                            <span
+                              key={t}
+                              className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand ring-1 ring-brand/20"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
                     <div className="shrink-0 text-right">
-                      <span className="text-sm font-bold text-foreground">
+                      <span className="text-sm font-bold text-foreground block">
                         {formatMoney(station.tariffPerKwh, intl, 2)}
                       </span>
+                      {station.maxPowerKw ? (
+                        <span className="text-xs text-muted font-medium mt-0.5 block">
+                          ⚡ {formatPowerKw(station.maxPowerKw, intl)}
+                        </span>
+                      ) : null}
                     </div>
-                  </div>
-                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-xs">
-                    <div className="flex flex-wrap gap-1">
-                      {station.connectorTypes.length ? (
-                        station.connectorTypes.map((t) => (
-                          <span
-                            key={t}
-                            className="inline-flex items-center rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-muted ring-1 ring-border"
-                          >
-                            {t}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </div>
-                    {station.maxPowerKw ? (
-                      <span className="text-muted font-medium">
-                        ⚡ {formatPowerKw(station.maxPowerKw, intl)}
-                      </span>
-                    ) : null}
                   </div>
                 </Card>
               ))}
@@ -136,9 +129,6 @@ export default async function PricingPage() {
                       <th scope="col" className="px-4 py-3">
                         {d.pricing.colChargePoint}
                       </th>
-                      <th scope="col" className="px-4 py-3">
-                        {d.pricing.colPlugs}
-                      </th>
                       <th scope="col" className="px-4 py-3 text-right">
                         {d.pricing.colMaxPower}
                       </th>
@@ -153,30 +143,23 @@ export default async function PricingPage() {
                         <th scope="row" className="px-4 py-3 text-left font-medium">
                           <Link
                             href={`/stations/${encodeURIComponent(station.id)}`}
-                            className="text-foreground hover:text-brand hover:underline"
+                            className="font-semibold text-foreground hover:text-brand hover:underline"
                           >
                             {station.name}
                           </Link>
-                          {station.address && (
-                            <span className="mt-0.5 block text-xs font-normal text-muted">
-                              {station.address}
-                            </span>
-                          )}
-                        </th>
-                        <td className="px-4 py-3">
-                          {station.connectorTypes.length ? (
-                            <div className="flex flex-wrap gap-1">
+                          {station.connectorTypes.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
                               {station.connectorTypes.map((t) => (
                                 <span
                                   key={t}
-                                  className="inline-flex items-center rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-muted ring-1 ring-border"
+                                  className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand ring-1 ring-brand/20"
                                 >
                                   {t}
                                 </span>
                               ))}
                             </div>
-                          ) : '—'}
-                        </td>
+                          )}
+                        </th>
                         <td className="px-4 py-3 text-right tabular-nums text-muted">
                           {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
                         </td>
