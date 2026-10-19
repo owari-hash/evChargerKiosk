@@ -46,44 +46,8 @@ export default async function PricingPage() {
         <p className="mt-3 text-base text-muted">{d.pricing.intro}</p>
       </header>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{d.pricing.howTitle}</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <dl className="space-y-4 text-sm">
-              <div>
-                <dt className="font-semibold text-foreground">{d.pricing.energyTitle}</dt>
-                <dd className="mt-1 text-muted">{d.pricing.energyBody}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-foreground">{d.pricing.perPointTitle}</dt>
-                <dd className="mt-1 text-muted">{d.pricing.perPointBody}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-foreground">{d.pricing.recordedTitle}</dt>
-                <dd className="mt-1 text-muted">{d.pricing.recordedBody}</dd>
-              </div>
-            </dl>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{d.pricing.notesTitle}</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <ul className="space-y-3 text-sm text-muted">
-              <li>{d.pricing.note1}</li>
-              <li>{d.pricing.note2}</li>
-              <li>{d.pricing.note3}</li>
-            </ul>
-          </CardBody>
-        </Card>
-      </div>
-
-      <section className="mt-10">
+      {/* ---- Tariff table first ---- */}
+      <section className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-foreground">{d.pricing.currentTitle}</h2>
@@ -150,19 +114,25 @@ export default async function PricingPage() {
                           </span>
                         )}
                       </th>
-                      <td className="px-4 py-3 text-muted">
-                        {station.connectorTypes.length ? station.connectorTypes.join(' · ') : '—'}
+                      <td className="px-4 py-3">
+                        {station.connectorTypes.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {station.connectorTypes.map((t) => (
+                              <span
+                                key={t}
+                                className="inline-flex items-center rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-muted ring-1 ring-border"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        ) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-muted">
                         {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
                         {formatMoney(station.tariffPerKwh, intl, 2)}
-                        {station.feePercent != null && station.feePercent > 0 && (
-                          <span className="mt-0.5 block text-xs font-normal text-muted">
-                            {format(d.stations.feeIncluded, { percent: station.feePercent })}
-                          </span>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -174,6 +144,44 @@ export default async function PricingPage() {
 
         <p className="mt-4 text-xs text-muted">{d.pricing.footnote}</p>
       </section>
+
+      {/* ---- How it works below ---- */}
+      <div className="mt-10 grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{d.pricing.howTitle}</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <dl className="space-y-4 text-sm">
+              <div>
+                <dt className="font-semibold text-foreground">{d.pricing.energyTitle}</dt>
+                <dd className="mt-1 text-muted">{d.pricing.energyBody}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-foreground">{d.pricing.perPointTitle}</dt>
+                <dd className="mt-1 text-muted">{d.pricing.perPointBody}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-foreground">{d.pricing.recordedTitle}</dt>
+                <dd className="mt-1 text-muted">{d.pricing.recordedBody}</dd>
+              </div>
+            </dl>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{d.pricing.notesTitle}</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <ul className="space-y-3 text-sm text-muted">
+              <li>{d.pricing.note1}</li>
+              <li>{d.pricing.note2}</li>
+              <li>{d.pricing.note3}</li>
+            </ul>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

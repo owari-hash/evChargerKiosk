@@ -162,6 +162,7 @@ export function ChargingFlow({
   const [tagged, setTagged] = useState(hasIdTag);
   const [showQuickPay, setShowQuickPay] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [isInternal, setIsInternal] = useState(false);
 
   const fetchWallet = useCallback(async () => {
     if (!authed) return;
@@ -171,6 +172,9 @@ export function ChargingFlow({
         const data = await res.json();
         if (data?.wallet?.balance !== undefined) {
           setWalletBalance(data.wallet.balance);
+        }
+        if (data?.isInternal || data?.wallet?.isInternal) {
+          setIsInternal(true);
         }
       }
     } catch {}
@@ -301,7 +305,7 @@ export function ChargingFlow({
 
   async function start() {
     if (!chosen) return;
-    if (walletBalance !== null && walletBalance < 1000) {
+    if (!isInternal && walletBalance !== null && walletBalance < 1000) {
       setShowQuickPay(true);
       setError('Хэтэвчний үлдэгдэл хүрэлцэхгүй байна (хамгийн багадаа 1,000₮). Цэнэглэхээсээ өмнө хэтэвчээ цэнэглэнэ үү.');
       return;
@@ -495,7 +499,7 @@ export function ChargingFlow({
           {step === 'plug' && (
             <ActionBlock
               title={t.stepPlug}
-              body={format(t.plugBody, { connector: chosenLabel })}
+              body={t.plugBody}
             >
               <Button type="button" onClick={confirmPlugged}>
                 {t.plugConfirm}
@@ -511,11 +515,12 @@ export function ChargingFlow({
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-3">
                 <div className="min-w-0">
                   <h2 className="text-base font-bold text-foreground">{t.stepCharge}</h2>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {format(t.startBody, { connector: chosenLabel })}
-                  </p>
                 </div>
-                {walletBalance !== null && (
+                {isInternal ? (
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold shadow-xs">
+                    <span>Дотоод хэрэглэгч · Үнэ төлбөргүй</span>
+                  </div>
+                ) : walletBalance !== null && (
                   <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-surface-muted/60 px-3 py-1 text-xs shadow-xs">
                     <span className="text-muted">Хэтэвчний үлдэгдэл:</span>
                     <span

@@ -74,53 +74,50 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
       ? undefined
       : format(d.stations.perKwh, { price: formatMoney(station.tariffPerKwh, intl, 2) }),
   ].filter(Boolean);
-  const feeNote =
-    station.tariffPerKwh !== undefined && station.feePercent
-      ? format(d.stations.feeIncluded, { percent: station.feePercent })
-      : undefined;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5 sm:py-8">
       <Link
         href="/stations"
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted transition hover:text-brand"
+        className="inline-flex items-center justify-center size-9 rounded-xl bg-surface-muted/70 ring-1 ring-border text-muted transition hover:text-brand hover:bg-brand/10 hover:ring-brand/30"
+        aria-label={d.stations.allChargers}
       >
-        {d.stations.allChargers}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
       </Link>
 
       <header className="mt-3">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {station.name}
-        </h1>
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-          <span className="min-w-0 break-words">{station.address || d.stations.addressMissing}</span>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            {station.name}
+          </h1>
           {directions && (
             <a
               href={directions}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold text-brand hover:underline"
+              className="mt-1 inline-flex shrink-0 items-center justify-center size-9 rounded-xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20"
+              aria-label={d.stations.directions}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-3.5" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
               </svg>
-              {d.stations.directions}
             </a>
           )}
+        </div>
+        <p className="mt-1 text-sm text-muted break-words">
+          {station.address || d.stations.addressMissing}
         </p>
         {facts.length > 0 && (
-          <p className="mt-2 text-sm font-medium text-foreground">
-            {facts.map((fact, i) => (
-              <span key={fact} className="whitespace-nowrap">
-                {i > 0 && ' · '}
-                {fact}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {facts.map((fact) => (
+              <span
+                key={fact}
+                className="inline-flex items-center rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand ring-1 ring-brand/20"
+              >
+                ⚡ {fact}
               </span>
             ))}
-            {feeNote && <span className="ml-1.5 text-xs font-normal text-muted">({feeNote})</span>}
-          </p>
-        )}
-        {station.description && (
-          <p className="mt-1 text-sm leading-6 text-muted">{station.description}</p>
+          </div>
         )}
       </header>
 

@@ -457,7 +457,7 @@ export const en = {
     // --- the four steps a driver acts on ---
     stepSignIn: 'Sign in',
     stepConnector: 'Pick a connector',
-    stepPlug: 'Plug in',
+    stepPlug: 'Confirm',
     stepCharge: 'Charge',
     signInBody: 'Charging is paid from your wallet, so sign in first.',
     tagPendingBody:
@@ -465,8 +465,8 @@ export const en = {
     tagPendingCta: 'Open my account',
     connectorBody: 'Tap a free connector that fits your car.',
     scannedUnavailable: 'The connector you scanned is not free right now. Pick another one.',
-    plugBody: 'Your connector: {connector}. Plug it into your car, then confirm.',
-    startBody: 'Your connector: {connector}. The station has the final say and may decline.',
+    plugBody: 'Plug the cable into your car, then confirm.',
+    startBody: 'Ready to charge. The station has the final say and may decline.',
     changeConnector: 'Choose another connector',
     // --- what happens on its own after Start ---
     waitingTitle: 'Waiting for the station to respond…',
@@ -493,7 +493,7 @@ export const en = {
     localOnlyTitle: 'Start at the station itself',
     localOnlyBody:
       'This network starts sessions on the unit. Hold your charge tag against the reader and plug in — this page then follows along.',
-    plugConfirm: 'The cable is plugged in',
+    plugConfirm: 'Confirm',
     plugNotDetected:
       "The station does not see a cable on this connector yet. Plug it in firmly, then try again.",
     refreshFailed: 'Live updates paused — reconnecting…',
@@ -651,7 +651,7 @@ export const en = {
     colChargePoint: 'Charge point',
     colPlugs: 'Plugs',
     colMaxPower: 'Max power',
-    colPrice: 'Price per kWh',
+    colPrice: 'Unit kWh price',
     footnote:
       'Prices are read from the charging network each time this page loads. An operator can change a tariff at any time; the figure shown on the station page immediately before you start is the one that applies.',
   },
@@ -1451,7 +1451,7 @@ export const mn: Dictionary = {
     // --- the four steps a driver acts on ---
     stepSignIn: 'Нэвтрэх',
     stepConnector: 'Хошуу сонгох',
-    stepPlug: 'Хошуугаа залгах',
+    stepPlug: 'Баталгаажуулах',
     stepCharge: 'Цэнэглэх',
     signInBody: 'Цэнэглэлтийн төлбөр хэтэвчнээс тань хасагдах тул эхлээд нэвтэрнэ үү.',
     tagPendingBody:
@@ -1459,8 +1459,8 @@ export const mn: Dictionary = {
     tagPendingCta: 'Бүртгэлээ харах',
     connectorBody: 'Машиндаа тохирох сул хошууг дарж сонгоно уу.',
     scannedUnavailable: 'Таны уншуулсан хошуу одоогоор сул биш байна. Өөр хошуу сонгоно уу.',
-    plugBody: 'Сонгосон хошуу: {connector}. Хошуугаа машиндаа залгаад баталгаажуулна уу.',
-    startBody: 'Сонгосон хошуу: {connector}. Эцсийн шийдвэрийг станц гаргах бөгөөд татгалзаж болно.',
+    plugBody: 'Хошуугаа машиндаа залгаад баталгаажуулна уу.',
+    startBody: 'Цэнэглэхэд бэлэн байна. Эцсийн шийдвэрийг станц гаргах бөгөөд татгалзаж болно.',
     changeConnector: 'Өөр хошуу сонгох',
     // --- what happens on its own after Start ---
     waitingTitle: 'Станц хариу өгөхийг хүлээж байна…',
@@ -1487,7 +1487,7 @@ export const mn: Dictionary = {
     localOnlyTitle: 'Станц дээр нь эхлүүлнэ',
     localOnlyBody:
       'Энэ сүлжээнд цэнэглэлтийг станц дээр нь эхлүүлдэг. Картаа уншуулаад хошуугаа залгахад энэ хуудас өөрөө шинэчлэгдэнэ.',
-    plugConfirm: 'Хошуу залгагдсан',
+    plugConfirm: 'Баталгаажуулах',
     plugNotDetected:
       'Станц энэ хошуунд залгалт мэдрэхгүй байна. Хошуугаа бататгаж залгаад дахин оролдоно уу.',
     refreshFailed: 'Шууд мэдээлэл түр тасарлаа — дахин холбогдож байна…',
@@ -1645,7 +1645,7 @@ export const mn: Dictionary = {
     colChargePoint: 'Цэнэглэх цэг',
     colPlugs: 'Холбогч',
     colMaxPower: 'Дээд хүчин чадал',
-    colPrice: 'кВт·ц-ийн үнэ',
+    colPrice: 'Нэгж квц үнэ',
     footnote:
       'Энэ хуудас ачаалагдах бүрд үнийг цэнэглэх сүлжээнээс уншина. Оператор тарифаа хэдийд ч өөрчилж болох бөгөөд эхлэхийн өмнөхөн станцын хуудсанд харагдсан дүн хүчинтэй байна.',
   },

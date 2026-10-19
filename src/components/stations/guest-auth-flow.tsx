@@ -108,7 +108,7 @@ export function GuestAuthFlow({ returnTo, onSuccess }: GuestAuthFlowProps) {
           href={`/login?next=${encodeURIComponent(returnTo)}`}
           className="text-xs font-medium text-brand hover:underline shrink-0"
         >
-          PIN-ээр нэвтрэх
+          Бүртгэлтэй эрхээр нэвтрэх
         </Link>
       </div>
 

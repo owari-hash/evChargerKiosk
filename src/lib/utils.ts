@@ -238,8 +238,8 @@ export function stationSubtitle(station: Station, locale?: string): string {
   return bits.join(' • ');
 }
 
-/** Google Maps directions link — works on both desktop and mobile. */
+/** Map directions link — opens our own map at the station's coordinates. */
 export function directionsUrl(station: Station): string | undefined {
   if (station.latitude === undefined || station.longitude === undefined) return undefined;
-  return `https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}`;
+  return `/?lat=${station.latitude}&lng=${station.longitude}&station=${encodeURIComponent(station.id)}`;
 }

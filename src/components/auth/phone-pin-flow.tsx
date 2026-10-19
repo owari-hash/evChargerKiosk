@@ -345,7 +345,9 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
 
       {step === 'pin' && (
         <>
-          <p className="text-sm text-muted">{copy.pinBody}</p>
+          <div className="rounded-xl bg-brand/5 border border-brand/20 px-4 py-3 text-sm text-muted">
+            🔒 4 оронтой нууц код — дараагийн нэвтрэлтэд ашиглана
+          </div>
 
           <Field label={d.auth.newPinLabel} htmlFor="pin" error={errors.pin} className="text-center">
             <PinInput
