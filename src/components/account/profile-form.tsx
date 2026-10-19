@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal } from '@/components/ui';
 import { ChangePinForm } from '@/components/account/change-pin-form';
 import { format, useI18n } from '@/components/i18n-provider';
@@ -35,8 +35,17 @@ function EditIcon() {
   );
 }
 
+export interface EbarimtVerificationResult {
+  valid: boolean;
+  type?: 'CITIZEN_PHONE' | 'CITIZEN_CODE' | 'ORGANIZATION';
+  name?: string;
+  tin?: string;
+  message: string;
+}
+
 interface ProfileResponse {
   user?: PublicUser;
+  ebarimtVerification?: EbarimtVerificationResult;
   error?: string;
   fields?: Record<string, string>;
 }
@@ -121,6 +130,15 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const [phoneError, setPhoneError] = useState('');
   const [phoneFields, setPhoneFields] = useState<Record<string, string>>({});
 
+  const [ebarimtStatus, setEbarimtStatus] = useState<{
+    checking?: boolean;
+    valid?: boolean;
+    type?: 'CITIZEN_PHONE' | 'CITIZEN_CODE' | 'ORGANIZATION';
+    name?: string;
+    tin?: string;
+    message?: string;
+  }>({});
+
   const displayPhone = (account.phone ?? '').replace(/^\+976(\d{4})(\d{4})$/, '+976 $1 $2');
 
   /** Any edit invalidates the previous confirmation so it never lies about the current values. */
@@ -128,6 +146,50 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setSaved(false);
     setError('');
   }
+
+  async function checkEbarimtCode(codeToCheck?: string) {
+    const target = (codeToCheck ?? ebarimtCustomerNo).trim();
+    if (!target) {
+      setEbarimtStatus({});
+      return;
+    }
+    setEbarimtStatus({ checking: true });
+    try {
+      const res = await fetch('/app-api/account/ebarimt/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: target }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        result?: EbarimtVerificationResult;
+        error?: string;
+      };
+      if (res.ok && data.result) {
+        setEbarimtStatus(data.result);
+        if (!data.result.valid) {
+          setFields((prev) => ({ ...prev, ebarimtCustomerNo: data.result!.message }));
+        } else {
+          setFields((prev) => {
+            const next = { ...prev };
+            delete next.ebarimtCustomerNo;
+            return next;
+          });
+        }
+      } else {
+        setEbarimtStatus({ valid: false, message: data.error || 'Шалгахад алдаа гарлаа' });
+      }
+    } catch {
+      setEbarimtStatus({ valid: false, message: 'Сүлжээний холболт амжилтгүй боллоо' });
+    }
+  }
+
+  useEffect(() => {
+    if (account.ebarimtCustomerNo?.trim()) {
+      checkEbarimtCode(account.ebarimtCustomerNo);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,9 +200,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     const trimmedEbarimt = ebarimtCustomerNo.trim();
     if (trimmedEbarimt) {
-      if (!/^\d{8}$/.test(trimmedEbarimt)) {
+      if (!/^\d{7,12}$/.test(trimmedEbarimt)) {
         setFields({
-          ebarimtCustomerNo: 'И-Баримтын хэрэглэгчийн код яг 8 оронтой тоо байх ёстой (жишээ нь: 12809800)',
+          ebarimtCustomerNo: 'И-Баримтын хэрэглэгчийн код 8 оронтой тоо (эсвэл байгууллагын ТТД/Регистр) байх ёстой.',
         });
         setSaving(false);
         return;
@@ -185,6 +247,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
       if (!res.ok || !data.user) {
         setError(data.error ?? d.account.profile.saveFailed);
         setFields(data.fields ?? {});
+        if (data.fields?.ebarimtCustomerNo) {
+          setEbarimtStatus({ valid: false, message: data.fields.ebarimtCustomerNo });
+        }
         return;
       }
 
@@ -194,6 +259,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
       setVehicleBrand(data.user.vehicleBrand ?? '');
       setVehicleModel(data.user.vehicleModel ?? '');
       setEbarimtCustomerNo(data.user.ebarimtCustomerNo ?? '');
+      if (data.ebarimtVerification) {
+        setEbarimtStatus(data.ebarimtVerification);
+      }
       setSaved(true);
       setEditingEmail(false);
     } catch {
@@ -563,54 +631,93 @@ export function ProfileForm({ user }: ProfileFormProps) {
           <div className="border-t border-border pt-4">
             <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
             <p className="mt-1 text-xs text-muted">{d.account.profile.ebarimtHint}</p>
-            <div className="mt-3 max-w-sm space-y-2">
-              <Field
-                label={d.account.profile.ebarimtCustomerNoLabel}
-                htmlFor="profile-ebarimt-customer-no"
-                error={fields.ebarimtCustomerNo}
-              >
-                <Input
-                  id="profile-ebarimt-customer-no"
-                  name="ebarimtCustomerNo"
-                  value={ebarimtCustomerNo}
-                  maxLength={8}
-                  placeholder={d.account.profile.ebarimtCustomerNoPlaceholder}
-                  aria-invalid={fields.ebarimtCustomerNo ? true : undefined}
-                  aria-describedby={describedBy('profile-ebarimt-customer-no', fields.ebarimtCustomerNo, false)}
-                  onChange={(event) => {
-                    touched();
-                    setFields((prev) => {
-                      const next = { ...prev };
-                      delete next.ebarimtCustomerNo;
-                      return next;
-                    });
-                    setEbarimtCustomerNo(event.target.value.replace(/\D/g, ''));
-                  }}
-                />
-              </Field>
+            <div className="mt-3 max-w-sm space-y-2.5">
+              <div className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <Input
+                    id="profile-ebarimt-customer-no"
+                    name="ebarimtCustomerNo"
+                    value={ebarimtCustomerNo}
+                    maxLength={12}
+                    placeholder={d.account.profile.ebarimtCustomerNoPlaceholder}
+                    aria-invalid={fields.ebarimtCustomerNo ? true : undefined}
+                    aria-describedby={describedBy('profile-ebarimt-customer-no', fields.ebarimtCustomerNo, false)}
+                    onChange={(event) => {
+                      touched();
+                      setEbarimtStatus({});
+                      setFields((prev) => {
+                        const next = { ...prev };
+                        delete next.ebarimtCustomerNo;
+                        return next;
+                      });
+                      setEbarimtCustomerNo(event.target.value.replace(/\D/g, ''));
+                    }}
+                    onBlur={() => {
+                      if (ebarimtCustomerNo.trim() && !ebarimtStatus.valid) {
+                        checkEbarimtCode();
+                      }
+                    }}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  loading={ebarimtStatus.checking}
+                  disabled={!ebarimtCustomerNo.trim() || ebarimtStatus.checking}
+                  onClick={() => checkEbarimtCode()}
+                >
+                  Шалгах
+                </Button>
+              </div>
+
+              {fields.ebarimtCustomerNo && (
+                <p className="text-xs font-medium text-danger">{fields.ebarimtCustomerNo}</p>
+              )}
+
+              {ebarimtStatus.checking && (
+                <div className="flex items-center gap-2 text-xs text-muted animate-pulse">
+                  <svg className="size-3.5 animate-spin text-brand" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <span>Татварын системээс шалгаж байна...</span>
+                </div>
+              )}
+
+              {!ebarimtStatus.checking && ebarimtStatus.valid && ebarimtStatus.message && (
+                <div className="flex items-start gap-2 rounded-lg bg-brand/10 p-2.5 text-xs font-medium text-brand-strong border border-brand/20">
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0 mt-0.5">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                  </svg>
+                  <div className="space-y-0.5">
+                    {ebarimtStatus.type === 'ORGANIZATION' && (
+                      <p className="font-semibold text-foreground">🏢 {ebarimtStatus.name}</p>
+                    )}
+                    <p>{ebarimtStatus.message}</p>
+                  </div>
+                </div>
+              )}
+
+              {!ebarimtStatus.checking && ebarimtStatus.valid === false && ebarimtStatus.message && (
+                <div className="flex items-start gap-2 rounded-lg bg-danger/10 p-2.5 text-xs font-medium text-danger border border-danger/20">
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0 mt-0.5">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                  <span>{ebarimtStatus.message}</span>
+                </div>
+              )}
 
               {(() => {
                 const phone8 = (account.phone || '').replace(/\D/g, '').slice(-8);
-                const isPhoneMatch = phone8.length === 8 && ebarimtCustomerNo === phone8;
-
-                if (isPhoneMatch) {
-                  return (
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-brand-strong">
-                      <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                      </svg>
-                      <span>Таны баталгаажсан утасны дугаартай таарч байна (Бодит бүртгэл)</span>
-                    </div>
-                  );
-                }
-
-                if (phone8.length === 8) {
+                if (phone8.length === 8 && ebarimtCustomerNo !== phone8) {
                   return (
                     <button
                       type="button"
                       onClick={() => {
                         touched();
                         setEbarimtCustomerNo(phone8);
+                        checkEbarimtCode(phone8);
                       }}
                       className="inline-flex items-center gap-1 text-xs text-brand hover:underline"
                     >
@@ -619,7 +726,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
                     </button>
                   );
                 }
-
                 return null;
               })()}
             </div>
