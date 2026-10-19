@@ -113,17 +113,21 @@ export default async function PricingPage() {
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 text-right">
-                      <span className="text-sm font-bold text-foreground block">
-                        {stationBaseTariff(station) !== undefined
-                          ? `${stationBaseTariff(station)}₮`
-                          : '—'}
-                      </span>
-                      {station.maxPowerKw ? (
-                        <span className="text-xs text-muted font-medium mt-0.5 block">
-                          ⚡ {formatPowerKw(station.maxPowerKw, intl)}
+                    <div className="shrink-0 text-right space-y-1">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[11px] font-medium text-muted">{d.pricing.colPrice}:</span>
+                        <span className="text-sm font-bold text-foreground">
+                          {stationBaseTariff(station) !== undefined
+                            ? `${stationBaseTariff(station)}₮`
+                            : '—'}
                         </span>
-                      ) : null}
+                      </div>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[11px] font-medium text-muted">{d.pricing.colMaxPower}:</span>
+                        <span className="text-xs font-semibold text-brand">
+                          {station.maxPowerKw ? `⚡ ${formatPowerKw(station.maxPowerKw, intl)}` : '—'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Card>

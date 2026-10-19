@@ -650,7 +650,7 @@ export const en = {
     colChargePoint: 'Charge point',
     colPlugs: 'Plugs',
     colMaxPower: 'Max power',
-    colPrice: 'Unit kWh price',
+    colPrice: 'Unit price',
     footnote:
       'Prices are read from the charging network each time this page loads. An operator can change a tariff at any time; the figure shown on the station page immediately before you start is the one that applies.',
   },
@@ -1642,8 +1642,8 @@ export const mn: Dictionary = {
     caption: 'Цэнэглэх цэгүүд, киловатт-цагийн үнэ болон дээд хүчин чадлын хамт',
     colChargePoint: 'Цэнэглэх цэг',
     colPlugs: 'Холбогч',
-    colMaxPower: 'Дээд хүчин чадал',
-    colPrice: 'Нэгж квц үнэ',
+    colMaxPower: 'Дээд чадал',
+    colPrice: 'Нэгж кВ',
     footnote:
       'Энэ хуудас ачаалагдах бүрд үнийг цэнэглэх сүлжээнээс уншина. Оператор тарифаа хэдийд ч өөрчилж болох бөгөөд эхлэхийн өмнөхөн станцын хуудсанд харагдсан дүн хүчинтэй байна.',
   },
