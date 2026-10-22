@@ -8,6 +8,8 @@ import type {
   Wallet,
   WalletConfig,
   WalletEntry,
+  TopUpInvoice,
+  SavedCard,
 } from '@/lib/types';
 
 /**
@@ -118,11 +120,31 @@ export interface WalletLoad {
   config: WalletConfig;
   entries: WalletEntry[];
   total: number;
+  /** Saved bank cards; absent from older APIs. */
+  cards?: SavedCard[];
 }
 
 /** The signed-in driver's wallet with its newest `limit` ledger entries (max 100). */
 export function getWallet(limit: number): Promise<WalletLoad> {
   return driverApi<WalletLoad>(`/wallet?limit=${limit}`);
+}
+
+export interface TopUpLoad {
+  invoice: TopUpInvoice;
+  paid: boolean;
+  wallet: Wallet | null;
+}
+
+/**
+ * One of the driver's own top-ups, re-checked with the bank. Null when it is
+ * unknown or someone else's, so a tampered `?topup=` just shows the plain page.
+ */
+export async function getTopUp(id: string): Promise<TopUpLoad | null> {
+  try {
+    return await driverApi<TopUpLoad>(`/wallet/topup/${encodeURIComponent(id)}`);
+  } catch {
+    return null;
+  }
 }
 
 /** The signed-in driver's charging sessions, newest first. */

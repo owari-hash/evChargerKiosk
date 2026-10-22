@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Field } from '@/components/ui';
+import { Button, Field } from '@/components/ui';
 import { useI18n } from '@/components/i18n-provider';
 import { phoneSchema } from '@/lib/validation';
 import { fieldAria, sanitizeNext } from './auth-shell';
 import { isFullLocalNumber, PhoneInput } from './phone-input';
 import { PinInput } from './pin-input';
+import { useToastMessage } from '@/lib/use-toast-message';
 
 interface LoginErrorBody {
   error?: string;
@@ -26,6 +27,7 @@ export function LoginForm() {
   const [pin, setPin] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  useToastMessage(formError, 'error');
   const [pending, setPending] = useState(false);
   // The cursor walks the form by itself: a whole number moves it to the PIN,
   // the fourth digit moves it to the button.
@@ -80,8 +82,6 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
-      {formError && <Alert tone="danger">{formError}</Alert>}
-
       <Field label={d.auth.phoneLabel} htmlFor="phone" error={errors.phone}>
         <PhoneInput
           id="phone"

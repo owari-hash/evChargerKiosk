@@ -11,7 +11,11 @@ export type ToastKind =
   | 'wallet-out'
   | 'session-started'
   | 'session-finished'
-  | 'announcement';
+  | 'announcement'
+  /** The outcome of something the driver just did. */
+  | 'success'
+  | 'error'
+  | 'info';
 
 export interface Toast {
   id: string;

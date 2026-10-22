@@ -17,7 +17,13 @@ export function NotificationIcon({
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }) {
   const tone =
-    kind === 'session-started'
+    kind === 'success' || kind === 'wallet-in'
+      ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-[0_2px_10px_rgba(16,185,129,0.35)]'
+      : kind === 'error'
+        ? 'bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-[0_2px_10px_rgba(244,63,94,0.35)]'
+        : kind === 'info'
+          ? 'bg-gradient-to-br from-sky-500/20 to-cyan-500/20 text-sky-400 ring-1 ring-sky-500/30'
+          : kind === 'session-started'
       ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-[0_2px_10px_rgba(16,185,129,0.35)]'
       : kind === 'session-finished'
         ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 ring-1 ring-cyan-500/30'
@@ -44,7 +50,13 @@ export function NotificationIcon({
       className={cn('grid shrink-0 place-items-center rounded-xl transition', sizeClass, tone, className)}
     >
       <svg width={svgSize} height={svgSize} viewBox="0 0 24 24" fill="none">
-        {kind === 'session-started' ? (
+        {kind === 'success' ? (
+          <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        ) : kind === 'error' ? (
+          <path d="M12 7v6M12 17h.01" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+        ) : kind === 'info' ? (
+          <path d="M12 11v6M12 7h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        ) : kind === 'session-started' ? (
           <path
             d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"
             fill="currentColor"

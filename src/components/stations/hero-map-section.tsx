@@ -213,6 +213,9 @@ interface FilterGroup {
 /** Matches the flyout's `w-64`, so its offset can be clamped before it paints. */
 const FLYOUT_WIDTH = 256;
 
+/** The filters always on show; the rest open from the "Filters" chip. */
+const PRIMARY_FILTERS: ReadonlySet<string> = new Set(['connector', 'status']);
+
 const CHIP_SHADOW = 'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)]';
 
 export interface HeroMapSectionProps {
@@ -369,6 +372,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
     setOpenGroup(null);
   }, []);
 
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const groups = useMemo<FilterGroup[]>(() => {
     const anyOption = (isSelected: boolean, apply: () => void): FilterOption => ({
       id: 'any',
@@ -504,6 +508,12 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
       },
     ];
   }, [filters, carPorts, saveCarPorts, t, intl, locale, set]);
+
+  /** Filters set behind the "Filters" chip; while any is on, they stay shown. */
+  const hiddenActive =
+    groups.filter((group) => !PRIMARY_FILTERS.has(group.key) && group.active).length +
+    (favoritesOnly ? 1 : 0);
+  const moreFiltersShown = showMoreFilters || hiddenActive > 0;
 
   const activeCount =
     groups.filter((group) => group.active).length + (query ? 1 : 0) + (favoritesOnly ? 1 : 0);
@@ -912,15 +922,47 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                 )}
               </label>
 
-              {groups.map((group) => (
-                <FilterChip
-                  key={group.key}
-                  group={group}
-                  open={openGroup === group.key}
-                  onToggle={() => toggleFilter(group.key)}
-                />
-              ))}
+              {/* Plug type and availability are what most drivers filter by;
+                  the rest waits behind one "Filters" chip so a first visit
+                  is not a wall of seven choices. */}
+              {groups
+                .filter((group) => PRIMARY_FILTERS.has(group.key) || moreFiltersShown)
+                .map((group) => (
+                  <FilterChip
+                    key={group.key}
+                    group={group}
+                    open={openGroup === group.key}
+                    onToggle={() => toggleFilter(group.key)}
+                  />
+                ))}
 
+              {!moreFiltersShown || hiddenActive === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowMoreFilters((v) => !v)}
+                  aria-expanded={moreFiltersShown}
+                  className={cn(
+                    'inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-semibold ring-1 transition',
+                    CHIP_SHADOW,
+                    'bg-surface text-foreground ring-border hover:bg-surface-muted',
+                  )}
+                >
+                  <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+                    <path strokeLinecap="round" d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+                    <circle cx="16" cy="6" r="2" />
+                    <circle cx="10" cy="12" r="2" />
+                    <circle cx="18" cy="18" r="2" />
+                  </svg>
+                  <span className="whitespace-nowrap">{moreFiltersShown ? t.fewerFilters : t.filterLabel}</span>
+                  {!moreFiltersShown && hiddenActive > 0 && (
+                    <span className="grid size-5 place-items-center rounded-full bg-brand text-xs font-bold text-brand-contrast tabular-nums">
+                      {hiddenActive}
+                    </span>
+                  )}
+                </button>
+              ) : null}
+
+              {moreFiltersShown && (
               <button
                 type="button"
                 onClick={() => setFavoritesOnly((value) => !value)}
@@ -946,6 +988,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
                   </span>
                 )}
               </button>
+              )}
 
               {activeCount > 0 && (
                 <button

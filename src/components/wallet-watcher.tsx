@@ -16,6 +16,9 @@ interface WalletEntry {
 }
 
 const POLL_MS = 20_000;
+
+/** Fired by the wallet page when a payment settles: "check the ledger now". */
+export const WALLET_CHANGED_EVENT = 'eplug:wallet-changed';
 const LAST_SEEN_KEY = 'eplug-wallet-last-seen-entry';
 
 const TYPE_LABEL: Record<WalletEntry['type'], { mn: string; en: string }> = {
@@ -25,6 +28,30 @@ const TYPE_LABEL: Record<WalletEntry['type'], { mn: string; en: string }> = {
   ADJUSTMENT: { mn: 'Хэтэвч засварлагдлаа', en: 'Wallet adjusted' },
   BONUS: { mn: 'Урамшуулал орлоо', en: 'Bonus credited' },
 };
+
+/**
+ * Files a ledger entry in the bell and pops its toast — once. Keyed on the
+ * entry id, so the wallet page announcing a top-up it just settled and this
+ * watcher spotting the same entry (in any tab) never show it twice.
+ */
+export function announceWalletEntry(
+  entry: Pick<WalletEntry, 'id' | 'type' | 'amount' | 'description'>,
+  locale: string,
+): void {
+  const label = TYPE_LABEL[entry.type]?.[locale === 'en' ? 'en' : 'mn'] ?? entry.type;
+  const positive = entry.amount >= 0;
+  const text = `${positive ? '+' : ''}${formatMoney(entry.amount, intlLocale(locale))}${
+    entry.description ? ` · ${entry.description}` : ''
+  }`;
+  const filed = pushNotification({
+    kind: 'wallet',
+    title: label,
+    body: text,
+    href: '/account/wallet',
+    dedupeKey: `wallet:${entry.id}`,
+  });
+  if (filed) showToast({ kind: positive ? 'wallet-in' : 'wallet-out', title: label, body: text });
+}
 
 /**
  * Polls the signed-in driver's own wallet and pops a toast the moment a new
@@ -76,20 +103,7 @@ export function WalletWatcher({ userId }: { userId: string }) {
 
         if (latest.id !== lastSeenId) {
           remember(latest.id);
-          const label = TYPE_LABEL[latest.type]?.[locale === 'en' ? 'en' : 'mn'] ?? latest.type;
-          const positive = latest.amount >= 0;
-          const text = `${positive ? '+' : ''}${formatMoney(latest.amount, intlLocale(locale))}${
-            latest.description ? ` · ${latest.description}` : ''
-          }`;
-          // Another tab may have spotted the same entry first.
-          const filed = pushNotification({
-            kind: 'wallet',
-            title: label,
-            body: text,
-            href: '/account/wallet',
-            dedupeKey: `wallet:${latest.id}`,
-          });
-          if (filed) showToast({ kind: positive ? 'wallet-in' : 'wallet-out', title: label, body: text });
+          announceWalletEntry(latest, locale);
         }
       } catch {
         // Offline or a transient failure — the next poll tries again.
@@ -98,9 +112,14 @@ export function WalletWatcher({ userId }: { userId: string }) {
 
     void poll();
     const id = window.setInterval(poll, POLL_MS);
+    // A top-up that just settled on this page asks for an immediate look, so
+    // its success toast appears at once instead of on the next 20 s poll.
+    const now = () => void poll();
+    window.addEventListener(WALLET_CHANGED_EVENT, now);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      window.removeEventListener(WALLET_CHANGED_EVENT, now);
     };
   }, [userId, locale]);
 

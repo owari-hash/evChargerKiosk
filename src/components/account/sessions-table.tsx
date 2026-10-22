@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Alert,
   Badge,
   Button,
   ButtonLink,
@@ -25,6 +24,7 @@ import {
   formatMoney,
   formatPower,
 } from '@/lib/utils';
+import { useToastMessage } from '@/lib/use-toast-message';
 
 /** Tone per session state; the label is looked up in `d.account.sessions`. */
 const STATUS_META: Record<
@@ -93,6 +93,8 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  useToastMessage(notice, 'success');
+  useToastMessage(error, 'error');
   const [ebarimtSession, setEbarimtSession] = useState<ChargingSession | null>(null);
 
   const ordered = useMemo(
@@ -215,12 +217,6 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
         </span>
       </CardHeader>
 
-      {(notice || error) && (
-        <div className="space-y-3 border-b border-border px-5 py-4">
-          {notice && <Alert tone="success">{notice}</Alert>}
-          {error && <Alert tone="danger">{error}</Alert>}
-        </div>
-      )}
 
       {/* Mobile Card List (< md) */}
       <ul className="divide-y divide-border/60 md:hidden">

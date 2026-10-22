@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 export function Card({ className, ...rest }: ComponentProps<'div'>) {
   return (
     <div
+      data-slot="card"
       {...rest}
       className={cn(
         'rounded-2xl bg-surface ring-1 ring-border shadow-[var(--shadow-card)]',

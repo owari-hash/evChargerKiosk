@@ -189,13 +189,32 @@ export interface WalletConfig {
   minStartBalance: number;
   requireBalanceToStart: boolean;
   allowNegative: boolean;
-  /** False when QPay is switched off — the top-up button has to be hidden. */
+  /** False when QPay is switched off — the QR top-up has to be hidden. */
   topUpEnabled: boolean;
+  /** Card / SocialPay top-up through Golomt's hosted page. */
+  cardTopUpEnabled?: boolean;
+  /** Cards can be saved on the bank page and charged in one tap later. */
+  savedCardsEnabled?: boolean;
+  /** SocialPay through Golomt: pay in the SocialPay app. */
+  socialPayEnabled?: boolean;
+}
+
+/** A bank card saved for one-tap top-ups; the card number is masked by the bank. */
+export interface SavedCard {
+  id: string;
+  cardNumber?: string;
+  cardHolder?: string;
+  bank?: string;
+  lastUsedAt?: string;
+  createdAt: string;
 }
 
 /** The QPay invoice a top-up creates; carries everything needed to show a QR. */
 export interface TopUpInvoice {
   id: string;
+  provider?: 'QPAY' | 'QPAY_QUICKQR' | 'GOLOMT';
+  /** Golomt: paid by card on the bank page, or in the SocialPay app. */
+  golomtChannel?: 'CARD' | 'SOCIALPAY';
   purpose?: 'CHARGING' | 'WALLET_TOPUP';
   walletOwnerType?: WalletOwnerType;
   walletOwnerId?: string;
@@ -209,6 +228,13 @@ export interface TopUpInvoice {
   qrImage?: string;
   shortUrl?: string;
   deeplinks?: { name?: string; description?: string; logo?: string; link?: string }[];
+  /** Golomt: the bank's hosted card page, and its SocialPay version. */
+  paymentUrl?: string;
+  socialPayUrl?: string;
+  /** The ledger entry a settled top-up credited — its id keys the toast. */
+  walletEntryId?: string;
+  /** A declined card payment: the bank's own reason, in Mongolian. */
+  declineReason?: string;
   expiresAt?: string;
   createdAt: string;
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Field } from '@/components/ui';
+import { Button, Field } from '@/components/ui';
 import { format, useI18n } from '@/components/i18n-provider';
 import { cn } from '@/lib/utils';
 import { phoneSchema } from '@/lib/validation';
@@ -11,6 +11,7 @@ import { fieldAria, sanitizeNext } from './auth-shell';
 import { DevHint } from './dev-hint';
 import { isFullLocalNumber, PhoneInput } from './phone-input';
 import { PinInput } from './pin-input';
+import { useToastMessage } from '@/lib/use-toast-message';
 
 type Mode = 'signup' | 'reset';
 type Step = 'phone' | 'code' | 'pin';
@@ -81,6 +82,7 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
   const [resendIn, setResendIn] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  useToastMessage(formError, 'error');
   const [pending, setPending] = useState(false);
   const confirmRef = useRef<HTMLInputElement>(null);
   // Where the cursor goes once a field is complete: a whole number moves on to
@@ -226,8 +228,6 @@ export function PhonePinFlow({ mode }: { mode: Mode }) {
           ))}
         </div>
       </div>
-
-      {formError && <Alert tone="danger">{formError}</Alert>}
 
       {/* Keyed by step so each new step slides in. */}
       <div key={step} className="auth-step space-y-5">

@@ -43,9 +43,13 @@ function ToastCard({ toast }: { toast: Toast }) {
   const router = useRouter();
 
   useEffect(() => {
-    const id = window.setTimeout(() => dismissToast(toast.id), VISIBLE_MS);
+    // An error stays a little longer: it usually asks the driver to act.
+    const id = window.setTimeout(
+      () => dismissToast(toast.id),
+      toast.kind === 'error' ? VISIBLE_MS + 2_000 : VISIBLE_MS,
+    );
     return () => window.clearTimeout(id);
-  }, [toast.id]);
+  }, [toast.id, toast.kind]);
 
   function open() {
     if (!toast.href) return;
@@ -55,19 +59,19 @@ function ToastCard({ toast }: { toast: Toast }) {
 
   return (
     <div
-      role="status"
+      role={toast.kind === 'error' ? 'alert' : 'status'}
       className="toast-card pointer-events-auto flex items-start gap-3.5 rounded-2xl border border-border/80 bg-surface/95 backdrop-blur-md p-4 shadow-2xl ring-1 ring-black/10 dark:ring-white/10 transition-all animate-in fade-in slide-in-from-top-2 duration-200"
     >
       <NotificationIcon kind={toast.kind} size="md" />
       {toast.href ? (
         <button type="button" onClick={open} className="min-w-0 flex-1 text-left cursor-pointer group">
           <p className="text-sm font-bold text-foreground tracking-tight group-hover:text-brand transition">{toast.title}</p>
-          <p className="mt-0.5 text-xs sm:text-sm text-muted/90 leading-snug">{toast.body}</p>
+          {toast.body && <p className="mt-0.5 text-xs sm:text-sm text-muted/90 leading-snug">{toast.body}</p>}
         </button>
       ) : (
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-foreground tracking-tight">{toast.title}</p>
-          <p className="mt-0.5 text-xs sm:text-sm text-muted/90 leading-snug">{toast.body}</p>
+          {toast.body && <p className="mt-0.5 text-xs sm:text-sm text-muted/90 leading-snug">{toast.body}</p>}
         </div>
       )}
       <button

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Field, Input } from '@/components/ui';
+import { Button, Field, Input } from '@/components/ui';
+import { useToastMessage } from '@/lib/use-toast-message';
 
 interface GuestAuthFlowProps {
   returnTo: string;
@@ -15,6 +16,7 @@ export function GuestAuthFlow({ returnTo, onSuccess }: GuestAuthFlowProps) {
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useToastMessage(error, 'error');
   const [devCode, setDevCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -136,11 +138,6 @@ export function GuestAuthFlow({ returnTo, onSuccess }: GuestAuthFlowProps) {
         </Link>
       </div>
 
-      {error && (
-        <div className="mt-3">
-          <Alert tone="danger">{error}</Alert>
-        </div>
-      )}
 
       {step === 'phone' ? (
         <form onSubmit={handleSendCode} className="mt-4 space-y-3">

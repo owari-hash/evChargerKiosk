@@ -66,15 +66,13 @@ export function AccountNav() {
       className="-mx-4 overflow-x-auto px-4 md:mx-0 md:self-start md:overflow-visible md:px-0 md:sticky md:top-20"
     >
       <ul className="relative flex min-w-max gap-1 md:min-w-0 md:flex-col md:gap-0.5">
-        {/* One highlight, with its accent bar, that slides to the current tab:
-            down the sidebar on a wide screen, along the strip on a phone. */}
+        {/* One glass pill — the same as the payment switch — that slides to the
+            current tab: down the sidebar on a wide screen, along the strip on a phone. */}
         <span
           ref={indicatorRef}
           aria-hidden
-          className="pointer-events-none absolute left-0 top-0 rounded-xl bg-brand-soft opacity-0 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-300 data-[ready=true]:ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
-        >
-          <span className="absolute inset-y-1.5 left-0 hidden w-1 rounded-full bg-brand md:block" />
-        </span>
+          className="glass-thumb pointer-events-none absolute left-0 top-0 rounded-xl opacity-0 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-[400ms] data-[ready=true]:ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
+        />
         {items.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -87,7 +85,7 @@ export function AccountNav() {
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'relative flex h-11 items-center gap-2.5 rounded-xl px-3.5 text-sm font-medium transition-colors duration-200 md:w-full',
-                  active ? 'text-brand-strong' : 'text-muted hover:bg-surface-muted/60 hover:text-foreground',
+                  active ? 'font-semibold text-foreground' : 'text-muted hover:text-foreground',
                 )}
               >
                 <svg
@@ -96,7 +94,7 @@ export function AccountNav() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.75"
-                  className={cn('size-4 shrink-0', active ? 'text-brand-strong' : 'text-muted')}
+                  className={cn('size-4 shrink-0 transition-colors', active ? 'text-brand' : 'text-muted')}
                 >
                   <Icon />
                 </svg>

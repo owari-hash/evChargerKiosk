@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, type FormEvent } from 'react';
-import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal } from '@/components/ui';
+import { Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal } from '@/components/ui';
 import { ChangePinForm } from '@/components/account/change-pin-form';
 import { format, useI18n } from '@/components/i18n-provider';
 import type { PublicUser } from '@/lib/types';
+import { useToastMessage } from '@/lib/use-toast-message';
 
 /** Shown next to a verified email or phone — the confirmation itself, with no
  * pill around it. Absence of the icon already says "not yet" once the resend
@@ -129,6 +130,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const [phoneNotice, setPhoneNotice] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [phoneFields, setPhoneFields] = useState<Record<string, string>>({});
+  // Every outcome is announced as a toast rather than a banner in the form.
+  useToastMessage(error, 'error');
+  useToastMessage(saved ? d.account.profile.savedLabel : '', 'success');
+  useToastMessage(emailNotice, 'success');
+  useToastMessage(phoneNotice, 'success');
+  useToastMessage(phoneError, 'error');
 
   const [ebarimtStatus, setEbarimtStatus] = useState<{
     checking?: boolean;
@@ -386,8 +393,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
       </CardHeader>
       <CardBody className="space-y-6">
         <form onSubmit={onSubmit} noValidate className="space-y-4">
-          {error && <Alert tone="danger">{error}</Alert>}
-
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={d.account.profile.nameLabel} htmlFor="profile-name" error={fields.name}>
               <Input
@@ -456,7 +461,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
               {account.email && !account.emailVerified && email.trim() === account.email && (
                 <div className="space-y-2 pt-0.5">
-                  {emailNotice && <Alert tone="success">{emailNotice}</Alert>}
                   {emailDevToken && (
                     <DevValue
                       label={d.account.verification.verificationToken}
@@ -503,8 +507,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 </p>
               ) : (
                 <div className="max-w-sm space-y-3 rounded-xl border border-border bg-surface-muted/50 p-3.5">
-                  {phoneNotice && <Alert tone="success">{phoneNotice}</Alert>}
-                  {phoneError && <Alert tone="danger">{phoneError}</Alert>}
 
                   <form onSubmit={sendCode} noValidate className="space-y-3">
                     <Field

@@ -1,11 +1,12 @@
-import { Alert, Card, CardBody } from '@/components/ui';
+import { Alert } from '@/components/ui';
 import type { Wallet, WalletConfig } from '@/lib/types';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { format } from '@/components/i18n-provider';
-import { formatMoney, intlLocale } from '@/lib/utils';
+import { cn, formatMoney, intlLocale } from '@/lib/utils';
 
 /**
- * The balance headline.
+ * The balance headline: a frosted glass card with the brand's light glowing
+ * through it — what is available now on the left, lifetime totals on the right.
  *
  * A negative balance is shown as a debt rather than a minus sign: a session may
  * cost more than the wallet held, and "you owe 2,300₮" reads far better at a
@@ -26,46 +27,57 @@ export function WalletBalance({ wallet, config, d, locale }: WalletBalanceProps)
   const low = !inDebt && wallet.balance < config.minStartBalance;
 
   return (
-    <Card>
-      <CardBody className="space-y-5">
-        <div>
-          <p className="text-sm text-muted">{inDebt ? d.wallet.debt : d.wallet.balance}</p>
-          <p
-            className={`mt-1 text-4xl font-bold tracking-tight tabular-nums ${
-              inDebt ? 'text-danger' : 'text-foreground'
-            }`}
-          >
-            {money(Math.abs(wallet.balance))}
-          </p>
-          <p className="mt-1 text-sm text-muted">
-            {inDebt ? d.wallet.debtHint : d.wallet.balanceHint}
-          </p>
+    <section className="space-y-3">
+      <div data-slot="card" className="glass-hero relative overflow-hidden p-5 sm:p-6">
+        {/* Light behind the frost — the glass takes its colour from these. */}
+        <span
+          aria-hidden
+          className={cn(
+            'glass-orb -left-10 -top-16 size-56',
+            inDebt ? 'bg-[#ef4444]' : 'bg-[#10b981]',
+          )}
+        />
+        <span
+          aria-hidden
+          className={cn('glass-orb -bottom-24 right-24 size-64', inDebt ? 'bg-[#f97316]' : 'bg-[#22d3ee]')}
+        />
+
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+              {inDebt ? d.wallet.debt : d.wallet.balance}
+            </p>
+            <p
+              className={cn(
+                'mt-1 text-4xl font-bold tracking-tight tabular-nums sm:text-5xl',
+                inDebt ? 'text-danger' : 'text-foreground',
+              )}
+            >
+              {money(Math.abs(wallet.balance))}
+            </p>
+            <p className="mt-1 text-sm text-muted">{inDebt ? d.wallet.debtHint : d.wallet.balanceHint}</p>
+          </div>
+
+          <dl className="glass-tile grid grid-cols-2 gap-x-6 gap-y-1 rounded-2xl px-4 py-3 text-sm sm:min-w-64">
+            <div>
+              <dt className="text-xs text-muted">{d.wallet.toppedUp}</dt>
+              <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
+                {money(wallet.totalToppedUp ?? 0)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">{d.wallet.spent}</dt>
+              <dd className="mt-0.5 font-semibold tabular-nums text-foreground">{money(wallet.totalSpent ?? 0)}</dd>
+            </div>
+          </dl>
         </div>
+      </div>
 
-        {wallet.status === 'FROZEN' && <Alert tone="danger">{d.wallet.frozen}</Alert>}
+      {wallet.status === 'FROZEN' && <Alert tone="danger">{d.wallet.frozen}</Alert>}
 
-        {low && config.requireBalanceToStart && (
-          <Alert tone="warning">
-            {format(d.wallet.lowBalance, { amount: money(config.minStartBalance) })}
-          </Alert>
-        )}
-
-        <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-sm">
-          <div>
-            <dt className="text-muted">{d.wallet.toppedUp}</dt>
-            <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
-              {money(wallet.totalToppedUp ?? 0)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">{d.wallet.spent}</dt>
-            <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
-              {money(wallet.totalSpent ?? 0)}
-            </dd>
-          </div>
-        </dl>
-
-      </CardBody>
-    </Card>
+      {low && config.requireBalanceToStart && (
+        <Alert tone="warning">{format(d.wallet.lowBalance, { amount: money(config.minStartBalance) })}</Alert>
+      )}
+    </section>
   );
 }

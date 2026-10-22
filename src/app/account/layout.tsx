@@ -16,7 +16,7 @@ export default async function AccountLayout({ children }: LayoutProps<'/account'
   if (!user) redirect('/login');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 md:py-10">
+    <div className="glass-scope mx-auto max-w-6xl px-4 py-8 md:py-10">
       <div className="grid gap-6 md:grid-cols-[14rem_1fr] md:gap-8">
         <AccountNav />
         <div className="min-w-0 space-y-6">{children}</div>

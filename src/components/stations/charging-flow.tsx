@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
-import { Alert, Badge, Button, ButtonLink, Card } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, Modal } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import { GuestAuthFlow } from './guest-auth-flow';
 import { QuickPayModal } from './quick-pay-modal';
@@ -25,6 +25,7 @@ import {
   formatPowerKw,
   intlLocale,
 } from '@/lib/utils';
+import { useToastMessage } from '@/lib/use-toast-message';
 
 /** Poll interval while a session is running, in milliseconds. */
 const LIVE_MS = 2_000;
@@ -149,6 +150,7 @@ export function ChargingFlow({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useToastMessage(error, 'error', d.start.couldNotStartTitle);
   const [staleFeed, setStaleFeed] = useState(false);
   const [showEbarimtModal, setShowEbarimtModal] = useState(false);
   const [authed, setAuthed] = useState(signedIn);
@@ -158,6 +160,8 @@ export function ChargingFlow({
   const [isInternal, setIsInternal] = useState(false);
   const [minStartBalance, setMinStartBalance] = useState<number>(1000);
   const [requireBalanceToStart, setRequireBalanceToStart] = useState(false);
+  /** Which action is waiting on the driver's "are you sure?". */
+  const [confirming, setConfirming] = useState<'start' | 'stop' | null>(null);
 
   const fetchWallet = useCallback(async () => {
     if (!authed) return;
@@ -271,6 +275,9 @@ export function ChargingFlow({
     }
   }, [active, session]);
 
+  // A session that ends while the driver is still deciding has nothing to stop.
+  const pendingConfirm = confirming === 'stop' && !active ? null : confirming;
+
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/live`, {
@@ -346,10 +353,11 @@ export function ChargingFlow({
    * itself is reporting. A connector the station still calls `Available` has
    * not seen a cable, and Start would just be refused a step later.
    *
-   * Once the cable is confirmed, charging starts immediately — there is no
-   * separate «Цэнэглэлт эхлүүлэх» step. The confirmation IS the start trigger.
+   * Once the cable is confirmed, the driver is asked "are you sure?" and
+   * charging starts as soon as they say yes — there is no separate
+   * «Цэнэглэлт эхлүүлэх» step.
    */
-  async function confirmPlugged() {
+  function confirmPlugged() {
     const looksPlugged =
       chosen != null && chosen.status !== 'Available';
     if (!looksPlugged) {
@@ -357,8 +365,18 @@ export function ChargingFlow({
       return;
     }
     setError(null);
-    // Mark as plugged so resolveStep moves to 'start', then fire start()
-    // immediately — the driver already confirmed; no second button needed.
+    setConfirming('start');
+  }
+
+  /** The driver said yes in the confirm dialog. */
+  async function confirmYes() {
+    const action = confirming;
+    setConfirming(null);
+    if (action === 'stop') {
+      await stop();
+      return;
+    }
+    // Mark as plugged so resolveStep moves to 'start', then fire the request.
     setPlugged(true);
     await start();
   }
@@ -561,7 +579,7 @@ export function ChargingFlow({
                   <Button
                     type="button"
                     className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
-                    onClick={() => void start()}
+                    onClick={() => setConfirming('start')}
                     loading={busy}
                     disabled={offline}
                   >
@@ -591,26 +609,24 @@ export function ChargingFlow({
 
           {step === 'charging' && active && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <StatusLine title={t.chargingTitle} pending />
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  className="!size-10 !p-0 shrink-0 rounded-xl"
-                  onClick={() => void stop()}
-                  loading={busy}
-                  aria-label={t.stopNow}
-                  title={t.stopNow}
-                >
-                  {!busy && (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden>
-                      <rect x="6" y="6" width="12" height="12" rx="2" />
-                    </svg>
-                  )}
-                </Button>
-              </div>
+              <StatusLine title={t.chargingTitle} pending />
               <LiveReadout session={active} intl={intl} tariffPerKwh={live.tariffPerKwh} />
+              <Button
+                type="button"
+                variant="danger"
+                size="lg"
+                className="w-full"
+                onClick={() => setConfirming('stop')}
+                loading={busy}
+                aria-label={t.stopNow}
+              >
+                {!busy && (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden>
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                )}
+                {t.stopButton}
+              </Button>
             </div>
           )}
 
@@ -652,11 +668,6 @@ export function ChargingFlow({
 
           {staleFeed && <p className="text-xs text-warning">{t.refreshFailed}</p>}
 
-          {error && (
-            <Alert tone="danger" title={d.start.couldNotStartTitle}>
-              {error}
-            </Alert>
-          )}
         </div>
       </Card>
 
@@ -686,6 +697,22 @@ export function ChargingFlow({
           onSuccess={(updatedSession) => {
             setLive((prev) => ({ ...prev, session: updatedSession }));
           }}
+        />
+      )}
+
+      {pendingConfirm && (
+        <ConfirmDialog
+          tone={pendingConfirm === 'stop' ? 'danger' : 'primary'}
+          title={pendingConfirm === 'stop' ? t.confirmStopTitle : t.confirmStartTitle}
+          body={
+            pendingConfirm === 'stop'
+              ? t.confirmStopBody
+              : format(t.confirmStartBody, { connector: chosenLabel })
+          }
+          yesLabel={pendingConfirm === 'stop' ? t.confirmStopYes : t.confirmStartYes}
+          noLabel={pendingConfirm === 'stop' ? t.confirmKeep : t.confirmCancel}
+          onYes={() => void confirmYes()}
+          onNo={() => setConfirming(null)}
         />
       )}
 
@@ -823,6 +850,59 @@ function ActionBlock({
       <p className="mt-1 text-sm leading-6 text-muted">{body}</p>
       <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div>
     </div>
+  );
+}
+
+/** "Are you sure?" before starting or stopping — big buttons for a touch screen. */
+function ConfirmDialog({
+  tone,
+  title,
+  body,
+  yesLabel,
+  noLabel,
+  onYes,
+  onNo,
+}: {
+  tone: 'primary' | 'danger';
+  title: string;
+  body: string;
+  yesLabel: string;
+  noLabel: string;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  return (
+    <Modal onClose={onNo} maxWidth="sm">
+      <div className="px-6 pt-6 pb-5 text-center">
+        <span
+          aria-hidden
+          className={cn(
+            'mx-auto grid size-14 place-items-center rounded-full',
+            tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-brand-soft text-brand',
+          )}
+        >
+          {tone === 'danger' ? (
+            <svg viewBox="0 0 24 24" fill="currentColor" className="size-6">
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="currentColor" className="size-7">
+              <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+            </svg>
+          )}
+        </span>
+        <h3 className="mt-4 text-lg font-bold text-foreground">{title}</h3>
+        <p className="mt-1.5 text-sm leading-6 text-muted">{body}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 border-t border-border px-6 py-4">
+        <Button type="button" variant="secondary" size="lg" onClick={onNo}>
+          {noLabel}
+        </Button>
+        <Button type="button" variant={tone} size="lg" onClick={onYes} autoFocus>
+          {yesLabel}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 

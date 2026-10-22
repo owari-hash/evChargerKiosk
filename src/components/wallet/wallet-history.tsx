@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardBody, CardHeader, CardTitle, Button } from '@/components/ui';
+import { Card, CardHeader, CardTitle, Button } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import type { ChargingSession, WalletEntry } from '@/lib/types';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { format } from '@/components/i18n-provider';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';
+
+/** Entries shown before "show all". */
+const COLLAPSED = 6;
 
 interface WalletHistoryProps {
   entries: WalletEntry[];
@@ -18,19 +21,22 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
   const intl = intlLocale(locale);
   const money = (value: number) => formatMoney(value, intl);
   const [selectedSession, setSelectedSession] = useState<ChargingSession | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  // The latest few answer "did my top-up land?"; the rest is one tap away.
+  const visible = expanded ? entries : entries.slice(0, COLLAPSED);
 
   return (
     <>
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>{d.wallet.history.title}</CardTitle>
         </CardHeader>
-        <CardBody className="px-0 py-0">
+        <div>
           {entries.length === 0 ? (
             <p className="px-5 py-6 text-sm text-muted">{d.wallet.history.empty}</p>
           ) : (
             <ul className="divide-y divide-border">
-              {entries.map((entry) => {
+              {visible.map((entry) => {
                 const credit = entry.amount > 0;
                 const eb = entry.ebarimt;
 
@@ -53,24 +59,40 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
                   : null;
 
                 return (
-                  <li key={entry.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 hover:bg-surface-muted/30 transition">
+                  <li key={entry.id} className="flex items-center gap-3 px-5 py-3 transition hover:bg-surface-muted/30">
+                    <span
+                      aria-hidden
+                      className={`grid size-9 shrink-0 place-items-center rounded-lg ${
+                        credit ? 'bg-brand-soft text-brand-strong' : 'bg-surface-muted text-muted'
+                      }`}
+                    >
+                      {credit ? (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-4">
+                          <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
+                          <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+                        </svg>
+                      )}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-foreground">
                         {entry.description || d.wallet.history.type[entry.type]}
                       </p>
-                      <p className="mt-1 text-xs text-muted">
+                      <p className="mt-0.5 truncate text-xs text-muted">
                         {entry.description && `${d.wallet.history.type[entry.type]} · `}
                         {formatDateTime(entry.createdAt, intl)}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                    <div className="flex shrink-0 items-center gap-3">
                       {receiptSession && (
                         <Button
                           type="button"
                           variant="secondary"
                           size="sm"
-                          className="text-xs font-medium"
+                          className="hidden text-xs font-medium sm:inline-flex"
                           onClick={() => setSelectedSession(receiptSession)}
                         >
                           {d.account.ebarimt.viewButton}
@@ -98,7 +120,18 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
               })}
             </ul>
           )}
-        </CardBody>
+          {entries.length > COLLAPSED && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="w-full border-t border-border px-5 py-3 text-sm font-semibold text-brand transition hover:bg-surface-muted/40"
+            >
+              {expanded
+                ? d.wallet.history.showLess
+                : format(d.wallet.history.showAll, { count: entries.length })}
+            </button>
+          )}
+        </div>
       </Card>
 
       {selectedSession && (
