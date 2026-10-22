@@ -45,7 +45,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 shadow-[0_1px_0_0_rgb(15_23_42/0.03),0_8px_24px_-16px_rgb(15_23_42/0.15)] backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-border bg-background/80 shadow-[0_1px_0_0_rgb(15_23_42/0.03),0_8px_24px_-16px_rgb(15_23_42/0.15)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 font-bold text-foreground">
           <Image
@@ -134,8 +134,15 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
       </div>
 
       {open && (
-        <div className="border-t border-border bg-surface md:hidden">
-          <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
+        <>
+          {/* Dims the page behind the panel; tapping it closes the menu. */}
+          <div
+            aria-hidden
+            onClick={() => setOpen(false)}
+            className="fixed inset-x-0 bottom-0 top-16 z-20 bg-black/30 backdrop-blur-[2px] md:hidden"
+          />
+          <div className="absolute inset-x-0 top-full z-30 max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-border bg-background shadow-lg md:hidden">
+            <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
             {nav.map((item) => (
               <Link
                 key={item.href}
@@ -192,7 +199,8 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               <LocaleSwitcher className="self-start sm:hidden" />
             </div>
           </nav>
-        </div>
+          </div>
+        </>
       )}
     </header>
   );

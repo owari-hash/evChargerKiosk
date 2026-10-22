@@ -13,7 +13,6 @@ import {
   CardTitle,
 } from '@/components/ui';
 import { format, useI18n } from '@/components/i18n-provider';
-import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import type { ChargingSession } from '@/lib/types';
 import {
   cn,
@@ -95,7 +94,6 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   const [error, setError] = useState('');
   useToastMessage(notice, 'success');
   useToastMessage(error, 'error');
-  const [ebarimtSession, setEbarimtSession] = useState<ChargingSession | null>(null);
 
   const ordered = useMemo(
     () =>
@@ -282,19 +280,6 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
 
               <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
                 {stopControls(session)}
-                {session.status === 'Completed' && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="h-8 px-2.5 text-xs font-semibold rounded-lg shadow-xs hover:bg-surface-muted"
-                    onClick={() => setEbarimtSession(session)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1 size-3.5" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
-                    </svg>
-                    <span>{session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}</span>
-                  </Button>
-                )}
               </div>
             </li>
           );
@@ -454,19 +439,6 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           </tbody>
         </table>
       </div>
-
-
-
-      {ebarimtSession && (
-        <EbarimtModal
-          session={ebarimtSession}
-          onClose={() => setEbarimtSession(null)}
-          onSuccess={(updated) => {
-            setEbarimtSession(updated);
-            router.refresh();
-          }}
-        />
-      )}
     </Card>
   );
 }

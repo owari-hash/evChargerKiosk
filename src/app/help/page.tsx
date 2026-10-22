@@ -3,8 +3,7 @@ import type { ReactNode } from 'react';
 import { ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { buttonClass } from '@/components/ui/button';
 import { getCurrentUser } from '@/lib/driver-api';
-import { publicEnv } from '@/lib/env';
-import { format, getTranslations, type Dictionary } from '@/lib/i18n';
+import { getTranslations, type Dictionary } from '@/lib/i18n';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getTranslations();
@@ -72,16 +71,7 @@ export default async function HelpPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-14 sm:pt-8">
-      <header className="max-w-2xl">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          {d.help.title}
-        </h1>
-        <p className="mt-3 text-base text-muted">
-          {format(d.help.intro, { brand: publicEnv.brandName })}
-        </p>
-      </header>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>

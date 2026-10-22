@@ -58,7 +58,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       <head suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
-      <body className="flex min-h-screen flex-col">
+      <body className="glass-scope flex min-h-screen flex-col">
         <I18nProvider locale={locale}>
           <SiteHeader user={user} />
           <main className="flex-1">{children}</main>

@@ -48,15 +48,8 @@ export default async function PricingPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-14 sm:pt-8">
-      <header className="max-w-2xl">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          {d.pricing.title}
-        </h1>
-        <p className="mt-3 text-base text-muted">{d.pricing.intro}</p>
-      </header>
-
-      {/* ---- Tariff table first ---- */}
-      <section className="mt-8">
+      {/* ---- Tariff list first ---- */}
+      <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-foreground">{d.pricing.currentTitle}</h2>
@@ -79,113 +72,55 @@ export default async function PricingPage() {
         )}
 
         {stations.length > 0 && (
-          <>
-            {/* Mobile list view */}
-            <div className="mt-4 space-y-3 sm:hidden">
-              {stations.map((station) => (
-                <Card key={station.id} className="p-3.5">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {stations.map((station) => (
+              <Link
+                key={station.id}
+                href={`/stations/${encodeURIComponent(station.id)}`}
+                className="group block"
+              >
+                <Card className="h-full p-4 transition hover:border-brand/40 hover:shadow-md">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/stations/${encodeURIComponent(station.id)}`}
-                        className="font-semibold text-foreground hover:text-brand break-words"
+                    <p className="min-w-0 flex-1 font-semibold text-foreground break-words group-hover:text-brand">
+                      {station.name}
+                    </p>
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500 ring-1 ring-emerald-500/20">
+                      <span className="size-1.5 rounded-full bg-emerald-500" />
+                      {station.availableConnectors} / {station.totalConnectors}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {station.connectorTypes.map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand ring-1 ring-brand/20"
                       >
-                        {station.name}
-                      </Link>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        {station.connectorTypes.map((t) => (
-                          <span
-                            key={t}
-                            className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand ring-1 ring-brand/20"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500 ring-1 ring-emerald-500/20">
-                          <span className="size-1.5 rounded-full bg-emerald-500" />
-                          {station.availableConnectors} / {station.totalConnectors}
-                        </span>
-                      </div>
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex items-end justify-between border-t border-border pt-3">
+                    <div>
+                      <p className="text-[11px] font-medium text-muted">{d.pricing.colMaxPower}</p>
+                      <p className="mt-0.5 text-sm font-semibold text-brand">
+                        {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
+                      </p>
                     </div>
-                    <div className="shrink-0 text-right space-y-1">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-[11px] font-medium text-muted">{d.pricing.colPrice}:</span>
-                        <span className="text-sm font-bold text-foreground">
-                          {stationBaseTariff(station) !== undefined
-                            ? `${stationBaseTariff(station)}₮`
-                            : '—'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-[11px] font-medium text-muted">{d.pricing.colMaxPower}:</span>
-                        <span className="text-xs font-semibold text-brand">
-                          {station.maxPowerKw ? `⚡ ${formatPowerKw(station.maxPowerKw, intl)}` : '—'}
-                        </span>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-[11px] font-medium text-muted">{d.pricing.colPrice}</p>
+                      <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">
+                        {stationBaseTariff(station) !== undefined
+                          ? `${stationBaseTariff(station)}₮`
+                          : '—'}
+                      </p>
                     </div>
                   </div>
                 </Card>
-              ))}
-            </div>
-
-            {/* Tablet/Desktop table view */}
-            <Card className="mt-4 hidden overflow-hidden sm:block">
-              <div className="max-h-[70vh] overflow-auto">
-                <table className="w-full border-collapse text-sm">
-                  <caption className="sr-only">{d.pricing.caption}</caption>
-                  <thead className="sticky top-0 z-10">
-                    <tr className="border-b border-border bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-muted">
-                      <th scope="col" className="px-4 py-3">
-                        {d.pricing.colChargePoint}
-                      </th>
-                      <th scope="col" className="px-4 py-3 text-right">
-                        {d.pricing.colMaxPower}
-                      </th>
-                      <th scope="col" className="px-4 py-3 text-right">
-                        {d.pricing.colPrice}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stations.map((station) => (
-                      <tr key={station.id} className="border-b border-border last:border-0 hover:bg-surface-muted/30 transition">
-                        <th scope="row" className="px-4 py-3 text-left font-medium">
-                          <Link
-                            href={`/stations/${encodeURIComponent(station.id)}`}
-                            className="font-semibold text-foreground hover:text-brand hover:underline"
-                          >
-                            {station.name}
-                          </Link>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            {station.connectorTypes.map((t) => (
-                              <span
-                                key={t}
-                                className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand ring-1 ring-brand/20"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500 ring-1 ring-emerald-500/20">
-                              <span className="size-1.5 rounded-full bg-emerald-500" />
-                              {station.availableConnectors} / {station.totalConnectors}
-                            </span>
-                          </div>
-                        </th>
-                        <td className="px-4 py-3 text-right tabular-nums text-muted">
-                          {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
-                          {stationBaseTariff(station) !== undefined
-                            ? `${stationBaseTariff(station)}₮`
-                            : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </>
+              </Link>
+            ))}
+          </div>
         )}
 
         <p className="mt-4 text-xs text-muted">{d.pricing.footnote}</p>

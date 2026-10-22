@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
@@ -544,38 +545,38 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
                 </button>
               );
             })}
-            <label
-              className={cn(
-                'relative col-span-2 flex h-12 items-center rounded-xl ring-1 transition sm:col-span-1',
-                custom
-                  ? 'bg-surface ring-2 ring-brand'
-                  : 'bg-surface-muted/60 ring-border focus-within:ring-2 focus-within:ring-brand',
-              )}
-            >
-              <span className="sr-only">{t.customAmount}</span>
-              <span aria-hidden className="pl-3 text-sm font-semibold text-muted">
-                ₮
-              </span>
-              <input
-                id="topup-amount"
-                name="amount"
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder={t.otherAmount}
-                value={custom}
-                aria-invalid={fieldError ? true : undefined}
-                aria-describedby={fieldError ? 'topup-amount-error' : undefined}
-                onChange={(event) => {
-                  // Digits only: payments settle in whole tugrik.
-                  setCustom(event.target.value.replace(/[^\d]/g, ''));
-                  setSelected(null);
-                  setFieldError('');
-                }}
-                className="h-full w-full min-w-0 bg-transparent px-2 text-sm font-semibold tabular-nums text-foreground outline-none placeholder:font-medium placeholder:text-muted"
-              />
-            </label>
           </div>
+          <label
+            className={cn(
+              'relative mt-2 flex h-12 items-center rounded-xl ring-1 transition',
+              custom
+                ? 'bg-surface ring-2 ring-brand'
+                : 'bg-surface-muted/60 ring-border focus-within:ring-2 focus-within:ring-brand',
+            )}
+          >
+            <span className="sr-only">{t.customAmount}</span>
+            <span aria-hidden className="pl-3 text-sm font-semibold text-muted">
+              ₮
+            </span>
+            <input
+              id="topup-amount"
+              name="amount"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder={t.otherAmount}
+              value={custom ? Number(custom).toLocaleString(intlLocale(locale)) : ''}
+              aria-invalid={fieldError ? true : undefined}
+              aria-describedby={fieldError ? 'topup-amount-error' : undefined}
+              onChange={(event) => {
+                // Digits only: payments settle in whole tugrik.
+                setCustom(event.target.value.replace(/[^\d]/g, ''));
+                setSelected(null);
+                setFieldError('');
+              }}
+              className="h-full w-full min-w-0 bg-transparent px-2 text-sm font-semibold tabular-nums text-foreground outline-none placeholder:font-medium placeholder:text-muted"
+            />
+          </label>
           {fieldError && (
             <p id="topup-amount-error" className="mt-2 text-sm font-medium text-danger">
               {fieldError}
@@ -606,13 +607,11 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
               />
             )}
 
-            <p className="mt-2.5 text-xs text-muted">
-              {method.kind === 'qpay'
-                ? t.methodQrHint
-                : method.kind === 'socialpay'
-                  ? t.methodSocialHint
-                  : t.methodCardHint}
-            </p>
+            {method.kind !== 'card' && method.kind !== 'saved' && (
+              <p className="mt-2.5 text-xs text-muted">
+                {method.kind === 'qpay' ? t.methodQrHint : t.methodSocialHint}
+              </p>
+            )}
 
             {/* Saved cards live inside "card": pick one, or pay with a new card. */}
             {(method.kind === 'card' || method.kind === 'saved') && savedCards.length > 0 && (
@@ -743,12 +742,17 @@ function Panel({ title, aside, children }: { title: string; aside?: string; chil
 }
 
 function Step({ n, label }: { n: number; label: string }) {
+  // `display: flex` directly on a `<legend>` breaks its box in Safari/WebKit
+  // (it stops reserving layout height, so the next sibling overlaps it) —
+  // the legend itself stays block-level and the flex row lives on a span.
   return (
-    <legend className="flex items-center gap-2 text-sm font-semibold text-foreground">
-      <span aria-hidden className="grid size-5 place-items-center rounded-full bg-brand-soft text-[11px] font-bold text-brand-strong">
-        {n}
+    <legend className="text-sm font-semibold text-foreground">
+      <span className="flex items-center gap-2">
+        <span aria-hidden className="grid size-5 place-items-center rounded-full bg-brand-soft text-[11px] font-bold text-brand-strong">
+          {n}
+        </span>
+        {label}
       </span>
-      {label}
     </legend>
   );
 }
@@ -795,7 +799,7 @@ function Segmented<T extends string>({
     >
       <span
         aria-hidden
-        className="glass-thumb absolute inset-y-1 left-1 rounded-xl transition-transform duration-[400ms] ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
+        className="absolute inset-y-1 left-1 rounded-xl bg-surface ring-1 ring-border/70 shadow-sm transition-transform duration-[400ms] ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
         style={{
           width: `calc((100% - 0.5rem) / ${options.length})`,
           transform: `translateX(${index * 100}%)`,
@@ -838,10 +842,7 @@ function CardIcon() {
 
 function SocialIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-      <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
-      <path strokeLinecap="round" d="M10.5 18.5h3M9.5 9.5l2 2 3.5-3.5" />
-    </svg>
+    <Image src="/social pay.png" alt="" aria-hidden width={20} height={20} className="size-5 rounded-[5px] object-contain" />
   );
 }
 

@@ -597,43 +597,45 @@ export function ProfileForm({ user }: ProfileFormProps) {
           </div>
 
           <div className="border-t border-border pt-4">
-            <p className="text-sm font-semibold text-foreground">{d.account.profile.vehicleTitle}</p>
-            <p className="mt-1 text-xs text-muted">{d.account.profile.vehicleHint}</p>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <Field label={d.account.profile.vehicleBrandLabel} htmlFor="profile-vehicle-brand">
-                <Input
-                  id="profile-vehicle-brand"
-                  name="vehicleBrand"
-                  value={vehicleBrand}
-                  maxLength={40}
-                  placeholder={d.account.profile.vehicleBrandPlaceholder}
-                  onChange={(event) => {
-                    touched();
-                    setVehicleBrand(event.target.value);
-                  }}
-                />
-              </Field>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <p className="text-sm font-semibold text-foreground">{d.account.profile.vehicleTitle}</p>
+                <p className="mt-1 text-xs text-muted">{d.account.profile.vehicleHint}</p>
+                <div className="mt-3 grid gap-4">
+                  <Field label={d.account.profile.vehicleBrandLabel} htmlFor="profile-vehicle-brand">
+                    <Input
+                      id="profile-vehicle-brand"
+                      name="vehicleBrand"
+                      value={vehicleBrand}
+                      maxLength={40}
+                      placeholder={d.account.profile.vehicleBrandPlaceholder}
+                      onChange={(event) => {
+                        touched();
+                        setVehicleBrand(event.target.value);
+                      }}
+                    />
+                  </Field>
 
-              <Field label={d.account.profile.vehicleModelLabel} htmlFor="profile-vehicle-model">
-                <Input
-                  id="profile-vehicle-model"
-                  name="vehicleModel"
-                  value={vehicleModel}
-                  maxLength={40}
-                  placeholder={d.account.profile.vehicleModelPlaceholder}
-                  onChange={(event) => {
-                    touched();
-                    setVehicleModel(event.target.value);
-                  }}
-                />
-              </Field>
-            </div>
-          </div>
+                  <Field label={d.account.profile.vehicleModelLabel} htmlFor="profile-vehicle-model">
+                    <Input
+                      id="profile-vehicle-model"
+                      name="vehicleModel"
+                      value={vehicleModel}
+                      maxLength={40}
+                      placeholder={d.account.profile.vehicleModelPlaceholder}
+                      onChange={(event) => {
+                        touched();
+                        setVehicleModel(event.target.value);
+                      }}
+                    />
+                  </Field>
+                </div>
+              </div>
 
-          <div className="border-t border-border pt-4">
-            <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
-            <p className="mt-1 text-xs text-muted">{d.account.profile.ebarimtHint}</p>
-            <div className="mt-3 max-w-sm space-y-2.5">
+              <div>
+                <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
+                <p className="mt-1 text-xs text-muted">{d.account.profile.ebarimtHint}</p>
+                <div className="mt-3 space-y-2.5">
               <div className="flex gap-2 items-start">
                 <div className="flex-1">
                   <Input
@@ -730,17 +732,19 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 }
                 return null;
               })()}
+                </div>
+              </div>
             </div>
           </div>
 
           {(dirty || saving || saved) && (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="submit" loading={saving} disabled={!dirty && !saving}>
-                {d.account.profile.saveButton}
-              </Button>
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <p aria-live="polite" className="text-sm font-medium text-brand-strong">
                 {saved ? d.account.profile.savedLabel : ''}
               </p>
+              <Button type="submit" loading={saving} disabled={!dirty && !saving}>
+                {d.account.profile.saveButton}
+              </Button>
             </div>
           )}
         </form>

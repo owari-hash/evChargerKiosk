@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getTranslations } from '@/lib/i18n';
 import { AuthTabs } from './auth-tabs';
-import { ChargeVisual } from './charge-visual';
+import { AuthVisual } from './auth-visual';
 
 /**
  * The frame shared by sign-in, sign-up and PIN reset: a brand panel beside the
@@ -14,35 +14,34 @@ export async function AuthFrame({ children }: { children: ReactNode }) {
   const { d } = await getTranslations();
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-10 px-4 py-6 sm:py-10 lg:min-h-[calc(100dvh-4rem)] lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14 lg:py-12">
-      <aside className="auth-rise relative hidden min-h-[580px] flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0d2619] p-10 text-white lg:flex">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-28 -top-28 size-[26rem] rounded-full bg-[radial-gradient(circle,rgb(31_138_86/0.45),transparent_65%)]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-36 -left-24 size-[26rem] rounded-full bg-[radial-gradient(circle,rgb(79_216_150/0.22),transparent_65%)]"
-        />
-        <p className="relative text-sm font-semibold tracking-wide text-[#d8ece1]/80">Eplug</p>
-        <ChargeVisual label={d.auth.visualCharging} />
-        <div className="relative space-y-3">
-          <h2 className="text-3xl font-bold leading-tight tracking-tight">{d.auth.visualTitle}</h2>
-          <p className="max-w-sm text-base leading-relaxed text-[#ecfdf5]/75">{d.auth.visualBody}</p>
-        </div>
-      </aside>
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10 lg:flex lg:min-h-[calc(100dvh-4rem)] lg:items-center lg:py-12">
+      <div className="grid gap-10 lg:w-full lg:grid-cols-[1.05fr_1fr] lg:gap-14">
+        <aside className="auth-rise glass-hero relative hidden flex-col overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#123324] via-[#0b2119] to-[#061a13] p-10 text-white ring-1 ring-white/10 lg:flex lg:h-[620px]">
+          <span aria-hidden className="glass-orb -right-28 -top-28 size-[26rem] bg-[#1f8a56]" />
+          <span aria-hidden className="glass-orb -bottom-36 -left-24 size-[26rem] bg-[#4fd896]" />
+          <AuthVisual
+            charging={d.auth.visualCharging}
+            slide1Title={d.auth.visualSlide1Title}
+            slide1Body={d.auth.visualSlide1Body}
+            slide2Title={d.auth.visualSlide2Title}
+            slide2Body={d.auth.visualSlide2Body}
+            slide3Title={d.auth.visualSlide3Title}
+            slide3Body={d.auth.visualSlide3Body}
+          />
+        </aside>
 
-      <section className="auth-rise mx-auto w-full max-w-md [animation-delay:90ms]">
-        <div className="rounded-[1.75rem] bg-surface/90 p-6 shadow-[var(--shadow-card)] ring-1 ring-border backdrop-blur-xl sm:p-8">
-          <AuthTabs signIn={d.common.signIn} createAccount={d.common.createAccount} />
-          {children}
-        </div>
-        <div className="mt-5 text-center text-sm">
-          <Link href="/help" className="font-medium text-muted underline-offset-4 hover:text-foreground hover:underline">
-            {d.auth.login.helpCenter}
-          </Link>
-        </div>
-      </section>
+        <section className="auth-rise mx-auto flex w-full max-w-md flex-col [animation-delay:90ms]">
+          <div data-slot="card" className="glass-hero flex flex-col justify-center rounded-[1.75rem] p-6 sm:p-8 lg:h-[620px]">
+            <AuthTabs signIn={d.common.signIn} createAccount={d.common.createAccount} />
+            {children}
+          </div>
+          <div className="mt-5 text-center text-sm">
+            <Link href="/help" className="font-medium text-muted underline-offset-4 hover:text-foreground hover:underline">
+              {d.auth.login.helpCenter}
+            </Link>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

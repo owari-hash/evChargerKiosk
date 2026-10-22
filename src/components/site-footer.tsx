@@ -14,7 +14,7 @@ export async function SiteFooter() {
   ];
 
   return (
-    <footer className="mt-auto border-t border-border bg-surface/90 backdrop-blur-sm">
+    <footer className="mt-auto border-t border-border bg-background/90 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:py-8">
         <p className="order-2 text-center text-xs text-muted sm:order-1 sm:text-left sm:text-sm">
           {format(d.footer.rights, {

@@ -63,15 +63,16 @@ export function AccountNav() {
     <nav
       aria-label={d.account.title}
       data-tour="account-nav"
-      className="-mx-4 overflow-x-auto px-4 md:mx-0 md:self-start md:overflow-visible md:px-0 md:sticky md:top-20"
+      className="md:self-start md:sticky md:top-20"
     >
-      <ul className="relative flex min-w-max gap-1 md:min-w-0 md:flex-col md:gap-0.5">
-        {/* One glass pill — the same as the payment switch — that slides to the
-            current tab: down the sidebar on a wide screen, along the strip on a phone. */}
+      <ul className="relative grid grid-cols-4 gap-1 md:flex md:min-w-0 md:flex-col md:gap-0.5">
+        {/* One glass pill — the same as the payment switch, but toned down —
+            that slides to the current tab: down the sidebar on a wide screen,
+            along the row on a phone. */}
         <span
           ref={indicatorRef}
           aria-hidden
-          className="glass-thumb pointer-events-none absolute left-0 top-0 rounded-xl opacity-0 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-[400ms] data-[ready=true]:ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
+          className="pointer-events-none absolute left-0 top-0 rounded-xl bg-surface-muted opacity-0 ring-1 ring-border/70 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-[400ms] data-[ready=true]:ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
         />
         {items.map((item) => {
           const active = isActive(item.href);
@@ -84,7 +85,8 @@ export function AccountNav() {
                 data-tour={item.tour}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative flex h-11 items-center gap-2.5 rounded-xl px-3.5 text-sm font-medium transition-colors duration-200 md:w-full',
+                  'relative flex h-16 flex-col items-center justify-center gap-1 rounded-xl px-1.5 text-center text-[11px] font-medium transition-colors duration-200',
+                  'md:h-11 md:w-full md:flex-row md:justify-start md:gap-2.5 md:px-3.5 md:text-sm',
                   active ? 'font-semibold text-foreground' : 'text-muted hover:text-foreground',
                 )}
               >
@@ -98,7 +100,7 @@ export function AccountNav() {
                 >
                   <Icon />
                 </svg>
-                <span className="whitespace-nowrap">{item.label}</span>
+                <span className="line-clamp-2 leading-tight md:line-clamp-1 md:whitespace-nowrap">{item.label}</span>
               </Link>
             </li>
           );

@@ -58,16 +58,16 @@ export function WalletBalance({ wallet, config, d, locale }: WalletBalanceProps)
             <p className="mt-1 text-sm text-muted">{inDebt ? d.wallet.debtHint : d.wallet.balanceHint}</p>
           </div>
 
-          <dl className="glass-tile grid grid-cols-2 gap-x-6 gap-y-1 rounded-2xl px-4 py-3 text-sm sm:min-w-64">
-            <div>
-              <dt className="text-xs text-muted">{d.wallet.toppedUp}</dt>
-              <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
+          <dl className="glass-tile grid grid-cols-2 divide-x divide-white/10 rounded-2xl text-sm sm:min-w-64">
+            <div className="px-4 py-3.5">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted">{d.wallet.toppedUp}</dt>
+              <dd className="mt-1 text-base font-bold tabular-nums text-foreground">
                 {money(wallet.totalToppedUp ?? 0)}
               </dd>
             </div>
-            <div>
-              <dt className="text-xs text-muted">{d.wallet.spent}</dt>
-              <dd className="mt-0.5 font-semibold tabular-nums text-foreground">{money(wallet.totalSpent ?? 0)}</dd>
+            <div className="px-4 py-3.5">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted">{d.wallet.spent}</dt>
+              <dd className="mt-1 text-base font-bold tabular-nums text-foreground">{money(wallet.totalSpent ?? 0)}</dd>
             </div>
           </dl>
         </div>

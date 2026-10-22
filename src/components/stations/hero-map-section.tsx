@@ -383,32 +383,6 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
 
     return [
       {
-        key: 'car',
-        label: t.groupCar,
-        value: carPorts.join(' · ') || t.optionAny,
-        active: carPorts.length > 0,
-        clear: () => {
-          saveCarPorts([]);
-          setOpenGroup(null);
-        },
-        // A car can have more than one port, so these toggle and the panel stays
-        // open while the driver picks.
-        options: [
-          anyOption(carPorts.length === 0, () => saveCarPorts([])),
-          ...CONNECTOR_TYPES.map((type) => ({
-            id: type,
-            label: type,
-            selected: carPorts.includes(type),
-            apply: () =>
-              saveCarPorts(
-                carPorts.includes(type)
-                  ? carPorts.filter((port) => port !== type)
-                  : [...carPorts, type],
-              ),
-          })),
-        ],
-      },
-      {
         key: 'power',
         label: t.groupPower,
         value:
@@ -507,7 +481,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
         ],
       },
     ];
-  }, [filters, carPorts, saveCarPorts, t, intl, locale, set]);
+  }, [filters, t, intl, locale, set]);
 
   /** Filters set behind the "Filters" chip; while any is on, they stay shown. */
   const hiddenActive =
