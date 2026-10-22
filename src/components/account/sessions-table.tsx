@@ -390,28 +390,6 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle">
                     <div className="flex items-center justify-center gap-1.5">
                       {stopControls(session)}
-                      {session.status === 'Completed' && (
-                        <TableTooltip
-                          align="center"
-                          title="И-Баримт"
-                          description={
-                            session.ebarimt?.status === 'SUCCESS'
-                              ? 'НӨАТ-ын баримт харах'
-                              : 'И-Баримт авах / харах'
-                          }
-                        >
-                          <button
-                            type="button"
-                            aria-label={session.ebarimt?.status === 'SUCCESS' ? 'И-Баримт харах' : 'И-Баримт'}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-muted text-muted transition hover:bg-surface hover:text-foreground cursor-pointer"
-                            onClick={() => setEbarimtSession(session)}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5L19 7.5V19a2 2 0 0 1-2 2Z" />
-                            </svg>
-                          </button>
-                        </TableTooltip>
-                      )}
                     </div>
                   </td>
 

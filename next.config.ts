@@ -5,7 +5,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: '/qr', destination: '/download', permanent: false }];
   },
-  /* config options here */
+  // The default bottom-left spot sits under the map's own bottom-left
+  // controls (results pill, locate button) during local dev — dev-only, but
+  // out of the way is one less thing to mistake for a real UI bug.
+  devIndicators: {
+    position: 'top-right',
+  },
 };
 
 export default nextConfig;

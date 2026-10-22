@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { format, useI18n } from '@/components/i18n-provider';
 import { CONNECTOR_TYPES, type ConnectorType, type Station } from '@/lib/types';
 import {
@@ -1082,7 +1083,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             carPorts={carPorts}
             intl={intl}
             locale={locale}
-            className="order-2 sm:order-2 sm:self-start"
+            className="order-2 self-start sm:order-2"
           />
 
           <div className="pointer-events-none order-1 flex flex-col gap-2 sm:order-1">
@@ -1381,6 +1382,12 @@ function Sheet({
   const t = d.home.map;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollDown, setCanScrollDown] = useState(false);
+  // The drawer is portalled straight to <body>: nested this deep, a `relative
+  // z-*` ancestor (the chip row, the map overlay) would cap its stacking
+  // context no matter how high its own z-index is, trapping it under the
+  // sticky site header.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -1421,9 +1428,13 @@ function Sheet({
   return (
     <div
       className={cn(
-        'pointer-events-auto relative w-full overflow-hidden rounded-3xl bg-surface',
+        'pointer-events-auto relative w-[85vw] max-w-sm overflow-hidden rounded-3xl bg-surface',
         'shadow-[0_20px_60px_-24px_rgb(2_6_23/0.6)] ring-1 ring-border',
         'sm:flex sm:max-h-full sm:w-[320px] sm:flex-col',
+        // The list view's mobile trigger and panel live in the portal below
+        // instead (a fixed, vertically-centred launcher), so this card has
+        // nothing to show on a phone unless it's the detail view.
+        !selected && 'hidden sm:flex',
         className,
       )}
     >
@@ -1513,27 +1524,6 @@ function Sheet({
         </>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={open}
-            aria-controls="hero-map-list"
-            title={open ? t.hideList : format(t.showList, { count: stations.length })}
-            className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-muted/50 sm:hidden"
-          >
-            {summary}
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className={cn('size-5 shrink-0 text-muted transition-transform', open && 'rotate-180')}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-
           {/* The same summary line, as the column's own toggle — it tracks
               `columnOpen` rather than the sheet's state, so collapsing one does
               not collapse the other when the window crosses the breakpoint. */}
@@ -1561,14 +1551,11 @@ function Sheet({
             </svg>
           </button>
 
-          {/* One copy of the list, shown or hidden per breakpoint by whichever
-              toggle owns that breakpoint. It is rendered even while the phone's
-              sheet is shut, since the column usually wants it and the row count
-              is capped at LIST_LIMIT either way. */}
+          {/* The column's own in-place panel, from `sm` up — shown or hidden
+              by whichever toggle owns that breakpoint. */}
           <div
             className={cn(
-              'px-3 pb-3 sm:min-h-0 sm:flex-auto sm:flex-col',
-              !open && 'hidden',
+              'hidden px-3 pb-3 sm:min-h-0 sm:flex-auto sm:flex-col',
               columnOpen ? 'sm:flex' : 'sm:hidden',
             )}
           >
@@ -1582,6 +1569,99 @@ function Sheet({
             />
             <Legend />
           </div>
+
+          {/* On a phone the whole list lives in a fixed, centre-left launcher
+              instead of the bottom edge — the bottom-left corner is where the
+              map's own floating controls (and the assistant launcher) already
+              sit. Open, it takes the full height. Portalled straight to
+              <body>, so its stacking isn't capped by a `relative z-*` ancestor
+              (the chip row, the map overlay) sitting under the sticky header. */}
+          {mounted &&
+            createPortal(
+              <>
+                <div
+                  aria-hidden={!open}
+                  onClick={open ? onToggle : undefined}
+                  className={cn(
+                    'fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 sm:hidden',
+                    open ? 'opacity-100' : 'pointer-events-none opacity-0',
+                  )}
+                />
+
+                {!open && (
+                  <button
+                    type="button"
+                    onClick={onToggle}
+                    aria-expanded={open}
+                    aria-controls="hero-map-list-mobile"
+                    title={format(t.showList, { count: stations.length })}
+                    className="fixed left-3 top-1/2 z-[60] grid size-14 -translate-y-1/2 place-items-center rounded-full bg-surface shadow-[0_20px_60px_-24px_rgb(2_6_23/0.6)] ring-1 ring-border sm:hidden"
+                  >
+                    <svg viewBox="0 0 24 24" className="size-5 text-brand" fill="currentColor" aria-hidden>
+                      <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
+                    </svg>
+                    {stations.length > 0 && (
+                      <span
+                        aria-hidden
+                        className="absolute -right-1 -top-1 grid min-w-[1.25rem] place-items-center rounded-full bg-brand px-1 text-[11px] font-bold leading-[1.25rem] text-brand-contrast"
+                      >
+                        {stations.length}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                <div
+                  className={cn(
+                    'fixed inset-y-0 left-0 z-[60] flex w-[85vw] max-w-sm flex-col overflow-hidden bg-surface/90 shadow-2xl ring-1 ring-border backdrop-blur-2xl transition-transform duration-300 ease-out sm:hidden',
+                    open ? 'translate-x-0' : '-translate-x-full pointer-events-none',
+                  )}
+                >
+                  <div className="flex shrink-0 items-center gap-3 border-b border-border/70 px-4 py-4">
+                    <span
+                      aria-hidden
+                      className="grid size-10 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand"
+                    >
+                      <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">
+                        <path d="M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0 0-.48-.96H12z" />
+                      </svg>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-foreground">
+                        {format(t.inArea, { count: stations.length })}
+                      </p>
+                      <p className="truncate text-xs text-muted">{format(t.ofTotal, { total })}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onToggle}
+                      aria-label={t.hideList}
+                      title={t.hideList}
+                      className="grid size-9 shrink-0 place-items-center rounded-full text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground"
+                    >
+                      <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+                        <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div
+                    className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-3"
+                    style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                  >
+                    <StationRows
+                      id="hero-map-list-mobile"
+                      stations={stations}
+                      favorites={favorites}
+                      onSelect={onSelect}
+                      emptyLabel={t.noResults}
+                      intl={intl}
+                    />
+                    <Legend />
+                  </div>
+                </div>
+              </>,
+              document.body,
+            )}
         </>
       )}
     </div>
@@ -1630,7 +1710,7 @@ function StationRows({ id, stations, favorites, onSelect, emptyLabel, intl }: St
   return (
     <ul
       id={id}
-      className="-mr-1 max-h-[38svh] space-y-1.5 overflow-y-auto pr-1 sm:max-h-none sm:min-h-0 sm:flex-auto"
+      className="-mr-1 space-y-1.5 overflow-y-auto pr-1 sm:min-h-0 sm:flex-auto"
     >
       {shown.map((station) => (
         <li key={station.id}>
