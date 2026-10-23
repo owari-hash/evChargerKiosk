@@ -65,14 +65,14 @@ export function AccountNav() {
       data-tour="account-nav"
       className="md:self-start md:sticky md:top-20"
     >
-      <ul className="relative grid grid-cols-4 gap-1 md:flex md:min-w-0 md:flex-col md:gap-0.5">
+      <ul className="relative grid grid-cols-4 gap-1 rounded-2xl bg-surface-muted/40 p-1 ring-1 ring-border/60 md:flex md:min-w-0 md:flex-col md:gap-0.5 md:rounded-none md:bg-transparent md:p-0 md:ring-0">
         {/* One glass pill — the same as the payment switch, but toned down —
             that slides to the current tab: down the sidebar on a wide screen,
             along the row on a phone. */}
         <span
           ref={indicatorRef}
           aria-hidden
-          className="pointer-events-none absolute left-0 top-0 rounded-xl bg-surface-muted opacity-0 ring-1 ring-border/70 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-[400ms] data-[ready=true]:ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
+          className="pointer-events-none absolute left-0 top-0 rounded-xl bg-surface opacity-0 shadow-sm ring-1 ring-border/70 data-[ready=true]:transition-[transform,width,height,opacity] data-[ready=true]:duration-[400ms] data-[ready=true]:ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
         />
         {items.map((item) => {
           const active = isActive(item.href);

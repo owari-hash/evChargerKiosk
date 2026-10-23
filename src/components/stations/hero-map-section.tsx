@@ -262,6 +262,21 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
 
   const controlsRef = useRef<HTMLDivElement>(null);
   const chipRowRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  // The mobile results launcher is fixed/portalled, so it would otherwise
+  // keep floating over whatever comes after this section once the driver
+  // scrolls past the map — hide it once the map itself is off-screen.
+  const [mapInView, setMapInView] = useState(true);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => setMapInView(entry.isIntersecting), {
+      threshold: 0,
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // The zoom buttons sit in this page's own control rail rather than in
   // Leaflet's, so the map hands its controls over once it has mounted.
@@ -582,7 +597,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   }
 
   return (
-    <div className={cn('relative isolate w-full', className)}>
+    <div ref={sectionRef} className={cn('relative isolate w-full', className)}>
       <LazyHeroMap
         stations={visible}
         selectedId={activeId}
@@ -1072,6 +1087,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
             stations={inView}
             total={visible.length}
             selected={selected}
+            mapInView={mapInView}
             open={listOpen}
             onToggle={() => setListOpen((value) => !value)}
             columnOpen={columnOpen}
@@ -1339,6 +1355,10 @@ interface SheetProps {
   /** Every matching station, on screen or not. */
   total: number;
   selected: MapStation | null;
+  /** False once the map itself has scrolled out of view — the mobile
+   *  launcher is fixed/portalled, so it must hide itself rather than keep
+   *  floating over whatever content comes after this section. */
+  mapInView: boolean;
   open: boolean;
   onToggle: () => void;
   columnOpen: boolean;
@@ -1365,6 +1385,7 @@ function Sheet({
   stations,
   total,
   selected,
+  mapInView,
   open,
   onToggle,
   columnOpen,
@@ -1577,6 +1598,7 @@ function Sheet({
               <body>, so its stacking isn't capped by a `relative z-*` ancestor
               (the chip row, the map overlay) sitting under the sticky header. */}
           {mounted &&
+            mapInView &&
             createPortal(
               <>
                 <div

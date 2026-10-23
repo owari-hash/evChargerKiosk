@@ -27,6 +27,18 @@ function seenIds(userId: string): Set<string> {
   }
 }
 
+/** True the very first time this account has ever been checked on this
+ *  browser — the key has literally never been written, as opposed to having
+ *  been written and ending up empty. Distinguishes "never checked" from
+ *  "checked and has seen nothing yet", which matters for the baseline below. */
+function neverChecked(userId: string): boolean {
+  try {
+    return window.localStorage.getItem(scopedKey(SEEN_KEY, userId)) === null;
+  } catch {
+    return false;
+  }
+}
+
 function markSeen(userId: string, id: string): void {
   try {
     const ids = seenIds(userId);
@@ -53,8 +65,29 @@ export function AnnouncementModal({ userId }: { userId: string | null }) {
         const res = await fetch('/app-api/app/announcements', { cache: 'no-store' });
         if (!res.ok || cancelled) return;
         const body = (await res.json()) as { announcements?: Announcement[] };
+        const all = body.announcements ?? [];
+
+        // First check ever for this account on this browser: whatever is
+        // live right now is old news, not something that "just arrived" —
+        // baseline it silently rather than replaying it as a fresh toast.
+        // Written directly (not via markSeen in a loop) so the baseline marker
+        // exists even when there are zero active announcements to record —
+        // otherwise the very next announcement published would look like a
+        // still-unchecked account and get silently swallowed too.
+        if (neverChecked(owner)) {
+          try {
+            window.localStorage.setItem(
+              scopedKey(SEEN_KEY, owner),
+              JSON.stringify(all.map((a) => a.id).slice(-200)),
+            );
+          } catch {
+            // Private mode — this just re-baselines next visit.
+          }
+          return;
+        }
+
         const seen = seenIds(owner);
-        const unseenList = (body.announcements ?? []).filter((a) => !seen.has(a.id));
+        const unseenList = all.filter((a) => !seen.has(a.id));
         for (const unseen of unseenList) {
           markSeen(owner, unseen.id);
           pushNotification({

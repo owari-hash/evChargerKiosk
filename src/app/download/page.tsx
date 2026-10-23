@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { appLinks } from '@/lib/app-links';
+import { listStations } from '@/lib/driver-api';
 import { getTranslations, type Dictionary } from '@/lib/i18n';
 import { responsiveQr } from '@/lib/qr';
 
@@ -14,7 +15,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DownloadPage() {
-  const { d } = await getTranslations();
+  const [{ d }, stationStats] = await Promise.all([
+    getTranslations(),
+    listStations({ limit: 200 })
+      .then(({ stations }) => ({
+        stations: stations.length,
+        connectors: stations.reduce((sum, s) => sum + s.totalConnectors, 0),
+      }))
+      .catch(() => null),
+  ]);
 
   // Only the two app stores get a code. The website is already open in front of
   // whoever is reading this, so a QR pointing at it would be pointless.
@@ -26,17 +35,16 @@ export default async function DownloadPage() {
   const webHost = appLinks.web.replace(/^https?:\/\//, '');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
-      <header className="text-center">
-        <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {d.download.title}
-        </h1>
-        <p className="mx-auto mt-2 max-w-md text-pretty text-sm text-muted">
-          {d.download.subtitle}
-        </p>
-      </header>
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <Hero d={d} stats={stationStats} />
 
-      <div className="mx-auto mt-8 grid max-w-md grid-cols-2 gap-3 sm:gap-4">
+      <div id="get" className="mx-auto mt-6 max-w-md scroll-mt-24 sm:mt-8">
+        <h2 className="text-balance text-center text-xl font-bold tracking-tight text-foreground">
+          {d.download.title}
+        </h2>
+      </div>
+
+      <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-3 sm:gap-4">
         <QrCard
           id="ios"
           icon={<AppleIcon />}
@@ -69,6 +77,67 @@ export default async function DownloadPage() {
 
       <Guide guide={d.download.guide} />
     </div>
+  );
+}
+
+/**
+ * The marketing split: pitch and the two CTAs on the left, a mock of the
+ * app's own home screen on the right. `stats` is null if the station list
+ * could not be reached — the row of counts just does not render then, rather
+ * than show a made-up number.
+ */
+function Hero({ d, stats }: { d: Dictionary; stats: { stations: number; connectors: number } | null }) {
+  const t = d.download;
+
+  return (
+    <section className="relative flex flex-col items-center overflow-hidden px-4 py-16 text-center sm:py-24">
+      <div className="auth-rise relative">
+        <h1 className="text-balance text-5xl font-bold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-6xl lg:text-7xl">
+          {t.heroTitleStart}
+          <br />
+          <span className="text-brand">{t.heroTitleHighlight}</span> {t.heroTitleEnd}
+        </h1>
+
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <a
+            href="#get"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-7 text-sm font-semibold text-background transition hover:opacity-85 sm:w-auto"
+          >
+            {t.heroCtaPrimary}
+            <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0-5-5m5 5-5 5" />
+            </svg>
+          </a>
+          <Link
+            href="/stations"
+            className="inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-semibold text-foreground ring-1 ring-border transition hover:bg-surface-muted sm:w-auto"
+          >
+            {t.heroCtaSecondary}
+          </Link>
+        </div>
+
+        {stats && (
+          <dl className="mt-8 flex items-center justify-center gap-8">
+            <div>
+              <dt className="sr-only">{t.heroStatStations}</dt>
+              <dd className="text-2xl font-bold tabular-nums text-foreground">{stats.stations}</dd>
+              <p className="text-xs text-muted">{t.heroStatStations}</p>
+            </div>
+            <span aria-hidden className="h-8 w-px bg-border" />
+            <div>
+              <dt className="sr-only">{t.heroStatConnectors}</dt>
+              <dd className="text-2xl font-bold tabular-nums text-foreground">{stats.connectors}</dd>
+              <p className="text-xs text-muted">{t.heroStatConnectors}</p>
+            </div>
+          </dl>
+        )}
+      </div>
+
+      {/* A single, understated wash of light behind the headline. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 flex justify-center">
+        <div className="size-[42rem] rounded-full bg-[radial-gradient(circle,rgb(16_185_129/0.16),transparent_62%)] blur-3xl" />
+      </div>
+    </section>
   );
 }
 

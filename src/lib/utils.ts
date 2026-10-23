@@ -91,6 +91,19 @@ export function formatPowerKw(
   return `${formatNumber(kw, locale, { maximumFractionDigits: 0 })} ${units(locale).kw}`;
 }
 
+/**
+ * A connector's OCPP `connectorId` (1, 2, 3…) as the letter printed on its
+ * sticker (A, B, C…) — the id itself never changes anywhere in the data or
+ * API, this is display only. Falls back to the plain number past Z, which no
+ * station in this network reaches (stations here have one or two connectors).
+ */
+export function connectorLetter(connectorId: number): string {
+  if (!Number.isInteger(connectorId) || connectorId < 1 || connectorId > 26) {
+    return String(connectorId);
+  }
+  return String.fromCharCode(64 + connectorId);
+}
+
 export function formatMoney(
   value: number | undefined | null,
   locale: FormatLocale = DEFAULT_FORMAT_LOCALE,

@@ -85,6 +85,21 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Mobile only — on wider screens "Апп татах" already sits in the
+              nav row next to Тусламж. An icon button, same family as the
+              other header toggles, rendered before every theme toggle so it
+              leads the mobile icon row too. */}
+          <Link
+            href="/download"
+            aria-label={d.nav.download}
+            title={d.nav.download}
+            className="grid size-9 shrink-0 place-items-center rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground md:hidden"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" />
+            </svg>
+          </Link>
+
           <div className="hidden items-center gap-0.5 rounded-xl bg-surface-muted p-0.5 ring-1 ring-border sm:flex">
             <LocaleSwitcher bare />
             <span aria-hidden className="h-5 w-px bg-border" />

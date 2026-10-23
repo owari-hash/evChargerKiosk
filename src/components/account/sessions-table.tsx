@@ -16,6 +16,7 @@ import { format, useI18n } from '@/components/i18n-provider';
 import type { ChargingSession } from '@/lib/types';
 import {
   cn,
+  connectorLetter,
   connectorStatusTone,
   formatDateTime,
   formatDuration,
@@ -234,7 +235,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </Link>
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
                     <span className="size-1.5 rounded-full bg-brand/60" />
-                    {format(d.account.sessions.connector, { id: session.connectorId })}
+                    {format(d.account.sessions.connector, { id: connectorLetter(session.connectorId) })}
                   </p>
                 </div>
                 <Badge tone={meta.tone} className="shrink-0 text-xs font-medium">
@@ -327,7 +328,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     <TableTooltip
                       align="left"
                       title={session.stationName ?? session.chargePointId}
-                      description={`${format(d.account.sessions.connector, { id: session.connectorId })}${session.stationName ? ` · ${session.chargePointId}` : ''}`}
+                      description={`${format(d.account.sessions.connector, { id: connectorLetter(session.connectorId) })}${session.stationName ? ` · ${session.chargePointId}` : ''}`}
                     >
                       <Link
                         href={stationHref(session)}

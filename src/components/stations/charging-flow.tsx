@@ -16,6 +16,7 @@ import {
 import type { ChargingSession, StationAvailability, StationConnector } from '@/lib/types';
 import {
   cn,
+  connectorLetter,
   connectorStatusLabel,
   connectorStatusTone,
   formatDuration,
@@ -772,7 +773,7 @@ function connectorSummary(
   intl: string,
 ): string {
   return [
-    format(d.start.connectorOption, { id: c.connectorId }),
+    format(d.start.connectorOption, { id: connectorLetter(c.connectorId) }),
     c.label,
     c.type,
     c.powerKw ? formatPowerKw(c.powerKw, intl) : undefined,
@@ -806,7 +807,11 @@ function Stepper({
             <div
               className={cn(
                 'h-1.5 rounded-full',
-                state === 'todo' ? 'bg-surface-muted ring-1 ring-border' : 'bg-brand',
+                state === 'todo'
+                  ? 'bg-surface-muted ring-1 ring-border'
+                  : state === 'current'
+                    ? 'step-glow bg-brand'
+                    : 'bg-brand',
               )}
             />
             <p
@@ -821,7 +826,9 @@ function Stepper({
                   'grid size-3.5 shrink-0 place-items-center rounded-full text-[9px] font-bold sm:size-5 sm:text-[11px]',
                   state === 'todo'
                     ? 'bg-surface-muted text-muted ring-1 ring-border'
-                    : 'bg-brand text-brand-contrast',
+                    : state === 'current'
+                      ? 'step-glow bg-brand text-brand-contrast'
+                      : 'bg-brand text-brand-contrast',
                 )}
               >
                 {state === 'done' ? '✓' : index + 1}
@@ -976,7 +983,7 @@ function ConnectorPicker({
                 selected ? 'bg-brand text-brand-contrast' : 'bg-surface-muted text-foreground',
               )}
             >
-              {c.connectorId}
+              {connectorLetter(c.connectorId)}
             </span>
             <span className="min-w-0 flex-1">
               {c.connectorId === scannedId && (
@@ -986,7 +993,9 @@ function ConnectorPicker({
               )}
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-sm font-semibold text-foreground">
-                  <span className="sr-only">{format(d.stations.connectorN, { id: c.connectorId })}</span>
+                  <span className="sr-only">
+                    {format(d.stations.connectorN, { id: connectorLetter(c.connectorId) })}
+                  </span>
                   {c.type ?? d.stations.plugTypeMissing}
                   {c.powerKw ? ` · ${formatPowerKw(c.powerKw, intl)}` : ''}
                 </span>
