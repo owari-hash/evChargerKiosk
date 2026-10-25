@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
 import { Alert, Badge, Button, ButtonLink, Card, Modal } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
@@ -105,6 +105,8 @@ function freeConnectors(connectors: StationConnector[]): StationConnector[] {
     (c) =>
       c.availability === 'Operative' &&
       !c.currentTransactionId &&
+      // Another driver scanned it first and has it open, or is starting on it.
+      !c.inUseByOther &&
       (c.status === 'Available' || c.status === 'Preparing'),
   );
 }
@@ -123,6 +125,18 @@ export function ChargingFlow({
   const { d, locale } = useI18n();
   const intl = intlLocale(locale);
   const t = d.flow;
+  /**
+   * Arrived by scanning a gun's QR sticker. The flow is then about that one
+   * gun only: no picker, no switching to another gun from here. If someone
+   * else has it, the driver is told so and shown which guns they can go and
+   * scan instead.
+   */
+  const qrMode = initialConnectorId !== undefined;
+  /** In QR mode, nothing is offered until the first live read says who has the gun. */
+  const [synced, setSynced] = useState(!qrMode);
+  /** Whether to (re)claim the scanned gun on the next refresh; set each render. */
+  const holdRef = useRef(false);
+
 
   const [live, setLive] = useState<LiveState>({
     availability,
@@ -215,8 +229,10 @@ export function ChargingFlow({
       ? String(initialConnectorId)
       : '',
   );
-  // A chosen gun that someone else has since taken no longer counts.
-  const chosen = free.find((c) => String(c.connectorId) === connectorId);
+  // A chosen gun that someone else has since taken no longer counts. From a
+  // QR sticker it is always the scanned gun, picked again as soon as it frees.
+  const chosenId = connectorId || (qrMode ? String(initialConnectorId) : '');
+  const chosen = free.find((c) => String(c.connectorId) === chosenId);
 
   // A completed session older than 15 minutes must not block starting a new session.
   const isRecentStop = (s: ChargingSession | null) => {
@@ -255,6 +271,24 @@ export function ChargingFlow({
     void fetchWallet();
   }, [step, fetchWallet]);
 
+  const shouldHold =
+    qrMode && authed && (step === 'connector' || step === 'plug' || step === 'start');
+  useEffect(() => {
+    holdRef.current = shouldHold;
+  }, [shouldHold]);
+
+  /**
+   * Someone else has the gun this driver scanned. Shown before sign-in too:
+   * there is no point signing in to a gun that is taken.
+   */
+  const scannedBusy =
+    qrMode &&
+    synced &&
+    (step === 'signin' || step === 'tag' || step === 'connector') &&
+    !free.some((c) => c.connectorId === initialConnectorId);
+  /** The guns a driver turned away from the scanned one could go and scan. */
+  const otherFree = free.filter((c) => c.connectorId !== initialConnectorId);
+
   const scannedUnavailable =
     initialConnectorId !== undefined &&
     step === 'connector' &&
@@ -280,6 +314,16 @@ export function ChargingFlow({
   const pendingConfirm = confirming === 'stop' && !active ? null : confirming;
 
   const refresh = useCallback(async () => {
+    if (holdRef.current && initialConnectorId !== undefined) {
+      // "I'm at this gun" — so a second scan of the same sticker sees it as
+      // in use. Refused quietly if someone else got there first; the live
+      // read below then reports it as theirs.
+      await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/hold`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectorId: initialConnectorId }),
+      }).catch(() => undefined);
+    }
     try {
       const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/live`, {
         cache: 'no-store',
@@ -291,8 +335,19 @@ export function ChargingFlow({
     } catch {
       setStaleFeed(true);
     }
+    setSynced(true);
     void fetchWallet();
-  }, [stationId, setLive, fetchWallet]);
+  }, [stationId, initialConnectorId, setLive, fetchWallet]);
+
+  // The server-rendered connector list cannot say who holds a gun; ask now
+  // rather than after the first poll interval.
+  useEffect(() => {
+    if (!qrMode) return;
+    const timer = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(timer);
+    // Only on arrival; the interval below keeps it fresh afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const interval = awaitingStation ? STARTING_MS : AUTOMATIC.has(step) ? LIVE_MS : IDLE_MS;
@@ -448,15 +503,12 @@ export function ChargingFlow({
   const offline = live.availability === 'offline' && !active;
   const steps = [t.stepSignIn, t.stepConnector, t.stepPlug, t.stepCharge];
   const chosenLabel = chosen ? connectorSummary(chosen, d, intl) : '';
-  // Scanned gun first, so a driver standing at it finds it without comparing.
-  const ordered =
-    initialConnectorId === undefined
-      ? live.connectors
-      : [...live.connectors].sort(
-          (a, b) =>
-            Number(b.connectorId === initialConnectorId) -
-            Number(a.connectorId === initialConnectorId),
-        );
+  // From a QR sticker, only the gun the driver is standing at (or the one
+  // their own session is running on) is shown.
+  const shownId = active?.connectorId ?? session?.connectorId ?? initialConnectorId;
+  const ordered = qrMode
+    ? live.connectors.filter((c) => c.connectorId === shownId)
+    : live.connectors;
 
   return (
     <div className="space-y-4">
@@ -474,7 +526,7 @@ export function ChargingFlow({
             </Alert>
           )}
 
-          {step === 'signin' && (
+          {step === 'signin' && !scannedBusy && (
             <GuestAuthFlow
               returnTo={returnTo}
               onSuccess={() => {
@@ -486,7 +538,7 @@ export function ChargingFlow({
             />
           )}
 
-          {step === 'tag' && (
+          {step === 'tag' && !scannedBusy && (
             <ActionBlock title={t.stepSignIn} body={t.tagPendingBody}>
               <ButtonLink href="/account" variant="secondary">
                 {t.tagPendingCta}
@@ -494,7 +546,33 @@ export function ChargingFlow({
             </ActionBlock>
           )}
 
-          {step === 'connector' && (
+          {qrMode && !synced && step !== 'signin' && step !== 'tag' && (
+            <StatusLine title={t.checkingConnector} pending />
+          )}
+
+          {scannedBusy && (
+            <div className="space-y-4">
+              <Alert
+                tone="warning"
+                title={format(t.scannedInUseTitle, {
+                  id: connectorLetter(initialConnectorId ?? 0),
+                })}
+              >
+                {t.scannedInUseBody}
+              </Alert>
+              <ConnectorPicker connectors={ordered} free={free} scannedId={initialConnectorId} />
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{t.freeToScanTitle}</h3>
+                {otherFree.length > 0 && !offline ? (
+                  <ConnectorPicker className="mt-2" connectors={otherFree} free={otherFree} />
+                ) : (
+                  <p className="mt-1 text-sm text-muted">{t.noneFreeToScan}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!qrMode && step === 'connector' && (
             <div>
               <h2 className="text-base font-semibold text-foreground">{t.stepConnector}</h2>
               <p className="mt-1 text-sm text-muted">
@@ -515,7 +593,7 @@ export function ChargingFlow({
             </div>
           )}
 
-          {step === 'plug' && (
+          {step === 'plug' && synced && (
             <ActionBlock
               title={t.stepPlug}
               body={chosenLabel ? `${chosenLabel} — ${t.plugBody}` : t.plugBody}
@@ -523,13 +601,15 @@ export function ChargingFlow({
               <Button type="button" onClick={confirmPlugged}>
                 {t.plugConfirm}
               </Button>
-              <Button type="button" variant="ghost" onClick={chooseAnother}>
-                {t.changeConnector}
-              </Button>
+              {!qrMode && (
+                <Button type="button" variant="ghost" onClick={chooseAnother}>
+                  {t.changeConnector}
+                </Button>
+              )}
             </ActionBlock>
           )}
 
-          {step === 'start' && (
+          {step === 'start' && synced && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-3">
                 <div className="min-w-0">
@@ -598,11 +678,13 @@ export function ChargingFlow({
                 </div>
               )}
 
-              <div className="flex justify-end pt-0.5">
-                <Button type="button" variant="ghost" size="sm" onClick={chooseAnother} disabled={busy}>
-                  {t.changeConnector}
-                </Button>
-              </div>
+              {!qrMode && (
+                <div className="flex justify-end pt-0.5">
+                  <Button type="button" variant="ghost" size="sm" onClick={chooseAnother} disabled={busy}>
+                    {t.changeConnector}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -672,11 +754,11 @@ export function ChargingFlow({
         </div>
       </Card>
 
-      {step !== 'connector' && (
+      {step !== 'connector' && !scannedBusy && (
         <Card className="p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-foreground">{t.gunsTitle}</h2>
-            {!active && free.length > 1 && (
+            {!qrMode && !active && free.length > 1 && (
               <span className="text-xs text-muted">Хошуу дээр дарж сонгох боломжтой</span>
             )}
           </div>
@@ -686,7 +768,7 @@ export function ChargingFlow({
             free={free}
             selectedId={chosen?.connectorId ?? active?.connectorId}
             scannedId={initialConnectorId}
-            onChoose={!active && !busy ? choose : undefined}
+            onChoose={!qrMode && !active && !busy ? choose : undefined}
           />
         </Card>
       )}
@@ -1030,9 +1112,17 @@ function ConnectorPicker({
                 </span>
               )}
             </span>
-            <Badge tone={connectorStatusTone(c.status)} className="shrink-0">
-              {connectorStatusLabel(c.status, locale)}
-            </Badge>
+            {/* Someone scanned this gun and is about to start: the station
+                still reports it Available, but it is not free. */}
+            {c.inUseByOther && (c.status === 'Available' || c.status === 'Preparing') ? (
+              <Badge tone={connectorStatusTone('Reserved')} className="shrink-0">
+                {d.stations.inUseByOther}
+              </Badge>
+            ) : (
+              <Badge tone={connectorStatusTone(c.status)} className="shrink-0">
+                {connectorStatusLabel(c.status, locale)}
+              </Badge>
+            )}
             {selectable && (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4 shrink-0 text-muted" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />

@@ -30,6 +30,8 @@ export interface StationConnector {
   /** Operator's label for the physical gun, e.g. "Зүүн тал". */
   label?: string;
   currentTransactionId: number | null;
+  /** Another driver has this gun (scanned it, starting, or charging). From `/live` only. */
+  inUseByOther?: boolean;
   lastPowerW?: number;
   lastSocPercent?: number;
   statusTimestamp?: string;
