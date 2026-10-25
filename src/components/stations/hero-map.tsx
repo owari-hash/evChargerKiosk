@@ -80,7 +80,8 @@ const BOLT_PATH = 'M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0
 interface Entry {
   lat: number;
   lng: number;
-  station: MapStation;
+  station?: MapStation;
+  members?: MapStation[];
   count: number;
   tone: StationAvailability;
 }
@@ -193,7 +194,8 @@ function StationLayer({
     for (const [key, m] of markersRef.current) {
       const el = m.getElement();
       if (!el) continue;
-      el.classList.toggle('is-selected', wanted !== null && key.startsWith(`s:${wanted}:`));
+      const isSelected = wanted !== null && (key.startsWith(`s:${wanted}:`) || key.includes(wanted));
+      el.classList.toggle('is-selected', isSelected);
     }
   }, []);
 
@@ -214,9 +216,7 @@ function StationLayer({
       pt: map.project([station.lat, station.lng], zoom),
     }));
 
-    // Detect co-located / extremely close stations (within 24px) so that stations
-    // at the same charging hub or building are gracefully spread side-by-side
-    // and both remain fully visible, distinct, and clickable.
+    // Detect co-located / close stations (within 28px in screen coordinates)
     const groups: Array<Array<{ station: MapStation; pt: { x: number; y: number } }>> = [];
     const visited = new Set<string>();
 
@@ -231,7 +231,7 @@ function StationLayer({
         const other = projected[j]!;
         if (visited.has(other.station.id)) continue;
         const dist = Math.hypot(item.pt.x - other.pt.x, item.pt.y - other.pt.y);
-        if (dist < 24) {
+        if (dist < 28) {
           g.push(other);
           visited.add(other.station.id);
         }
@@ -252,30 +252,18 @@ function StationLayer({
           tone: station.availability,
         });
       } else {
-        // Disperse co-located stations slightly so each station shows its own pin
-        const count = g.length;
-        const cx = g.reduce((sum, item) => sum + item.pt.x, 0) / count;
-        const cy = g.reduce((sum, item) => sum + item.pt.y, 0) / count;
-        const radius = count === 2 ? 16 : 20;
-
-        g.forEach((item, idx) => {
-          let ox = cx;
-          let oy = cy;
-          if (count === 2) {
-            ox = idx === 0 ? cx - radius : cx + radius;
-          } else {
-            const angle = (2 * Math.PI * idx) / count - Math.PI / 2;
-            ox = cx + radius * Math.cos(angle);
-            oy = cy + radius * Math.sin(angle);
-          }
-          const pos = map.unproject([ox, oy], zoom);
-          next.set(`s:${item.station.id}:${item.station.availability}`, {
-            lat: pos.lat,
-            lng: pos.lng,
-            station: item.station,
-            count: 1,
-            tone: item.station.availability,
-          });
+        // Co-located or nearby stations: KEEP their EXACT geographical coordinates!
+        // Never artificially displace stations away from their real spot.
+        const first = g[0]!.station;
+        const members = g.map((item) => item.station);
+        const tone = clusterTone(members);
+        const key = `c:${members.map((s) => s.id).sort().join(',')}:${tone}`;
+        next.set(key, {
+          lat: first.lat,
+          lng: first.lng,
+          members,
+          count: g.length,
+          tone,
         });
       }
     }
@@ -291,26 +279,111 @@ function StationLayer({
     for (const [key, entry] of next) {
       if (current.has(key)) continue;
 
-      const label = entry.station.name;
-      const isSelected = entry.station.id === wantedId;
-      const m = createMarker([entry.lat, entry.lng], {
-        icon: pinIcon(entry.tone),
-        title: label,
-        riseOnHover: true,
-        zIndexOffset: isSelected ? 900 : 100,
-      });
+      if (entry.station) {
+        const station = entry.station;
+        const label = station.name;
+        const isSelected = station.id === wantedId;
+        const m = createMarker([entry.lat, entry.lng], {
+          icon: pinIcon(entry.tone),
+          title: label,
+          riseOnHover: true,
+          zIndexOffset: isSelected ? 900 : 100,
+        });
 
-      m.on('click', () => {
-        onSelectRef.current(entry.station.id);
-      });
+        m.on('click', () => {
+          onSelectRef.current(station.id);
+        });
 
-      group.addLayer(m);
-      current.set(key, m);
+        group.addLayer(m);
+        current.set(key, m);
 
-      const el = m.getElement();
-      if (el) {
-        el.setAttribute('role', 'button');
-        el.setAttribute('aria-label', label);
+        const el = m.getElement();
+        if (el) {
+          el.setAttribute('role', 'button');
+          el.setAttribute('aria-label', label);
+        }
+      } else if (entry.members && entry.members.length > 0) {
+        const members = entry.members;
+        const label = `${entry.count} цэнэглэх станц`;
+        const hasSelected = wantedId ? members.some((s) => s.id === wantedId) : false;
+        const m = createMarker([entry.lat, entry.lng], {
+          icon: clusterIcon(entry.count, entry.tone),
+          title: label,
+          riseOnHover: true,
+          zIndexOffset: hasSelected ? 950 : 400,
+        });
+
+        // When clicked, open Leaflet popup listing both/all stations at this spot
+        const listHtml = members
+          .map((s) => {
+            const isAvail = s.availability === 'available';
+            const dotColor = isAvail ? '#22c55e' : s.availability === 'busy' ? '#3b82f6' : '#94a3b8';
+            const statusText = isAvail ? 'Бэлэн' : s.availability === 'busy' ? 'Завгүй' : 'Офлайн';
+            const power = s.maxPowerKw ? `${s.maxPowerKw} кВт` : '';
+            return `
+              <div style="padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div style="min-width: 0; flex: 1;">
+                  <div style="font-weight: 700; font-size: 13px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.name}</div>
+                  <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 5px; margin-top: 3px;">
+                    <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${dotColor};"></span>
+                    <span>${statusText}</span>
+                    ${power ? `<span>· ${power}</span>` : ''}
+                  </div>
+                </div>
+                <button type="button" data-station-id="${s.id}" class="ev-popup-select-btn" style="padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 9999px; background: #22c55e; color: #04201a; border: none; cursor: pointer; white-space: nowrap;">
+                  Сонгох
+                </button>
+              </div>
+            `;
+          })
+          .join('');
+
+        const popupHtml = `
+          <div style="min-width: 220px; max-width: 300px; font-family: system-ui, -apple-system, sans-serif;">
+            <div style="font-size: 11px; font-weight: 800; color: #22c55e; text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.12);">
+              ${members.length} цэнэглэх станц
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              ${listHtml}
+            </div>
+          </div>
+        `;
+
+        m.bindPopup(popupHtml, {
+          className: 'ev-cluster-leaflet-popup',
+          closeButton: true,
+          autoPan: true,
+          offset: [0, -12],
+        });
+
+        m.on('popupopen', (e) => {
+          const container = e.popup.getElement();
+          if (!container) return;
+          const buttons = container.querySelectorAll<HTMLButtonElement>('.ev-popup-select-btn');
+          buttons.forEach((btn) => {
+            btn.onclick = (ev) => {
+              ev.stopPropagation();
+              const stationId = btn.getAttribute('data-station-id');
+              if (stationId) {
+                onSelectRef.current(stationId);
+                m.closePopup();
+              }
+            };
+          });
+        });
+
+        m.on('click', () => {
+          m.openPopup();
+        });
+
+        group.addLayer(m);
+        current.set(key, m);
+
+        const el = m.getElement();
+        if (el) {
+          el.setAttribute('role', 'button');
+          el.setAttribute('aria-label', label);
+        }
       }
     }
 
