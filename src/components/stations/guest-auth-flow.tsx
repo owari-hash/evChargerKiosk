@@ -122,9 +122,6 @@ export function GuestAuthFlow({ returnTo, onSuccess }: GuestAuthFlowProps) {
     <div className="rounded-2xl border border-brand/20 bg-gradient-to-b from-brand/[0.04] to-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border/50 pb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand font-bold text-sm">
-            ⚡
-          </span>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-foreground">Шууд цэнэглэх (Бүртгэлгүйгээр)</h3>
             <p className="text-xs text-muted">Утасны дугаараараа баталгаажуулаад шууд цэнэглэнэ</p>

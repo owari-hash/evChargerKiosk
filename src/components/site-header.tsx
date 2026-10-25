@@ -47,7 +47,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 shadow-[0_1px_0_0_rgb(15_23_42/0.03),0_8px_24px_-16px_rgb(15_23_42/0.15)] backdrop-blur-xl">
-      <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center gap-2 sm:gap-3 px-2.5 sm:px-4">
+      <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center gap-2 sm:gap-3 px-2 min-[360px]:px-2.5 sm:px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2 font-bold text-foreground">
           <Image
             src="/eplug-mark.png"
@@ -58,7 +58,9 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
             className="size-8 sm:size-9 rounded-xl shadow-sm"
             priority
           />
-          <span className="text-sm sm:text-[15px] tracking-tight">Eplug</span>
+          {/* Dropped on very narrow phones (Galaxy Fold cover ≈ 280px) so the
+              status badge and buttons fit. */}
+          <span className="text-sm tracking-tight max-[359px]:hidden sm:text-[15px]">Eplug</span>
         </Link>
 
         <nav className="relative ml-2 hidden items-center gap-1 md:flex">
@@ -96,7 +98,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
             href="/download"
             aria-label={d.nav.download}
             title={d.nav.download}
-            className="grid size-8 sm:size-9 shrink-0 place-items-center rounded-lg sm:rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground md:hidden"
+            className="grid size-8 sm:size-9 shrink-0 place-items-center rounded-lg sm:rounded-xl text-muted ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground max-[359px]:hidden md:hidden"
           >
             <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" />
