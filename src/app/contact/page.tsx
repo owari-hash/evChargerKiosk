@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { getContactInfo, DEFAULT_CONTACT_INFO, getCurrentUser } from '@/lib/driver-api';
 import { publicEnv } from '@/lib/env';
 import { getTranslations } from '@/lib/i18n';
-import { FeedbackButton } from '@/components/feedback-button';
+import { FeedbackForm } from '@/components/feedback-button';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { d, locale } = await getTranslations();
@@ -22,39 +21,19 @@ export default async function ContactPage() {
     getContactInfo().catch(() => DEFAULT_CONTACT_INFO),
   ]);
 
-  const brandName = publicEnv.brandName || 'Eplug';
   const isEn = locale === 'en';
   const primaryPhone = contact.phone ? contact.phone.split(',')[0].trim().replace(/\s+/g, '') : '';
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-14 pt-6 sm:pb-20 sm:pt-10">
-      {/* Hero section */}
-      <div className="mx-auto max-w-2xl text-center">
-        <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-surface p-2 shadow-sm ring-1 ring-border">
-          <Image
-            src="/eplug-mark.png"
-            alt={brandName}
-            width={44}
-            height={44}
-            className="size-full rounded-xl object-contain"
-          />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          {isEn ? 'Contact Us' : 'Холбоо барих'}
-        </h1>
-        <p className="mt-3 text-base text-muted sm:text-lg">
-          {isEn
-            ? `Have questions, need charging assistance or partnership inquiries? Reach out to ${brandName}.`
-            : `Цэнэглэлттэй холбоотой лавлагаа, тусламж болон хамтран ажиллах хүсэлтээ бидэнд илгээнэ үү.`}
-        </p>
-      </div>
+      <h1 className="sr-only">{isEn ? 'Contact Us' : 'Холбоо барих'}</h1>
 
       {/* Main cards grid */}
-      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:mt-12">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {/* Phone Card */}
         <Card className="flex flex-col justify-between transition-shadow hover:shadow-md">
-          <CardHeader>
-            <div className="flex size-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <CardHeader className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -67,7 +46,7 @@ export default async function ContactPage() {
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
             </div>
-            <CardTitle className="mt-4">{isEn ? 'Phone' : 'Утас'}</CardTitle>
+            <CardTitle>{isEn ? 'Phone' : 'Утас'}</CardTitle>
           </CardHeader>
           <CardBody className="space-y-3">
             <p className="text-sm text-muted">
@@ -88,8 +67,8 @@ export default async function ContactPage() {
 
         {/* Email Card */}
         <Card className="flex flex-col justify-between transition-shadow hover:shadow-md">
-          <CardHeader>
-            <div className="flex size-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <CardHeader className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -103,7 +82,7 @@ export default async function ContactPage() {
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
               </svg>
             </div>
-            <CardTitle className="mt-4">{isEn ? 'Email' : 'И-мэйл'}</CardTitle>
+            <CardTitle>{isEn ? 'Email' : 'И-мэйл'}</CardTitle>
           </CardHeader>
           <CardBody className="space-y-3">
             <p className="text-sm text-muted">
@@ -124,8 +103,8 @@ export default async function ContactPage() {
 
         {/* Address Card */}
         <Card className="flex flex-col justify-between transition-shadow hover:shadow-md sm:col-span-2 lg:col-span-1">
-          <CardHeader>
-            <div className="flex size-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <CardHeader className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -139,7 +118,7 @@ export default async function ContactPage() {
                 <circle cx="12" cy="10" r="3" />
               </svg>
             </div>
-            <CardTitle className="mt-4">{isEn ? 'Address' : 'Хаяг / Байршил'}</CardTitle>
+            <CardTitle>{isEn ? 'Address' : 'Хаяг / Байршил'}</CardTitle>
           </CardHeader>
           <CardBody className="space-y-3">
             <p className="text-sm text-muted">
@@ -235,8 +214,9 @@ export default async function ContactPage() {
                 ? 'We value your experience and thoughts. Let us know how we can make EV charging smoother for you.'
                 : 'Танд үйлчилгээтэй холбоотой санал хүсэлт, сайжруулах санаа байвал бидэнд шууд илгээгээрэй.'}
             </p>
+            {/* The form itself, right here — no extra click to open it. */}
             <div className="pt-2">
-              <FeedbackButton signedIn={Boolean(user)} />
+              <FeedbackForm signedIn={Boolean(user)} />
             </div>
           </CardBody>
         </Card>

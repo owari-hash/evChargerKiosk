@@ -6,23 +6,26 @@ import { Button, Field, Input, Modal, ModalHeader, Textarea } from './ui';
 import { showToast } from '@/lib/toast-store';
 
 /**
- * «Санал хүсэлт» in the footer: a short form that lands in the console's
- * Санал хүсэлт page. A signed-in driver is known already, so only a guest is
- * asked for a phone number to be called back on.
+ * «Санал хүсэлт» form: lands in the console's Санал хүсэлт page. A signed-in
+ * driver is known already, so only a guest is asked for a phone number to be
+ * called back on. Used inline on /contact and inside the footer's dialog.
  */
-export function FeedbackButton({ signedIn }: { signedIn: boolean }) {
+export function FeedbackForm({
+  signedIn,
+  onCancel,
+  onSent,
+}: {
+  signedIn: boolean;
+  /** Shown as «Цуцлах» beside «Илгээх» when given (the dialog). */
+  onCancel?: () => void;
+  onSent?: () => void;
+}) {
   const { d } = useI18n();
   const t = d.feedback;
-  const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function close() {
-    setOpen(false);
-    setError(null);
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,13 +54,64 @@ export function FeedbackButton({ signedIn }: { signedIn: boolean }) {
       showToast({ kind: 'success', title: t.sent, body: '' });
       setMessage('');
       setPhone('');
-      close();
+      onSent?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : t.failed);
     } finally {
       setSending(false);
     }
   }
+
+  return (
+    <form onSubmit={submit} noValidate className="space-y-4">
+      {!signedIn && (
+        <Field label={t.phoneLabel} htmlFor="feedback-phone" required>
+          <Input
+            id="feedback-phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="9911 2233"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+          />
+        </Field>
+      )}
+      <Field label={t.messageLabel} htmlFor="feedback-message" required>
+        <Textarea
+          id="feedback-message"
+          rows={5}
+          maxLength={2000}
+          placeholder={t.messagePlaceholder}
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+        />
+      </Field>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      {onCancel ? (
+        <div className="grid grid-cols-2 gap-2.5">
+          <Button type="button" variant="danger" onClick={onCancel}>
+            {d.common.cancel}
+          </Button>
+          <Button type="submit" loading={sending}>
+            {t.send}
+          </Button>
+        </div>
+      ) : (
+        <Button type="submit" loading={sending} className="w-full justify-center sm:w-auto">
+          {t.send}
+        </Button>
+      )}
+    </form>
+  );
+}
+
+/** The footer's «Санал хүсэлт» link: opens the form in a dialog. */
+export function FeedbackButton({ signedIn }: { signedIn: boolean }) {
+  const { d } = useI18n();
+  const t = d.feedback;
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
 
   return (
     <>
@@ -68,40 +122,9 @@ export function FeedbackButton({ signedIn }: { signedIn: boolean }) {
       {open && (
         <Modal onClose={close} maxWidth="md" closeOnBackdrop={false}>
           <ModalHeader title={t.title} subtitle={t.subtitle} onClose={close} closeLabel={d.common.close} />
-          <form onSubmit={submit} noValidate className="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
-            {!signedIn && (
-              <Field label={t.phoneLabel} htmlFor="feedback-phone" required>
-                <Input
-                  id="feedback-phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="9911 2233"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                />
-              </Field>
-            )}
-            <Field label={t.messageLabel} htmlFor="feedback-message" required>
-              <Textarea
-                id="feedback-message"
-                rows={5}
-                maxLength={2000}
-                placeholder={t.messagePlaceholder}
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-              />
-            </Field>
-            {error && <p className="text-sm text-danger">{error}</p>}
-            <div className="grid grid-cols-2 gap-2.5">
-              <Button type="button" variant="danger" onClick={close}>
-                {d.common.cancel}
-              </Button>
-              <Button type="submit" loading={sending}>
-                {t.send}
-              </Button>
-            </div>
-          </form>
+          <div className="px-4 py-4 sm:px-6 sm:py-5">
+            <FeedbackForm signedIn={signedIn} onCancel={close} onSent={close} />
+          </div>
         </Modal>
       )}
     </>
