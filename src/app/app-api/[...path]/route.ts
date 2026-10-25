@@ -49,7 +49,10 @@ async function handler(req: NextRequest, ctx: Ctx): Promise<Response> {
   const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
   // Server-Sent Events stay open: no timeout, and the body is piped through
   // as it arrives instead of buffered.
-  const streaming = (req.headers.get('accept') ?? '').includes('text/event-stream');
+  // The assistant streams its answer as plain text, word by word; buffering
+  // it here made the reply appear only once it was complete.
+  const streaming =
+    (req.headers.get('accept') ?? '').includes('text/event-stream') || path[0] === 'assistant';
 
   let upstream: Response;
   try {
