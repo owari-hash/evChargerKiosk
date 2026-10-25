@@ -120,17 +120,19 @@ export async function fetchServerNotifications(): Promise<void> {
     const data = (await res.json()) as { items?: NotificationItem[]; unread?: number };
     if (!data || !Array.isArray(data.items)) return;
 
+    // The server's list is the record: every item filed here was also posted
+    // to it, and it carries the corrected times (a Мэдээ's publish time). A
+    // local copy is kept only while its post may still be in flight.
     const serverItems = data.items;
-    const existingMap = new Map(items.map((i) => [i.dedupeKey ?? i.id, i]));
+    const serverKeys = new Set(serverItems.map((i) => i.dedupeKey ?? i.id));
+    const inFlightSince = Date.now() - 60_000;
+    const pending = items.filter(
+      (i) =>
+        !serverKeys.has(i.dedupeKey ?? i.id) &&
+        Number(i.id.split('-')[0]) > inFlightSince,
+    );
 
-    for (const item of serverItems) {
-      const key = item.dedupeKey ?? item.id;
-      if (!existingMap.has(key)) {
-        existingMap.set(key, item);
-      }
-    }
-
-    items = Array.from(existingMap.values())
+    items = [...serverItems, ...pending]
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
       .slice(0, MAX_ITEMS);
 
@@ -192,6 +194,7 @@ export function connectNotificationSocket(targetUserId: string | null): () => vo
                 imageUrl: notif.imageUrl,
                 href: notif.href,
                 dedupeKey: notif.dedupeKey,
+                at: notif.at,
               },
               { skipServerPost: true },
             );
@@ -256,7 +259,8 @@ export function setNotificationsOwner(userId: string | null): void {
  * Persists both to the server API and localStorage.
  */
 export function pushNotification(
-  item: Omit<NotificationItem, 'id' | 'at'>,
+  /** `at` is when the event happened (e.g. a Мэдээ's publish time); defaults to now. */
+  item: Omit<NotificationItem, 'id' | 'at'> & { at?: string },
   options?: { skipServerPost?: boolean },
 ): boolean {
   hydrate();
@@ -283,9 +287,17 @@ export function pushNotification(
   }
 
   items = [
-    { ...item, id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, at: new Date().toISOString() },
+    {
+      ...item,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      at: item.at ?? new Date().toISOString(),
+    },
     ...items,
-  ].slice(0, MAX_ITEMS);
+  ]
+    // An old event noticed late (a Мэдээ from days ago) belongs in its place
+    // by time, not on top as if it just happened.
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, MAX_ITEMS);
   unread += 1;
   persist();
   notify();
