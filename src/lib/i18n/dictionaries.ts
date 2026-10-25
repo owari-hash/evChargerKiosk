@@ -896,6 +896,11 @@ export const en = {
 
   notifications: {
     label: 'Notifications',
+    markAllRead: 'Mark all read',
+    clear: 'Clear',
+    clearConfirm: 'Delete all?',
+    clearYes: 'Yes',
+    clearNo: 'Cancel',
     empty: 'No notifications yet.',
     sessionStarted: 'Charging started',
     sessionStartedBody: '{station} · charging is under way',
@@ -2012,6 +2017,11 @@ export const mn: Dictionary = {
 
   notifications: {
     label: 'Мэдэгдэл',
+    markAllRead: 'Бүгдийг унших',
+    clear: 'Цэвэрлэх',
+    clearConfirm: 'Бүгдийг устгах уу?',
+    clearYes: 'Тийм',
+    clearNo: 'Болих',
     empty: 'Одоогоор мэдэгдэл алга.',
     sessionStarted: 'Цэнэглэлт эхэллээ',
     sessionStartedBody: '{station} · цэнэглэж байна',

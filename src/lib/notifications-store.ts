@@ -305,8 +305,10 @@ export function pushNotification(
 }
 
 export function markAllRead(): void {
-  if (unread > 0) {
+  if (unread > 0 || items.some((i) => !i.isRead)) {
     unread = 0;
+    items = items.map((i) => (i.isRead ? i : { ...i, isRead: true }));
+    persist();
     notify();
   }
   try {
@@ -318,6 +320,15 @@ export function markAllRead(): void {
   } catch {
     // Network down
   }
+}
+
+/** «Цэвэрлэх»: empties the list here and on the server. */
+export function clearAll(): void {
+  items = [];
+  unread = 0;
+  persist();
+  notify();
+  void fetch('/app-api/notifications', { method: 'DELETE' }).catch(() => {});
 }
 
 export function getSnapshot(): Snapshot {
