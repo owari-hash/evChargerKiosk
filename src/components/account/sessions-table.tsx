@@ -367,20 +367,20 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
 
       {/* Desktop & Tablet Table (md+) - No horizontal scroll, responsive layout */}
       <div className={cn('hidden', ordered.length > 0 && 'md:block')}>
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-left text-sm border-collapse">
           <caption className="sr-only">{d.account.sessions.caption}</caption>
           <thead className="border-b border-border/80 bg-surface-muted/50">
             <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <th scope="col" className="px-4 py-3 text-left align-middle">
+              <th scope="col" className="px-4 py-3 text-left align-middle border-r border-border/60">
                 {d.account.sessions.station}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-left align-middle">
+              <th scope="col" className="px-3.5 py-3 text-left align-middle border-r border-border/60">
                 {d.account.sessions.started}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-center align-middle">
+              <th scope="col" className="px-3.5 py-3 text-center align-middle border-r border-border/60">
                 {d.account.sessions.energy}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-center align-middle">
+              <th scope="col" className="px-3.5 py-3 text-center align-middle border-r border-border/60">
                 {d.account.sessions.cost}
               </th>
               <th scope="col" className="px-4 py-3 text-center align-middle">
@@ -402,7 +402,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   className="group transition-colors hover:bg-surface-muted/30 hover:relative hover:z-30"
                 >
                   {/* Station & Connector */}
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle border-r border-border/60">
                     <TableTooltip
                       align="left"
                       title={session.stationName ?? session.chargePointId}
@@ -419,7 +419,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </td>
 
                   {/* Started Date & Duration */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 align-middle">
+                  <td className="whitespace-nowrap px-3.5 py-3.5 align-middle border-r border-border/60">
                     <TableTooltip
                       align="left"
                       title={formatDateTime(session.startTimestamp)}
@@ -432,7 +432,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </td>
 
                   {/* Energy */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle">
+                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle border-r border-border/60">
                     <TableTooltip
                       align="center"
                       title={formatKwh(session.energyKwh)}
@@ -450,7 +450,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </td>
 
                   {/* Cost & Fee — centered */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle">
+                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle border-r border-border/60">
                     <TableTooltip
                       align="center"
                       title={formatMoney(session.cost)}
@@ -467,7 +467,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                   </td>
 
                   {/* Actions — icon-only */}
-                  <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle">
+                  <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle border-r border-border/60">
                     <div className="flex items-center justify-center gap-1.5">
                       {stopControls(session)}
                     </div>
