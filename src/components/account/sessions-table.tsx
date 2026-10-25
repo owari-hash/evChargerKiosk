@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui';
 import { format, useI18n } from '@/components/i18n-provider';
-import type { ChargingSession } from '@/lib/types';
+import type { ChargingSession, WalletEntry } from '@/lib/types';
 import {
   cn,
   connectorLetter,
@@ -46,6 +46,26 @@ interface StopResponse {
 
 interface SessionsTableProps {
   sessions: ChargingSession[];
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** "10.23 13:17" — the year is noise in a recent-history table. */
+function shortDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return `${pad2(d.getMonth() + 1)}.${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+/** The end time alone when the charge ended the same day it started. */
+function shortEnd(start: string, stop?: string): string {
+  if (!stop) return '—';
+  const a = new Date(start);
+  const b = new Date(stop);
+  if (Number.isNaN(b.getTime())) return '—';
+  return a.toDateString() === b.toDateString()
+    ? `${pad2(b.getHours())}:${pad2(b.getMinutes())}`
+    : shortDateTime(stop);
 }
 
 function TableTooltip({
@@ -108,6 +128,29 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   const filterLabel = filter.presetDays
     ? format(d.account.sessions.filterDays, { n: filter.presetDays })
     : `${from.replaceAll('-', '.')} – ${to.replaceAll('-', '.')}`;
+  /**
+   * Wallet balance right after each charge, by transaction, from the ledger
+   * (the newest 100 entries). Older charges show «—».
+   */
+  const [balances, setBalances] = useState<Map<number, number> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/app-api/wallet?limit=100', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { entries?: WalletEntry[] } | null) => {
+        if (cancelled) return;
+        const map = new Map<number, number>();
+        for (const e of data?.entries ?? []) {
+          if (e.type === 'CHARGE' && e.transactionId != null) map.set(e.transactionId, e.balanceAfter);
+        }
+        setBalances(map);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   /** Station whose report is open, by charge point id. */
   const [reportFor, setReportFor] = useState<string | null>(null);
 
@@ -342,6 +385,20 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     </span>
                   )}
                 </div>
+                <div>
+                  <span className="block text-[11px] text-muted">{d.account.sessions.ended}</span>
+                  <span suppressHydrationWarning className="mt-0.5 block font-medium text-foreground">
+                    {session.stopTimestamp ? formatDateTime(session.stopTimestamp) : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[11px] text-muted">{d.account.sessions.balance}</span>
+                  <span className="mt-0.5 block font-bold text-foreground">
+                    {balances?.get(session.transactionId) === undefined
+                      ? '—'
+                      : formatMoney(balances.get(session.transactionId))}
+                  </span>
+                </div>
                 <div className="col-span-2 flex items-center justify-between border-t border-border/40 pt-2">
                   <span className="text-[11px] text-muted">{d.account.sessions.cost}</span>
                   <div className="text-right">
@@ -366,27 +423,35 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
       </ul>
 
       {/* Desktop & Tablet Table (md+) - No horizontal scroll, responsive layout */}
-      <div className={cn('hidden', ordered.length > 0 && 'md:block')}>
-        <table className="w-full text-left text-sm border-collapse">
+      {/* Scrolls sideways inside the card rather than spilling past it. */}
+      <div className={cn('hidden overflow-x-auto', ordered.length > 0 && 'md:block')}>
+        {/* Эхэлсэн → хугацаа → дууссан, then what it cost and what was left. */}
+        <table className="w-full text-center text-[13px]">
           <caption className="sr-only">{d.account.sessions.caption}</caption>
           <thead className="border-b border-border/80 bg-surface-muted/50">
             <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <th scope="col" className="px-4 py-3 text-left align-middle border-r border-border/60">
+              <th scope="col" className="whitespace-nowrap px-4 py-3 text-center align-middle">
                 {d.account.sessions.station}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-left align-middle border-r border-border/60">
+              <th scope="col" className="whitespace-nowrap px-2 py-3 text-center align-middle">
                 {d.account.sessions.started}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-center align-middle border-r border-border/60">
+              <th scope="col" className="whitespace-nowrap px-2 py-3 text-center align-middle">
+                {d.account.sessions.durationShort}
+              </th>
+              <th scope="col" className="whitespace-nowrap px-2 py-3 text-center align-middle">
+                {d.account.sessions.ended}
+              </th>
+              <th scope="col" className="whitespace-nowrap px-2 py-3 text-center align-middle">
                 {d.account.sessions.energy}
               </th>
-              <th scope="col" className="px-3.5 py-3 text-center align-middle border-r border-border/60">
+              <th scope="col" className="whitespace-nowrap px-2 py-3 text-center align-middle">
                 {d.account.sessions.cost}
               </th>
-              <th scope="col" className="px-4 py-3 text-center align-middle">
-                <span className="sr-only">{d.account.sessions.actions}</span>
+              <th scope="col" className="whitespace-nowrap px-2 py-3 text-center align-middle">
+                {d.account.sessions.balance}
               </th>
-              <th scope="col" className="px-4 py-3 text-center align-middle">
+              <th scope="col" className="whitespace-nowrap px-2 py-3 text-center align-middle">
                 {d.account.sessions.status}
               </th>
             </tr>
@@ -395,14 +460,14 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
             {ordered.map((session) => {
               const meta = STATUS_META[session.status];
               const active = session.status === 'Active';
+              const balance = balances?.get(session.transactionId);
 
               return (
                 <tr
                   key={session.transactionId}
                   className="group transition-colors hover:bg-surface-muted/30 hover:relative hover:z-30"
                 >
-                  {/* Station & Connector */}
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle border-r border-border/60">
+                  <td className="whitespace-nowrap px-4 py-3 text-left align-middle">
                     <TableTooltip
                       align="left"
                       title={session.stationName ?? session.chargePointId}
@@ -411,46 +476,31 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                       <button
                         type="button"
                         onClick={() => setReportFor(session.chargePointId)}
-                        className="block max-w-[11rem] truncate text-left font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[14rem]"
+                        className="block max-w-[8rem] truncate text-left font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[12rem]"
                       >
                         {session.stationName ?? session.chargePointId}
                       </button>
                     </TableTooltip>
                   </td>
 
-                  {/* Started Date & Duration */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 align-middle border-r border-border/60">
-                    <TableTooltip
-                      align="left"
-                      title={formatDateTime(session.startTimestamp)}
-                      description={`${d.account.sessions.duration}: ${duration(session)}`}
-                    >
-                      <span suppressHydrationWarning className="block font-medium text-foreground text-xs sm:text-sm">
-                        {formatDateTime(session.startTimestamp)}
-                      </span>
-                    </TableTooltip>
+                  <td suppressHydrationWarning className="whitespace-nowrap px-2 py-3 align-middle tabular-nums text-foreground" title={formatDateTime(session.startTimestamp)}>
+                    {shortDateTime(session.startTimestamp)}
                   </td>
 
-                  {/* Energy */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle border-r border-border/60">
-                    <TableTooltip
-                      align="center"
-                      title={formatKwh(session.energyKwh)}
-                      description={
-                        active
-                          ? `⚡ ${formatPower(session.lastPowerW)} (${d.account.sessions.rightNow})`
-                          : d.account.sessions.energy
-                      }
-                    >
-                      <span className="inline-flex items-center justify-center font-semibold text-foreground text-xs sm:text-sm">
-                        {formatKwh(session.energyKwh)}
-                        {active && <span className="ml-1 text-xs text-brand animate-pulse">⚡</span>}
-                      </span>
-                    </TableTooltip>
+                  <td suppressHydrationWarning className="whitespace-nowrap px-2 py-3 align-middle tabular-nums text-muted">
+                    {duration(session)}
                   </td>
 
-                  {/* Cost & Fee — centered */}
-                  <td className="whitespace-nowrap px-3.5 py-3.5 text-center align-middle border-r border-border/60">
+                  <td suppressHydrationWarning className="whitespace-nowrap px-2 py-3 align-middle tabular-nums text-foreground" title={session.stopTimestamp ? formatDateTime(session.stopTimestamp) : undefined}>
+                    {shortEnd(session.startTimestamp, session.stopTimestamp)}
+                  </td>
+
+                  <td className="whitespace-nowrap px-2 py-3 align-middle font-semibold text-foreground">
+                    {formatKwh(session.energyKwh)}
+                    {active && <span className="ml-1 text-xs text-brand animate-pulse">⚡</span>}
+                  </td>
+
+                  <td className="whitespace-nowrap px-2 py-3 align-middle">
                     <TableTooltip
                       align="center"
                       title={formatMoney(session.cost)}
@@ -460,36 +510,21 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                           : undefined
                       }
                     >
-                      <span className="block font-bold text-foreground text-xs sm:text-sm">
-                        {formatMoney(session.cost)}
-                      </span>
+                      <span className="font-bold text-danger">{formatMoney(session.cost)}</span>
                     </TableTooltip>
                   </td>
 
-                  {/* Actions — icon-only */}
-                  <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle border-r border-border/60">
-                    <div className="flex items-center justify-center gap-1.5">
-                      {stopControls(session)}
-                    </div>
+                  <td className="whitespace-nowrap px-2 py-3 align-middle font-bold tabular-nums text-foreground">
+                    {balance === undefined ? '—' : formatMoney(balance)}
                   </td>
 
-                  {/* Status — last */}
-                  <td className="whitespace-nowrap px-4 py-3.5 text-center align-middle">
-                    <TableTooltip
-                      align="right"
-                      title={d.account.sessions[meta.labelKey]}
-                      description={
-                        active
-                          ? d.account.sessions.inProgress
-                          : session.status === 'Completed'
-                          ? 'Цэнэглэлт амжилттай дууссан'
-                          : undefined
-                      }
-                    >
+                  <td className="whitespace-nowrap px-2 py-3 align-middle">
+                    <div className="flex flex-col items-center gap-1.5">
                       <Badge tone={meta.tone} className="px-2.5 py-0.5 text-xs font-medium">
                         {d.account.sessions[meta.labelKey]}
                       </Badge>
-                    </TableTooltip>
+                      {stopControls(session)}
+                    </div>
                   </td>
                 </tr>
               );
