@@ -14,6 +14,8 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   maxWidth?: keyof typeof WIDTHS;
+  /** False for forms: a stray click outside must not throw away what was typed. */
+  closeOnBackdrop?: boolean;
 }
 
 /** The one modal shell every overlay in the app builds on: backdrop, Escape
@@ -25,7 +27,7 @@ interface ModalProps {
  * nothing between it and `<body>` sets a transform, filter or similar — one
  * such ancestor anywhere up the tree and the backdrop silently scopes itself
  * to that box instead. The portal makes that a non-issue. */
-export function Modal({ onClose, children, maxWidth = 'md' }: ModalProps) {
+export function Modal({ onClose, children, maxWidth = 'md', closeOnBackdrop = true }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => registerModal(), []);
@@ -50,7 +52,7 @@ export function Modal({ onClose, children, maxWidth = 'md' }: ModalProps) {
   return createPortal(
     <div
       className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2.5 sm:p-4 backdrop-blur-md"
-      onClick={onClose}
+      onClick={closeOnBackdrop ? onClose : undefined}
     >
       <div
         role="dialog"

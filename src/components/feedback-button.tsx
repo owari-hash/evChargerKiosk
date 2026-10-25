@@ -27,7 +27,7 @@ export function FeedbackButton({ signedIn }: { signedIn: boolean }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    if (message.trim().length < 3) {
+    if (message.trim().length < 1) {
       setError(t.messageRequired);
       return;
     }
@@ -66,7 +66,7 @@ export function FeedbackButton({ signedIn }: { signedIn: boolean }) {
       </button>
 
       {open && (
-        <Modal onClose={close} maxWidth="md">
+        <Modal onClose={close} maxWidth="md" closeOnBackdrop={false}>
           <ModalHeader title={t.title} subtitle={t.subtitle} onClose={close} closeLabel={d.common.close} />
           <form onSubmit={submit} noValidate className="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
             {!signedIn && (
