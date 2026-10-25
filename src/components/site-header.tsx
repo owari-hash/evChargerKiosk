@@ -10,6 +10,7 @@ import { clearUserStorage } from '@/lib/user-scope';
 import { useI18n } from './i18n-provider';
 import { LocaleSwitcher } from './locale-switcher';
 import { NotificationBell } from './notification-bell';
+import { StationStatusBadge } from './station-status-badge';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 import { buttonClass } from './ui/button';
@@ -99,6 +100,8 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" />
             </svg>
           </Link>
+
+          <StationStatusBadge />
 
           <div className="hidden items-center gap-0.5 rounded-xl bg-surface-muted p-0.5 ring-1 ring-border sm:flex">
             <LocaleSwitcher bare />

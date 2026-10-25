@@ -16,7 +16,15 @@ export async function AuthFrame({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10 lg:flex lg:min-h-[calc(100dvh-4rem)] lg:items-center lg:py-12">
       <div className="grid gap-10 lg:w-full lg:grid-cols-[1.05fr_1fr] lg:gap-14">
-        <aside className="auth-rise glass-hero relative hidden flex-col overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#123324] via-[#0b2119] to-[#061a13] p-10 text-white ring-1 ring-white/10 lg:flex lg:h-[620px]">
+        {/* Always the dark green panel, in light mode too. It used to carry
+            `glass-hero`, whose background-image replaced this gradient with a
+            white sheen, so in light mode the panel faded into the page and
+            its white text vanished. The sheen is now its own layer on top. */}
+        <aside className="auth-rise relative hidden flex-col overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#123324] via-[#0b2119] to-[#061a13] p-10 text-white shadow-2xl shadow-black/20 ring-1 ring-white/10 lg:flex lg:h-[620px]">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgb(255_255_255/0.07),rgb(255_255_255/0)_45%)]"
+          />
           <span aria-hidden className="glass-orb -right-28 -top-28 size-[26rem] bg-[#1f8a56]" />
           <span aria-hidden className="glass-orb -bottom-36 -left-24 size-[26rem] bg-[#4fd896]" />
           <AuthVisual
