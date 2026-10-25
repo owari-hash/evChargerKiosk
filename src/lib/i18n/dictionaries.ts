@@ -69,8 +69,8 @@ export const en = {
       Faulted: 'Out of order',
     } as Record<ConnectorStatus, string>,
     availability: {
-      available: 'Available now',
-      busy: 'All plugs in use',
+      available: 'Active',
+      busy: 'Busy',
       offline: 'Offline',
       unknown: 'Status unknown',
     } as Record<StationAvailability, string>,
@@ -1184,8 +1184,8 @@ export const mn: Dictionary = {
       Faulted: 'Эвдэрсэн',
     },
     availability: {
-      available: 'Одоо сул байна',
-      busy: 'Бүх холбогч завгүй',
+      available: 'Идэвхтэй',
+      busy: 'Завгүй',
       offline: 'Идэвхгүй',
       unknown: 'Төлөв тодорхойгүй',
     },
