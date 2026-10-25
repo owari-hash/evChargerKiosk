@@ -313,6 +313,33 @@ export function ChargingFlow({
   // A session that ends while the driver is still deciding has nothing to stop.
   const pendingConfirm = confirming === 'stop' && !active ? null : confirming;
 
+  /**
+   * The cable going in flips the gun to `Preparing`; that is the moment to
+   * ask "charge here?" without making the driver find a button. Asked once
+   * per plug-in, so cancelling does not bring it straight back on the next poll.
+   */
+  const autoPromptedRef = useRef<number | null>(null);
+  const preparingId =
+    step === 'plug' && synced && chosen?.status === 'Preparing' ? chosen.connectorId : null;
+  useEffect(() => {
+    if (preparingId === null) {
+      autoPromptedRef.current = null;
+      return;
+    }
+    if (autoPromptedRef.current === preparingId) return;
+    autoPromptedRef.current = preparingId;
+    setError(null);
+    setConfirming((current) => current ?? 'start');
+  }, [preparingId]);
+
+  /** Tapping a gun that already has a cable in goes straight to "charge here?". */
+  function promptStart(id: number) {
+    if (busy || active || awaitingStation) return;
+    setConnectorId(String(id));
+    setError(null);
+    setConfirming('start');
+  }
+
   const refresh = useCallback(async () => {
     if (holdRef.current && initialConnectorId !== undefined) {
       // "I'm at this gun" — so a second scan of the same sticker sees it as
@@ -588,6 +615,7 @@ export function ChargingFlow({
                 selectedId={chosen?.connectorId}
                 scannedId={initialConnectorId}
                 onChoose={choose}
+                onStart={promptStart}
                 disabled={offline}
               />
             </div>
@@ -769,6 +797,7 @@ export function ChargingFlow({
             selectedId={chosen?.connectorId ?? active?.connectorId}
             scannedId={initialConnectorId}
             onChoose={!qrMode && !active && !busy ? choose : undefined}
+            onStart={authed && tagged && !active && !busy && !offline ? promptStart : undefined}
           />
         </Card>
       )}
@@ -1040,6 +1069,7 @@ function ConnectorPicker({
   selectedId,
   scannedId,
   onChoose,
+  onStart,
   disabled = false,
   className,
 }: {
@@ -1048,6 +1078,8 @@ function ConnectorPicker({
   selectedId?: number;
   scannedId?: number;
   onChoose?: (id: number) => void;
+  /** Tap on a free gun that is `Preparing` (cable already in): ask to start. */
+  onStart?: (id: number) => void;
   disabled?: boolean;
   className?: string;
 }) {
@@ -1062,7 +1094,9 @@ function ConnectorPicker({
     <ul className={cn('space-y-2', className)} role={onChoose ? 'radiogroup' : undefined} aria-label={d.flow.gunsTitle}>
       {connectors.map((c) => {
         const isFree = free.some((f) => f.connectorId === c.connectorId);
-        const selectable = Boolean(onChoose) && isFree && !disabled;
+        const startable = Boolean(onStart) && isFree && !disabled && c.status === 'Preparing';
+        const selectable = (Boolean(onChoose) && isFree && !disabled) || startable;
+        const handleTap = startable ? onStart : onChoose;
         const selected = c.connectorId === selectedId;
         // Live readings outlive the session that produced them, so they are
         // shown only while a transaction is actually running on the gun.
@@ -1138,13 +1172,13 @@ function ConnectorPicker({
 
         return (
           <li key={c.connectorId}>
-            {onChoose ? (
+            {handleTap ? (
               <button
                 type="button"
-                role="radio"
-                aria-checked={selected}
+                role={onChoose ? 'radio' : undefined}
+                aria-checked={onChoose ? selected : undefined}
                 disabled={!selectable}
-                onClick={() => onChoose(c.connectorId)}
+                onClick={() => handleTap(c.connectorId)}
                 className={cn(
                   rowClass,
                   selectable

@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { appLinks } from '@/lib/app-links';
-import { listStations } from '@/lib/driver-api';
 import { getTranslations, type Dictionary } from '@/lib/i18n';
 import { responsiveQr } from '@/lib/qr';
 
@@ -15,14 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DownloadPage() {
-  const [{ d }, stationStats, universalQr] = await Promise.all([
+  const [{ d }, universalQr] = await Promise.all([
     getTranslations(),
-    listStations({ limit: 200 })
-      .then(({ stations }) => ({
-        stations: stations.length,
-        connectors: stations.reduce((sum, s) => sum + s.totalConnectors, 0),
-      }))
-      .catch(() => null),
     responsiveQr(appLinks.universal),
   ]);
 
@@ -30,44 +23,12 @@ export default async function DownloadPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-      <Hero d={d} stats={stationStats} />
-
-      <div id="get" className="mx-auto mt-6 max-w-lg scroll-mt-24 sm:mt-8">
-        <h2 className="text-balance text-center text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-          {d.download.title}
-        </h2>
-        <p className="mt-1 text-center text-xs sm:text-sm text-muted">
-          Утасныхаа камераар QR кодыг уншуулж апп татна уу
-        </p>
-      </div>
+      <Hero d={d} />
 
       {/* Unified Dynamic Smart QR Card */}
-      <section className="mx-auto mt-6 max-w-md rounded-2xl bg-surface p-5 sm:p-6 ring-1 ring-border shadow-sm text-center">
-        {/* Badges & OS icons */}
-        <div className="flex items-center justify-center gap-2">
-          <span
-            aria-hidden
-            className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-muted text-foreground ring-1 ring-border"
-          >
-            <AppleIcon />
-          </span>
-          <span
-            aria-hidden
-            className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-muted text-foreground ring-1 ring-border"
-          >
-            <AndroidIcon />
-          </span>
-        </div>
-
-        <div className="mt-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand ring-1 ring-brand/20">
-            <span className="size-1.5 rounded-full bg-brand animate-pulse" />
-            iOS & Android автоматаар танина
-          </span>
-        </div>
-
+      <section id="get" className="mx-auto mt-2 max-w-md scroll-mt-24 text-center">
         {/* The single dynamic QR code */}
-        <div className="mt-4 inline-block rounded-2xl bg-white p-3 ring-1 ring-black/10 shadow-sm">
+        <div className="inline-block rounded-2xl bg-white p-3 ring-1 ring-black/10 shadow-sm">
           <div
             className="aspect-square w-48 sm:w-56"
             role="img"
@@ -81,7 +42,7 @@ export default async function DownloadPage() {
         </p>
 
         {/* One Unified Direct Download Button */}
-        <div className="mt-5 pt-4 border-t border-border">
+        <div className="mt-5">
           <a
             href="/app"
             className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-foreground px-6 text-sm font-semibold text-background transition hover:opacity-90 shadow-sm active:scale-[0.99]"
@@ -129,57 +90,17 @@ export default async function DownloadPage() {
   );
 }
 
-/**
- * The marketing split: pitch and the two CTAs on the left, a mock of the
- * app's own home screen on the right. `stats` is null if the station list
- * could not be reached — the row of counts just does not render then, rather
- * than show a made-up number.
- */
-function Hero({ d, stats }: { d: Dictionary; stats: { stations: number; connectors: number } | null }) {
+/** The headline only; the QR card right below it does the selling. */
+function Hero({ d }: { d: Dictionary }) {
   const t = d.download;
 
   return (
-    <section className="relative flex flex-col items-center overflow-hidden px-4 py-16 text-center sm:py-24">
+    <section className="relative flex flex-col items-center overflow-hidden px-4 pt-2 pb-6 text-center sm:pt-4 sm:pb-8">
       <div className="auth-rise relative">
-        <h1 className="text-balance text-5xl font-bold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-6xl lg:text-7xl">
-          {t.heroTitleStart}
-          <br />
+        <h1 className="text-balance text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          {t.heroTitleStart}{' '}
           <span className="text-brand">{t.heroTitleHighlight}</span> {t.heroTitleEnd}
         </h1>
-
-        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <a
-            href="/app"
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-7 text-sm font-semibold text-background transition hover:opacity-85 sm:w-auto"
-          >
-            {t.heroCtaPrimary}
-            <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0-5-5m5 5-5 5" />
-            </svg>
-          </a>
-          <Link
-            href="/stations"
-            className="inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-semibold text-foreground ring-1 ring-border transition hover:bg-surface-muted sm:w-auto"
-          >
-            {t.heroCtaSecondary}
-          </Link>
-        </div>
-
-        {stats && (
-          <dl className="mt-8 flex items-center justify-center gap-8">
-            <div>
-              <dt className="sr-only">{t.heroStatStations}</dt>
-              <dd className="text-2xl font-bold tabular-nums text-foreground">{stats.stations}</dd>
-              <p className="text-xs text-muted">{t.heroStatStations}</p>
-            </div>
-            <span aria-hidden className="h-8 w-px bg-border" />
-            <div>
-              <dt className="sr-only">{t.heroStatConnectors}</dt>
-              <dd className="text-2xl font-bold tabular-nums text-foreground">{stats.connectors}</dd>
-              <p className="text-xs text-muted">{t.heroStatConnectors}</p>
-            </div>
-          </dl>
-        )}
       </div>
 
       {/* A single, understated wash of light behind the headline. */}
@@ -263,7 +184,6 @@ function Guide({ guide }: { guide: Dictionary['download']['guide'] }) {
         <h2 className="text-balance text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           {guide.title}
         </h2>
-        <p className="mx-auto mt-2 max-w-md text-pretty text-sm text-muted">{guide.subtitle}</p>
       </header>
 
       <ol className="mt-8 grid gap-x-8 gap-y-5 sm:grid-cols-2">
