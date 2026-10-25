@@ -48,7 +48,7 @@ export function StationStatusBadge({ className = '' }: { className?: string }) {
       href="/stations"
       aria-label={label}
       title={label}
-      className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full bg-surface-muted px-3 text-xs font-semibold tabular-nums text-foreground ring-1 ring-border transition hover:ring-brand/40 sm:h-9 ${className}`}
+      className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold tabular-nums text-foreground ring-1 ring-border transition hover:bg-surface-muted sm:h-9 sm:rounded-xl sm:px-3 ${className}`}
     >
       <span className="inline-flex items-center gap-1.5">
         <span aria-hidden className="relative flex size-2">
