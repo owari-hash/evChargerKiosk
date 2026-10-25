@@ -6,7 +6,7 @@ export async function SiteFooter() {
   const { d } = await getTranslations();
 
   const links = [
-    { href: '/pricing', label: d.nav.pricing },
+    { href: '/stations', label: d.nav.pricing },
     { href: '/help', label: d.nav.help },
     { href: '/download', label: d.nav.download },
     { href: '/legal/terms', label: d.footer.terms },

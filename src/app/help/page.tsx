@@ -126,9 +126,6 @@ export default async function HelpPage() {
               <ButtonLink href="/account/wallet" variant="secondary" size="md" className="w-full">
                 {d.account.nav.wallet}
               </ButtonLink>
-              <ButtonLink href="/pricing" variant="secondary" size="md" className="w-full">
-                {d.help.howPricingWorks}
-              </ButtonLink>
               <ButtonLink href="/stations" variant="primary" size="md" className="w-full">
                 {d.stations.title}
               </ButtonLink>

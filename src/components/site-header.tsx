@@ -25,7 +25,8 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
 
   const nav = [
     { href: '/', label: d.nav.home },
-    { href: '/pricing', label: d.nav.pricing },
+    // "Үнэ тариф" opens the station list: every card carries its price.
+    { href: '/stations', label: d.nav.pricing },
     { href: '/help', label: d.nav.help },
     { href: '/download', label: d.nav.download },
   ];

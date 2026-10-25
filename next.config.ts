@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     return [
       { source: '/qr', destination: '/download', permanent: false },
       { source: '/download/app', destination: '/app', permanent: false },
+      // The pricing page only repeated what each station card shows.
+      { source: '/pricing', destination: '/stations', permanent: true },
     ];
   },
   // The default bottom-left spot sits under the map's own bottom-left
