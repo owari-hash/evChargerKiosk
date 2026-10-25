@@ -515,33 +515,6 @@ html {
   animation: ev-pulse 2.4s ease-out infinite;
 }
 
-/* Leaflet cluster popup ------------------------------------------------- */
-
-.ev-cluster-leaflet-popup .leaflet-popup-content-wrapper {
-  background: #0f172a !important;
-  color: #f8fafc !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.75) !important;
-  padding: 4px 6px !important;
-}
-
-.ev-cluster-leaflet-popup .leaflet-popup-tip {
-  background: #0f172a !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-}
-
-.ev-cluster-leaflet-popup .leaflet-popup-close-button {
-  color: #94a3b8 !important;
-  padding: 6px !important;
-  top: 4px !important;
-  right: 6px !important;
-}
-
-.ev-cluster-leaflet-popup .leaflet-popup-close-button:hover {
-  color: #fff !important;
-}
-
 /* Leaflet chrome inside the hero ------------------------------------------ */
 
 .ev-map .leaflet-control-attribution {
