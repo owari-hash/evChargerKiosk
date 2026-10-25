@@ -199,6 +199,7 @@ function StationLayer({
       if (!el) continue;
       const isSelected = wanted !== null && (key.startsWith(`s:${wanted}:`) || key.includes(wanted));
       el.classList.toggle('is-selected', isSelected);
+      m.setZIndexOffset(isSelected ? 900 : key.startsWith('c:') ? 400 : 100);
     }
   }, []);
 
@@ -254,9 +255,35 @@ function StationLayer({
           count: 1,
           tone: station.availability,
         });
+      } else if (zoom >= SELECTED_ZOOM) {
+        // At street level (zoom >= 16), disperse co-located stations slightly so
+        // each station has its own distinct, clickable pin (e.g. West and East chargers)
+        const count = g.length;
+        const cx = g.reduce((sum, item) => sum + item.pt.x, 0) / count;
+        const cy = g.reduce((sum, item) => sum + item.pt.y, 0) / count;
+        const radius = count === 2 ? 18 : 22;
+
+        g.forEach((item, idx) => {
+          let ox = cx;
+          let oy = cy;
+          if (count === 2) {
+            ox = idx === 0 ? cx - radius : cx + radius;
+          } else {
+            const angle = (2 * Math.PI * idx) / count - Math.PI / 2;
+            ox = cx + radius * Math.cos(angle);
+            oy = cy + radius * Math.sin(angle);
+          }
+          const pos = map.unproject([ox, oy], zoom);
+          next.set(`s:${item.station.id}:${item.station.availability}`, {
+            lat: pos.lat,
+            lng: pos.lng,
+            station: item.station,
+            count: 1,
+            tone: item.station.availability,
+          });
+        });
       } else {
-        // Co-located or nearby stations: KEEP their EXACT geographical coordinates!
-        // Never artificially displace stations away from their real spot.
+        // Co-located or nearby stations: at zoom < 16, keep them grouped in a cluster marker
         const first = g[0]!.station;
         const members = g.map((item) => item.station);
         const tone = clusterTone(members);
@@ -280,7 +307,11 @@ function StationLayer({
     }
 
     for (const [key, entry] of next) {
-      if (current.has(key)) continue;
+      const existing = current.get(key);
+      if (existing) {
+        existing.setLatLng([entry.lat, entry.lng]);
+        continue;
+      }
 
       if (entry.station) {
         const station = entry.station;
@@ -293,7 +324,13 @@ function StationLayer({
           zIndexOffset: isSelected ? 900 : 100,
         });
 
-        m.on('click', () => {
+        m.on('click', (e) => {
+          if (e && e.originalEvent) {
+            e.originalEvent.stopPropagation();
+          }
+          if (map.getZoom() < SELECTED_ZOOM) {
+            map.flyTo([entry.lat, entry.lng], SELECTED_ZOOM, { duration: 0.5 });
+          }
           onSelectRef.current(station.id);
         });
 
@@ -304,6 +341,7 @@ function StationLayer({
         if (el) {
           el.setAttribute('role', 'button');
           el.setAttribute('aria-label', label);
+          el.style.cursor = 'pointer';
         }
       } else if (entry.members && entry.members.length > 0) {
         const members = entry.members;
@@ -316,67 +354,30 @@ function StationLayer({
           zIndexOffset: hasSelected ? 950 : 400,
         });
 
-        // When clicked, open Leaflet popup listing both/all stations at this spot
-        const listHtml = members
-          .map((s) => {
-            const isAvail = s.availability === 'available';
-            const dotColor = isAvail ? '#22c55e' : s.availability === 'busy' ? '#3b82f6' : '#94a3b8';
-            const statusText = isAvail ? 'Бэлэн' : s.availability === 'busy' ? 'Завгүй' : 'Офлайн';
-            const power = s.maxPowerKw ? `${s.maxPowerKw} кВт` : '';
-            return `
-              <div style="padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                <div style="min-width: 0; flex: 1;">
-                  <div style="font-weight: 700; font-size: 13px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.name}</div>
-                  <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 5px; margin-top: 3px;">
-                    <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${dotColor};"></span>
-                    <span>${statusText}</span>
-                    ${power ? `<span>· ${power}</span>` : ''}
-                  </div>
-                </div>
-                <button type="button" data-station-id="${s.id}" class="ev-popup-select-btn" style="padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 9999px; background: #22c55e; color: #04201a; border: none; cursor: pointer; white-space: nowrap;">
-                  Сонгох
-                </button>
-              </div>
-            `;
-          })
-          .join('');
+        m.on('click', (e) => {
+          if (e && e.originalEvent) {
+            e.originalEvent.stopPropagation();
+          }
 
-        const popupHtml = `
-          <div style="min-width: 220px; max-width: 300px; font-family: system-ui, -apple-system, sans-serif;">
-            <div style="font-size: 11px; font-weight: 800; color: #22c55e; text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.12);">
-              ${members.length} цэнэглэх станц
-            </div>
-            <div style="display: flex; flex-direction: column;">
-              ${listHtml}
-            </div>
-          </div>
-        `;
+          // Cycle through members if one is already selected, or pick the first available
+          const currentSelected = selectedRef.current;
+          const currentIndex = members.findIndex((s) => s.id === currentSelected);
+          let targetStation: MapStation | undefined;
+          if (currentIndex >= 0) {
+            targetStation = members[(currentIndex + 1) % members.length];
+          } else {
+            targetStation = members.find((s) => s.availability === 'available') || members[0];
+          }
 
-        m.bindPopup(popupHtml, {
-          className: 'ev-cluster-leaflet-popup',
-          closeButton: true,
-          autoPan: true,
-          offset: [0, -12],
-        });
+          // Smoothly zoom map towards this station
+          const currentZoom = map.getZoom();
+          const targetZoom = Math.min(map.getMaxZoom(), Math.max(currentZoom + 2, SELECTED_ZOOM));
+          map.flyTo([entry.lat, entry.lng], targetZoom, { duration: 0.5 });
 
-        m.on('popupopen', (e) => {
-          const container = e.popup.getElement();
-          if (!container) return;
-          const buttons = container.querySelectorAll<HTMLButtonElement>('.ev-popup-select-btn');
-          buttons.forEach((btn) => {
-            btn.onclick = (ev) => {
-              ev.stopPropagation();
-              const stationId = btn.getAttribute('data-station-id');
-              if (stationId) {
-                onSelectRef.current(stationId);
-                m.closePopup();
-              }
-            };
-          });
-        });
-
-        m.on('click', () => {
-          m.openPopup();
+          // Directly select and show the station without any popup modal
+          if (targetStation) {
+            onSelectRef.current(targetStation.id);
+          }
         });
 
         group.addLayer(m);
@@ -386,6 +387,7 @@ function StationLayer({
         if (el) {
           el.setAttribute('role', 'button');
           el.setAttribute('aria-label', label);
+          el.style.cursor = 'pointer';
         }
       }
     }
@@ -437,9 +439,6 @@ function StationLayer({
 
   return null;
 }
-
-/** Street level: close enough to see which side of the road the charger is on. */
-const SELECTED_ZOOM = 16;
 
 /** Brings the focused station in close, without yanking a view that is already there. */
 function FollowSelection({ station }: { station: MapStation | undefined }) {
