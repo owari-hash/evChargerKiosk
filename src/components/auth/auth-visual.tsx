@@ -37,7 +37,9 @@ function PaymentArt() {
   return (
     <svg viewBox="0 0 220 220" className="size-64" aria-hidden>
       <circle cx="110" cy="110" r="92" fill="none" stroke="rgb(255 255 255 / 0.08)" strokeWidth="14" />
-      <g transform="translate(110 118)">
+      {/* Offset so the two cards together (not the back card) sit on the
+          ring's centre at 110,110. */}
+      <g transform="translate(102 126)">
         <rect x="-62" y="-20" width="108" height="70" rx="14" fill="rgb(79 216 150 / 0.14)" stroke="rgb(255 255 255 / 0.12)" />
         <rect x="-50" y="2" width="84" height="8" rx="4" fill="#4fd896" fillOpacity="0.45" />
         <rect x="-50" y="18" width="52" height="8" rx="4" fill="#4fd896" fillOpacity="0.3" />
@@ -76,9 +78,10 @@ export function AuthVisual({
   slide3Body: string;
 }) {
   const slides: Slide[] = [
-    { title: slide1Title, body: slide1Body, art: <ChargeVisual label={charging} /> },
+    // Shown in this order: find a charger, pay, then control.
     { title: slide2Title, body: slide2Body, art: <PinArt /> },
     { title: slide3Title, body: slide3Body, art: <PaymentArt /> },
+    { title: slide1Title, body: slide1Body, art: <ChargeVisual label={charging} /> },
   ];
 
   const [index, setIndex] = useState(0);
@@ -89,7 +92,9 @@ export function AuthVisual({
   }, [slides.length]);
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col justify-between">
+    // Picture and text sit together in the middle of the panel; spreading them
+    // to the top and bottom left a large empty gap between them.
+    <div className="relative flex min-h-0 flex-1 flex-col justify-center gap-8">
       <div className="relative grid place-items-center" style={{ minHeight: '16rem' }}>
         {slides.map((slide, i) => (
           <div

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { DEFAULT_CONTACT_INFO, getContactInfo } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 import { AuthTabs } from './auth-tabs';
 import { AuthVisual } from './auth-visual';
@@ -11,7 +12,13 @@ import { AuthVisual } from './auth-visual';
  * panel, the card and the switch in place and only swaps the form.
  */
 export async function AuthFrame({ children }: { children: ReactNode }) {
-  const { d } = await getTranslations();
+  const [{ d, locale }, contact] = await Promise.all([
+    getTranslations(),
+    getContactInfo().catch(() => DEFAULT_CONTACT_INFO),
+  ]);
+  // Same number as the footer's «Холбоо барих»; the first one if several.
+  const phone = contact.phone ? contact.phone.split(',')[0].trim() : '';
+  const tel = phone.replace(/\s+/g, '');
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10 lg:flex lg:min-h-[calc(100dvh-4rem)] lg:items-center lg:py-12">
@@ -43,10 +50,24 @@ export async function AuthFrame({ children }: { children: ReactNode }) {
             <AuthTabs signIn={d.common.signIn} createAccount={d.common.createAccount} />
             {children}
           </div>
-          <div className="mt-5 text-center text-sm">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
             <Link href="/help" className="font-medium text-muted underline-offset-4 hover:text-foreground hover:underline">
               {d.auth.login.helpCenter}
             </Link>
+            {phone && (
+              <>
+                <span aria-hidden className="text-muted/50">·</span>
+                <a
+                  href={`tel:${tel}`}
+                  className="inline-flex items-center gap-1.5 font-medium text-muted underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+                  </svg>
+                  {locale === 'en' ? 'Contact' : 'Холбоо барих'}: {phone}
+                </a>
+              </>
+            )}
           </div>
         </section>
       </div>
