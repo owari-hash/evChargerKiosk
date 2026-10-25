@@ -18,7 +18,7 @@ export async function qrSvg(data: string, size = 240): Promise<string> {
     type: 'svg',
     // Quartile: survives a smudged or partly reflective kiosk screen while
     // keeping the modules large enough to scan from arm's length.
-    errorCorrectionLevel: 'Q',
+    errorCorrectionLevel: 'H',
     margin: 1,
     width: size,
     color: { dark: '#000000', light: '#ffffff' },

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { appLinks } from '@/lib/app-links';
@@ -28,13 +29,27 @@ export default async function DownloadPage() {
       {/* Unified Dynamic Smart QR Card */}
       <section id="get" className="mx-auto mt-2 max-w-md scroll-mt-24 text-center">
         {/* The single dynamic QR code */}
-        <div className="inline-block rounded-2xl bg-white p-3 ring-1 ring-black/10 shadow-sm">
+        <div className="relative inline-block rounded-2xl bg-white p-3 ring-1 ring-black/10 shadow-sm">
           <div
             className="aspect-square w-48 sm:w-56"
             role="img"
             aria-label="Eplug апп татах ухаалаг QR код"
             dangerouslySetInnerHTML={{ __html: universalQr }}
           />
+
+          {/* Center Logo Badge */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="flex size-11 sm:size-12 items-center justify-center rounded-xl bg-white p-1 shadow-md ring-2 ring-white">
+              <Image
+                src="/eplug-mark.png"
+                alt="Eplug Logo"
+                width={40}
+                height={40}
+                className="size-full rounded-lg object-contain"
+                priority
+              />
+            </div>
+          </div>
         </div>
 
         <p className="mt-3 text-pretty text-xs text-muted leading-relaxed max-w-xs mx-auto">
