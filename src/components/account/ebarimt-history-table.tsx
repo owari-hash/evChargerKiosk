@@ -82,8 +82,13 @@ export function EbarimtHistoryTable({
     if (records.some((r) => r.sessionObj.transactionId === s.transactionId)) return;
 
     const issued = Boolean(
-      (s.ebarimt?.receiptId || s.ebarimt?.lottery) &&
-      (s.ebarimt?.status === 'SUCCESS' || s.ebarimt?.status === 'REFUNDED')
+      s.ebarimt &&
+      s.ebarimt.status !== 'FAILED' &&
+      (Boolean(s.ebarimt.receiptId) ||
+        Boolean(s.ebarimt.lottery) ||
+        Boolean(s.ebarimt.qrData) ||
+        s.ebarimt.status === 'SUCCESS' ||
+        s.ebarimt.status === 'REFUNDED')
     );
 
     const amount = s.cost || 0;
@@ -204,6 +209,7 @@ export function EbarimtHistoryTable({
 
       {selectedSession && (
         <EbarimtModal
+          key={`eb-modal-${selectedSession.transactionId || selectedSession.idTag || 'sel'}`}
           session={selectedSession}
           onClose={() => setSelectedSession(null)}
           onSuccess={(updated) => {

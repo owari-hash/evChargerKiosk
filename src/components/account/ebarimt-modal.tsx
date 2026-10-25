@@ -54,7 +54,6 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
     initialType ?? session.ebarimt?.type ?? 'B2C_RECEIPT',
   );
   const [customerTin, setCustomerTin] = useState(session.ebarimt?.customerTin ?? '');
-  const [customerNo, setCustomerNo] = useState(session.ebarimt?.customerNo ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ebarimt, setEbarimt] = useState<EBarimtData | undefined>(session.ebarimt);
@@ -66,8 +65,21 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
   const [orgData, setOrgData] = useState<OrgCheckResult | null>(null);
 
   const isAlreadyIssued = Boolean(
-    ebarimt?.status === 'SUCCESS' && (ebarimt?.receiptId || ebarimt?.lottery)
+    ebarimt &&
+      ebarimt.status !== 'FAILED' &&
+      (Boolean(ebarimt.receiptId) ||
+        Boolean(ebarimt.lottery) ||
+        Boolean(ebarimt.qrData) ||
+        ebarimt.status === 'SUCCESS' ||
+        ebarimt.status === 'REFUNDED')
   );
+
+  useEffect(() => {
+    setEbarimt(session.ebarimt);
+    setType(initialType ?? session.ebarimt?.type ?? 'B2C_RECEIPT');
+    setCustomerTin(session.ebarimt?.customerTin ?? '');
+    setError(null);
+  }, [session, initialType]);
 
   useEffect(() => {
     const qrText = ebarimt?.qrData;
@@ -169,37 +181,12 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
         }
       }
 
-      if (chosenType === 'B2C_RECEIPT' && customerNo.trim()) {
-        const cleanNo = customerNo.trim();
-        if (!/^\d{8}$/.test(cleanNo)) {
-          throw new Error('И-Баримтын хэрэглэгчийн код яг 8 оронтой тоо байх ёстой (жишээ нь: 12809800)');
-        }
-        const bogus = [
-          '00000000',
-          '11111111',
-          '22222222',
-          '33333333',
-          '44444444',
-          '55555555',
-          '66666666',
-          '77777777',
-          '88888888',
-          '99999999',
-          '12345678',
-          '87654321',
-        ];
-        if (bogus.includes(cleanNo)) {
-          throw new Error('Хүчингүй код байна. Өөрийн Ebarimt систем дэх бодит 8 оронтой кодоо оруулна уу.');
-        }
-      }
-
       const res = await fetch(`/app-api/sessions/${session.transactionId}/ebarimt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: chosenType,
           customerTin: chosenType === 'B2B_RECEIPT' ? (orgData?.tin || customerTin.trim()) : undefined,
-          customerNo: chosenType === 'B2C_RECEIPT' ? customerNo.trim() || undefined : undefined,
         }),
       });
 
@@ -433,21 +420,9 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
             {/* TAB 1: ХУВЬ ХҮН (B2C) */}
             {type === 'B2C_RECEIPT' && (
               <div className="space-y-3.5">
-                <div className="rounded-xl bg-surface-muted/50 border border-border/50 p-3 text-xs text-muted">
+                <div className="rounded-xl bg-surface-muted/50 border border-border/50 p-3.5 text-xs text-muted leading-relaxed">
                   Цэнэглэлтийн төлбөрийн НӨАТ-ын буцаан олголт, сугалааны эрх бүхий хувь хүний баримт авна.
                 </div>
-
-                <Field label="И-Баримтын хэрэглэгчийн код (эсвэл утас)" htmlFor="b2c-customer-no">
-                  <Input
-                    id="b2c-customer-no"
-                    placeholder="8 оронтой код эсвэл утасны дугаар"
-                    value={customerNo}
-                    onChange={(e) => setCustomerNo(e.target.value)}
-                  />
-                  <p className="mt-1 text-[11px] text-muted">
-                    Хоосон үлдээвэл таны бүртгэлтэй дугаарт автоматаар олгогдоно.
-                  </p>
-                </Field>
 
                 <div className="flex gap-2 pt-2">
                   <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
