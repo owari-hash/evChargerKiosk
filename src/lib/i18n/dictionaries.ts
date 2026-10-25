@@ -2015,7 +2015,7 @@ export const mn: Dictionary = {
     subtitle: 'Утасныхаа камерыг код руу чиглүүлнэ үү — нэмэлт апп хэрэггүй.',
     getApp: 'Татах',
     heroBadge: 'Eplug · ЦМ цэнэглэх апп',
-    heroTitleStart: 'Цахилгаан машинаа Eplug-аар',
+    heroTitleStart: 'Eplug-аар машинаа ',
     heroTitleHighlight: 'хурдан хялбар',
     heroTitleEnd: 'цэнэглэ',
     heroSubtitle: 'Станц хайж, QR-аар төлбөр хийж, wallet ашиглан нэг товшоод цэнэглэлтээ эхлүүл.',
