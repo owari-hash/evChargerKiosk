@@ -13,7 +13,7 @@ import {
 } from 'leaflet';
 import { useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import { format, useI18n } from '@/components/i18n-provider';
+import { useI18n } from '@/components/i18n-provider';
 import { publicEnv } from '@/lib/env';
 import type { StationAvailability } from '@/lib/types';
 import type { MapStation } from './map-station';
@@ -80,9 +80,7 @@ const BOLT_PATH = 'M13 2 4.5 13.2a.6.6 0 0 0 .48.96H10l-1 8.84 8.5-11.2a.6.6 0 0
 interface Entry {
   lat: number;
   lng: number;
-  /** Set for a lone station; `members` is set instead for a cluster. */
-  station?: MapStation;
-  members?: MapStation[];
+  station: MapStation;
   count: number;
   tone: StationAvailability;
 }
@@ -178,19 +176,16 @@ function StationLayer({
   onSelect: (id: string | null) => void;
 }) {
   const map = useMap();
-  const { d } = useI18n();
 
   const groupRef = useRef<LayerGroup | null>(null);
   const markersRef = useRef(new Map<string, Marker>());
   const stationsRef = useRef(stations);
   const selectedRef = useRef(selectedId);
   const onSelectRef = useRef(onSelect);
-  const clusterLabelRef = useRef(d.home.map.clusterAria);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
-    clusterLabelRef.current = d.home.map.clusterAria;
-  }, [onSelect, d]);
+  }, [onSelect]);
 
   /** Grows the marker whose station the panel has focused. */
   const applySelection = useCallback(() => {
@@ -210,32 +205,45 @@ function StationLayer({
     const bounds = map.getBounds().pad(VIEWPORT_PAD);
     const wantedId = selectedRef.current;
 
-    // Project into pixel space at the current zoom and bucket by grid cell. Only
-    // what is near the viewport is considered, so an off-screen station costs a
-    // bounds test and nothing more.
-    const cells = new Map<string, { sx: number; sy: number; items: MapStation[] }>();
-    for (const station of stationsRef.current) {
-      // The focused station always gets a pin of its own — swallowed into a
-      // bubble it would leave the sheet describing a station you cannot see.
-      if (station.id === wantedId) continue;
-      if (!bounds.contains([station.lat, station.lng])) continue;
-      const point = map.project([station.lat, station.lng], zoom);
-      const key = `${Math.round(point.x / CELL_PX)}:${Math.round(point.y / CELL_PX)}`;
-      const cell = cells.get(key);
-      if (cell) {
-        cell.sx += point.x;
-        cell.sy += point.y;
-        cell.items.push(station);
-      } else {
-        cells.set(key, { sx: point.x, sy: point.y, items: [station] });
+    // Filter stations visible inside or near the viewport
+    const visible = stationsRef.current.filter((s) => bounds.contains([s.lat, s.lng]));
+
+    // Project each visible station to screen pixel space at current zoom
+    const projected = visible.map((station) => ({
+      station,
+      pt: map.project([station.lat, station.lng], zoom),
+    }));
+
+    // Detect co-located / extremely close stations (within 24px) so that stations
+    // at the same charging hub or building are gracefully spread side-by-side
+    // and both remain fully visible, distinct, and clickable.
+    const groups: Array<Array<{ station: MapStation; pt: { x: number; y: number } }>> = [];
+    const visited = new Set<string>();
+
+    for (let i = 0; i < projected.length; i++) {
+      const item = projected[i]!;
+      if (visited.has(item.station.id)) continue;
+
+      const g = [item];
+      visited.add(item.station.id);
+
+      for (let j = i + 1; j < projected.length; j++) {
+        const other = projected[j]!;
+        if (visited.has(other.station.id)) continue;
+        const dist = Math.hypot(item.pt.x - other.pt.x, item.pt.y - other.pt.y);
+        if (dist < 24) {
+          g.push(other);
+          visited.add(other.station.id);
+        }
       }
+      groups.push(g);
     }
 
     const next = new Map<string, Entry>();
-    for (const [key, cell] of cells) {
-      if (cell.items.length === 1) {
-        const station = cell.items[0]!;
-        // Availability is part of the key, so a status change swaps the icon.
+
+    for (const g of groups) {
+      if (g.length === 1) {
+        const { station } = g[0]!;
         next.set(`s:${station.id}:${station.availability}`, {
           lat: station.lat,
           lng: station.lng,
@@ -243,31 +251,31 @@ function StationLayer({
           count: 1,
           tone: station.availability,
         });
-        continue;
-      }
-      const tone = clusterTone(cell.items);
-      const centre = map.unproject(
-        [cell.sx / cell.items.length, cell.sy / cell.items.length],
-        zoom,
-      );
-      next.set(`c:${key}:${cell.items.length}:${tone}`, {
-        lat: centre.lat,
-        lng: centre.lng,
-        members: cell.items,
-        count: cell.items.length,
-        tone,
-      });
-    }
+      } else {
+        // Disperse co-located stations slightly so each station shows its own pin
+        const count = g.length;
+        const cx = g.reduce((sum, item) => sum + item.pt.x, 0) / count;
+        const cy = g.reduce((sum, item) => sum + item.pt.y, 0) / count;
+        const radius = count === 2 ? 16 : 20;
 
-    if (wantedId) {
-      const focused = stationsRef.current.find((station) => station.id === wantedId);
-      if (focused && bounds.contains([focused.lat, focused.lng])) {
-        next.set(`s:${focused.id}:${focused.availability}:sel`, {
-          lat: focused.lat,
-          lng: focused.lng,
-          station: focused,
-          count: 1,
-          tone: focused.availability,
+        g.forEach((item, idx) => {
+          let ox = cx;
+          let oy = cy;
+          if (count === 2) {
+            ox = idx === 0 ? cx - radius : cx + radius;
+          } else {
+            const angle = (2 * Math.PI * idx) / count - Math.PI / 2;
+            ox = cx + radius * Math.cos(angle);
+            oy = cy + radius * Math.sin(angle);
+          }
+          const pos = map.unproject([ox, oy], zoom);
+          next.set(`s:${item.station.id}:${item.station.availability}`, {
+            lat: pos.lat,
+            lng: pos.lng,
+            station: item.station,
+            count: 1,
+            tone: item.station.availability,
+          });
         });
       }
     }
@@ -283,32 +291,17 @@ function StationLayer({
     for (const [key, entry] of next) {
       if (current.has(key)) continue;
 
-      const label = entry.station?.name ?? format(clusterLabelRef.current, { count: entry.count });
+      const label = entry.station.name;
+      const isSelected = entry.station.id === wantedId;
       const m = createMarker([entry.lat, entry.lng], {
-        icon: entry.station ? pinIcon(entry.tone) : clusterIcon(entry.count, entry.tone),
+        icon: pinIcon(entry.tone),
         title: label,
         riseOnHover: true,
-        // Bubbles sit above individual pins so one is never half-hidden, and the
-        // focused pin sits above both.
-        zIndexOffset: key.endsWith(':sel') ? 900 : entry.station ? 0 : 400,
+        zIndexOffset: isSelected ? 900 : 100,
       });
 
       m.on('click', () => {
-        if (entry.station) {
-          onSelectRef.current(entry.station.id);
-          return;
-        }
-        const members = entry.members ?? [];
-        const area = latLngBounds(members.map((s) => [s.lat, s.lng] as [number, number]));
-        if (area.getNorthEast().equals(area.getSouthWest())) {
-          // Every station in the bubble shares one address, so its bounds are a
-          // single point — step the zoom instead of fitting to nothing.
-          map.flyTo(area.getCenter(), Math.min(map.getZoom() + 2, map.getMaxZoom()), {
-            duration: 0.5,
-          });
-        } else {
-          map.flyToBounds(area, { padding: [70, 70], maxZoom: 17, duration: 0.5 });
-        }
+        onSelectRef.current(entry.station.id);
       });
 
       group.addLayer(m);
