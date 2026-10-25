@@ -569,6 +569,13 @@ export const en = {
     localOnlyBody:
       'This network starts sessions on the unit. Hold your charge tag against the reader and plug in — this page then follows along.',
     plugConfirm: 'Confirm',
+    tariff: {
+      yours: 'Your rate right now',
+      free: 'Free · internal user',
+      station: 'Station tariff',
+      now: 'now',
+      otherHours: 'Other hours',
+    },
     plugNotDetected:
       "The station hasn't detected the plug. Push it fully into the car until it clicks, wait 5 seconds and try again.",
     stopButton: 'Stop',
@@ -1661,6 +1668,13 @@ export const mn: Dictionary = {
     localOnlyBody:
       'Энэ сүлжээнд цэнэглэлтийг станц дээр нь эхлүүлдэг. Картаа уншуулаад хошуугаа залгахад энэ хуудас өөрөө шинэчлэгдэнэ.',
     plugConfirm: 'Цэнэглэх',
+    tariff: {
+      yours: 'Таны одоогийн тариф',
+      free: 'Үнэгүй · дотоод хэрэглэгч',
+      station: 'Станцын тариф',
+      now: 'одоо',
+      otherHours: 'Бусад цагт',
+    },
     plugNotDetected:
       'Цэнэглэгч хошуу бүрэн залгагдсан эсэхийг дахин шалгана уу',
     stopButton: 'Зогсоох',

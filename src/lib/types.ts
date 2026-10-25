@@ -84,7 +84,21 @@ export interface EBarimtData {
   error?: string;
 }
 
+/** A time-of-day rate. Minutes are Mongolia local time since midnight. */
+export interface TariffZone {
+  name?: string;
+  startMinute: number;
+  endMinute: number;
+  tariffPerKwh: number;
+}
+
 export interface ChargingSession {
+  /** Per kWh this session is billed at: the zone in effect now while running, the blended rate once finished. */
+  tariffPerKwh?: number;
+  /** Running sessions: name of the time-of-day zone being billed right now. */
+  tariffZoneName?: string;
+  /** Live feed only: an internal user, who charges free. */
+  isInternal?: boolean;
   transactionId: number;
   chargePointId: string;
   stationName?: string;

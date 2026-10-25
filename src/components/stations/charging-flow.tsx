@@ -13,7 +13,12 @@ import {
   requestSessionCheck,
   showSessionOnScreen,
 } from '@/lib/session-events';
-import type { ChargingSession, StationAvailability, StationConnector } from '@/lib/types';
+import type {
+  ChargingSession,
+  StationAvailability,
+  StationConnector,
+  TariffZone,
+} from '@/lib/types';
 import {
   cn,
   connectorLetter,
@@ -24,6 +29,7 @@ import {
   formatMoney,
   formatPower,
   formatPowerKw,
+  formatTariff,
   intlLocale,
 } from '@/lib/utils';
 import { useToastMessage } from '@/lib/use-toast-message';
@@ -76,6 +82,10 @@ interface LiveState {
   availableConnectors: number;
   totalConnectors: number;
   tariffPerKwh?: number;
+  /** The rate outside every time-of-day zone. */
+  defaultTariffPerKwh?: number;
+  currentTariffZoneName?: string;
+  tariffZones?: TariffZone[];
   session: ChargingSession | null;
 }
 
@@ -722,6 +732,13 @@ export function ChargingFlow({
             <div className="space-y-4">
               <StatusLine title={t.chargingTitle} pending />
               <LiveReadout session={active} intl={intl} tariffPerKwh={live.tariffPerKwh} />
+              <TariffPanel
+                session={active}
+                stationRate={live.tariffPerKwh}
+                defaultRate={live.defaultTariffPerKwh}
+                zones={live.tariffZones}
+                intl={intl}
+              />
               <Button
                 type="button"
                 variant="danger"
@@ -1252,6 +1269,111 @@ function LiveReadout({
         value={estimate != null ? `≈ ${formatMoney(estimate, intl)}` : formatMoney(session.cost, intl)}
       />
     </dl>
+    </div>
+  );
+}
+
+function clock(minute: number): string {
+  return `${String(Math.floor(minute / 60) % 24).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+}
+
+/** Minutes since midnight in Mongolia (UTC+8, no DST) — the zones' own clock. */
+function mnMinuteNow(): number {
+  const now = new Date();
+  return (now.getUTCHours() * 60 + now.getUTCMinutes() + 8 * 60) % 1440;
+}
+
+/**
+ * While charging: the rate this driver is being billed at right now, and the
+ * station's whole price list — every time-of-day zone, with the one in effect
+ * marked — so a cheaper night rate is never a surprise on the receipt.
+ */
+function TariffPanel({
+  session,
+  stationRate,
+  defaultRate,
+  zones,
+  intl,
+}: {
+  session: ChargingSession;
+  stationRate?: number;
+  defaultRate?: number;
+  zones?: TariffZone[];
+  intl: string;
+}) {
+  const { d } = useI18n();
+  const t = d.flow.tariff;
+  const yourRate = session.tariffPerKwh ?? stationRate;
+  const nowMinute = mnMinuteNow();
+  const inZone = zones?.find((z) => nowMinute >= z.startMinute && nowMinute < z.endMinute);
+  const perKwh = (n?: number) => formatTariff(n, intl);
+
+  if (yourRate == null && stationRate == null && !zones?.length) return null;
+
+  return (
+    <div className="rounded-2xl ring-1 ring-border">
+      {/* What this driver pays */}
+      <div className="flex items-center justify-between gap-3 rounded-t-2xl bg-brand/10 px-3.5 py-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium text-muted">{t.yours}</p>
+          {session.tariffZoneName && (
+            <p className="mt-0.5 truncate text-xs font-semibold text-brand-strong">{session.tariffZoneName}</p>
+          )}
+        </div>
+        {session.isInternal ? (
+          <span className="text-right text-sm font-bold text-brand">{t.free}</span>
+        ) : (
+          <span className="shrink-0 text-base font-bold tabular-nums text-brand">{perKwh(yourRate)}</span>
+        )}
+      </div>
+
+      {/* The station's price list */}
+      <div className="px-3.5 py-3">
+        <p className="text-[11px] font-medium text-muted">{t.station}</p>
+        {zones?.length ? (
+          <ul className="mt-1.5 space-y-1">
+            {zones.map((z) => {
+              const current = z === inZone;
+              return (
+                <li
+                  key={`${z.startMinute}-${z.endMinute}`}
+                  className={cn(
+                    'flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-xs',
+                    current ? 'bg-surface-muted font-semibold text-foreground ring-1 ring-brand/30' : 'text-muted',
+                  )}
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="tabular-nums">
+                      {clock(z.startMinute)}–{clock(z.endMinute)}
+                    </span>
+                    {z.name && <span> · {z.name}</span>}
+                    {current && <span className="ml-1.5 text-brand">● {t.now}</span>}
+                  </span>
+                  <span className="shrink-0 tabular-nums">{perKwh(z.tariffPerKwh)}</span>
+                </li>
+              );
+            })}
+            {defaultRate != null && (
+              <li
+                className={cn(
+                  'flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-xs',
+                  !inZone ? 'bg-surface-muted font-semibold text-foreground ring-1 ring-brand/30' : 'text-muted',
+                )}
+              >
+                <span>
+                  {t.otherHours}
+                  {!inZone && <span className="ml-1.5 text-brand">● {t.now}</span>}
+                </span>
+                <span className="shrink-0 tabular-nums">{perKwh(defaultRate)}</span>
+              </li>
+            )}
+          </ul>
+        ) : (
+          <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
+            {perKwh(stationRate ?? defaultRate)}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
