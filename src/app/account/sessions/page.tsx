@@ -21,7 +21,8 @@ export default async function AccountSessionsPage() {
   let unavailable = false;
 
   try {
-    sessions = await listSessions(50);
+    // The most the API returns; the date filter on the page works over these.
+    sessions = await listSessions(200);
   } catch (err) {
     // A charging network outage must not take the whole account area down.
     console.warn('[account/sessions] could not load history', (err as Error).message);

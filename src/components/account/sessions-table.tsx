@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
@@ -25,6 +24,8 @@ import {
   formatPower,
 } from '@/lib/utils';
 import { useToastMessage } from '@/lib/use-toast-message';
+import { DatePicker } from '@/components/ui/date-picker';
+import { StationReportModal } from './station-report-modal';
 
 /** Tone per session state; the label is looked up in `d.account.sessions`. */
 const STATUS_META: Record<
@@ -44,10 +45,6 @@ interface StopResponse {
 
 interface SessionsTableProps {
   sessions: ChargingSession[];
-}
-
-function stationHref(session: ChargingSession): string {
-  return `/stations/${encodeURIComponent(session.chargePointId)}`;
 }
 
 function TableTooltip({
@@ -96,15 +93,28 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   useToastMessage(notice, 'success');
   useToastMessage(error, 'error');
 
-  const ordered = useMemo(
-    () =>
-      [...sessions].sort((a, b) => {
+  /** `YYYY-MM-DD` from the date inputs, in the driver's local time; '' = open-ended. */
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const filtering = Boolean(from || to);
+  const [openPicker, setOpenPicker] = useState<'from' | 'to' | null>(null);
+  /** Station whose report is open, by charge point id. */
+  const [reportFor, setReportFor] = useState<string | null>(null);
+
+  const ordered = useMemo(() => {
+    const fromMs = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
+    const toMs = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity;
+    return sessions
+      .filter((s) => {
+        const t = new Date(s.startTimestamp).getTime();
+        return t >= fromMs && t <= toMs;
+      })
+      .sort((a, b) => {
         const activeFirst = Number(b.status === 'Active') - Number(a.status === 'Active');
         if (activeFirst !== 0) return activeFirst;
         return b.startTimestamp.localeCompare(a.startTimestamp);
-      }),
-    [sessions],
-  );
+      });
+  }, [sessions, from, to]);
 
   const hasActive = useMemo(() => sessions.some((s) => s.status === 'Active'), [sessions]);
 
@@ -189,7 +199,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
     );
   }
 
-  if (ordered.length === 0) {
+  if (sessions.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -208,7 +218,8 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   }
 
   return (
-    <Card className="overflow-hidden border border-border/80 shadow-xs">
+    // No overflow clipping here: the date picker's calendar hangs below the filter row.
+    <Card className="border border-border/80 shadow-xs">
       <CardHeader className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
         <CardTitle className="text-base font-semibold">{d.account.sessions.title}</CardTitle>
         <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted ring-1 ring-border/50">
@@ -216,6 +227,47 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
         </span>
       </CardHeader>
 
+      <div className="flex flex-wrap items-end gap-2 border-b border-border/60 px-5 py-3">
+        <DatePicker
+          className="min-w-0 flex-1 sm:w-44 sm:flex-none"
+          label={d.account.sessions.filterFrom}
+          value={from}
+          max={to || undefined}
+          open={openPicker === 'from'}
+          onOpenChange={(o) => setOpenPicker((p) => (o ? 'from' : p === 'from' ? null : p))}
+          onChange={(v) => {
+            setFrom(v);
+            // Picking a start date leads straight on to the end date.
+            if (v) setOpenPicker('to');
+          }}
+        />
+        <DatePicker
+          className="min-w-0 flex-1 sm:w-44 sm:flex-none"
+          align="right"
+          label={d.account.sessions.filterTo}
+          value={to}
+          min={from || undefined}
+          open={openPicker === 'to'}
+          onOpenChange={(o) => setOpenPicker((p) => (o ? 'to' : p === 'to' ? null : p))}
+          onChange={setTo}
+        />
+        {filtering && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFrom('');
+              setTo('');
+            }}
+          >
+            {d.account.sessions.filterClear}
+          </Button>
+        )}
+      </div>
+
+      {ordered.length === 0 && (
+        <p className="px-5 py-8 text-center text-sm text-muted">{d.account.sessions.filterEmpty}</p>
+      )}
 
       {/* Mobile Card List (< md) */}
       <ul className="divide-y divide-border/60 md:hidden">
@@ -227,12 +279,13 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
             <li key={session.transactionId} className="space-y-3 p-4 transition-colors hover:bg-surface-muted/20">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <Link
-                    href={stationHref(session)}
-                    className="block truncate font-semibold text-foreground underline-offset-4 hover:text-brand hover:underline"
+                  <button
+                    type="button"
+                    onClick={() => setReportFor(session.chargePointId)}
+                    className="block max-w-full truncate text-left font-semibold text-foreground underline-offset-4 hover:text-brand hover:underline"
                   >
                     {session.stationName ?? session.chargePointId}
-                  </Link>
+                  </button>
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
                     <span className="size-1.5 rounded-full bg-brand/60" />
                     {format(d.account.sessions.connector, { id: connectorLetter(session.connectorId) })}
@@ -288,7 +341,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
       </ul>
 
       {/* Desktop & Tablet Table (md+) - No horizontal scroll, responsive layout */}
-      <div className="hidden md:block">
+      <div className={cn('hidden', ordered.length > 0 && 'md:block')}>
         <table className="w-full text-left text-sm">
           <caption className="sr-only">{d.account.sessions.caption}</caption>
           <thead className="border-b border-border/80 bg-surface-muted/50">
@@ -328,14 +381,15 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
                     <TableTooltip
                       align="left"
                       title={session.stationName ?? session.chargePointId}
-                      description={`${format(d.account.sessions.connector, { id: connectorLetter(session.connectorId) })}${session.stationName ? ` · ${session.chargePointId}` : ''}`}
+                      description={format(d.account.sessions.connector, { id: connectorLetter(session.connectorId) })}
                     >
-                      <Link
-                        href={stationHref(session)}
-                        className="block max-w-[11rem] truncate font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[14rem]"
+                      <button
+                        type="button"
+                        onClick={() => setReportFor(session.chargePointId)}
+                        className="block max-w-[11rem] truncate text-left font-medium text-foreground underline-offset-4 hover:text-brand hover:underline lg:max-w-[14rem]"
                       >
                         {session.stationName ?? session.chargePointId}
-                      </Link>
+                      </button>
                     </TableTooltip>
                   </td>
 
@@ -418,6 +472,22 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
           </tbody>
         </table>
       </div>
+
+      {reportFor && (
+        <StationReportModal
+          sessions={ordered.filter((s) => s.chargePointId === reportFor)}
+          stationName={
+            sessions.find((s) => s.chargePointId === reportFor)?.stationName ?? reportFor
+          }
+          chargePointId={reportFor}
+          rangeLabel={
+            filtering
+              ? `${from ? from.replaceAll('-', '.') : '…'} – ${to ? to.replaceAll('-', '.') : '…'}`
+              : undefined
+          }
+          onClose={() => setReportFor(null)}
+        />
+      )}
     </Card>
   );
 }
