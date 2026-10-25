@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DownloadPage() {
-  const [{ d }, stationStats] = await Promise.all([
+  const [{ d }, stationStats, universalQr] = await Promise.all([
     getTranslations(),
     listStations({ limit: 200 })
       .then(({ stations }) => ({
@@ -23,13 +23,7 @@ export default async function DownloadPage() {
         connectors: stations.reduce((sum, s) => sum + s.totalConnectors, 0),
       }))
       .catch(() => null),
-  ]);
-
-  // Only the two app stores get a code. The website is already open in front of
-  // whoever is reading this, so a QR pointing at it would be pointless.
-  const [iosQr, androidQr] = await Promise.all([
-    responsiveQr(appLinks.ios),
-    responsiveQr(appLinks.android),
+    responsiveQr(appLinks.universal),
   ]);
 
   const webHost = appLinks.web.replace(/^https?:\/\//, '');
@@ -38,34 +32,93 @@ export default async function DownloadPage() {
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
       <Hero d={d} stats={stationStats} />
 
-      <div id="get" className="mx-auto mt-6 max-w-md scroll-mt-24 sm:mt-8">
-        <h2 className="text-balance text-center text-xl font-bold tracking-tight text-foreground">
+      <div id="get" className="mx-auto mt-6 max-w-lg scroll-mt-24 sm:mt-8">
+        <h2 className="text-balance text-center text-xl sm:text-2xl font-bold tracking-tight text-foreground">
           {d.download.title}
         </h2>
+        <p className="mt-1 text-center text-xs sm:text-sm text-muted">
+          Утасныхаа камераар QR кодыг уншуулж апп татна уу
+        </p>
       </div>
 
-      <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-3 sm:gap-4">
-        <QrCard
-          id="ios"
-          icon={<AppleIcon />}
-          name={d.download.ios.name}
-          store={d.download.ios.store}
-          note={d.download.ios.note}
-          qr={iosQr}
-          href={appLinks.ios}
-          action={d.download.getApp}
-        />
-        <QrCard
-          id="android"
-          icon={<AndroidIcon />}
-          name={d.download.android.name}
-          store={d.download.android.store}
-          note={d.download.android.note}
-          qr={androidQr}
-          href={appLinks.android}
-          action={d.download.getApp}
-        />
-      </div>
+      {/* Unified Dynamic Smart QR Card */}
+      <section className="mx-auto mt-6 max-w-md rounded-2xl bg-surface p-5 sm:p-6 ring-1 ring-border shadow-sm text-center">
+        {/* Badges & OS icons */}
+        <div className="flex items-center justify-center gap-2">
+          <span
+            aria-hidden
+            className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-muted text-foreground ring-1 ring-border"
+          >
+            <AppleIcon />
+          </span>
+          <span
+            aria-hidden
+            className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-muted text-foreground ring-1 ring-border"
+          >
+            <AndroidIcon />
+          </span>
+        </div>
+
+        <div className="mt-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand ring-1 ring-brand/20">
+            <span className="size-1.5 rounded-full bg-brand animate-pulse" />
+            iOS & Android автоматаар танина
+          </span>
+        </div>
+
+        {/* The single dynamic QR code */}
+        <div className="mt-4 inline-block rounded-2xl bg-white p-3 ring-1 ring-black/10 shadow-sm">
+          <div
+            className="aspect-square w-48 sm:w-56"
+            role="img"
+            aria-label="Eplug апп татах ухаалаг QR код"
+            dangerouslySetInnerHTML={{ __html: universalQr }}
+          />
+        </div>
+
+        <p className="mt-3 text-pretty text-xs text-muted leading-relaxed max-w-xs mx-auto">
+          Камераар уншуулснаар таны утасны төрлөөс (iOS эсвэл Android) хамааран App Store эсвэл Google Play рүү автоматаар шилжинэ.
+        </p>
+
+        {/* Direct Download Buttons */}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-4 border-t border-border">
+          <a
+            href={appLinks.ios}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 rounded-xl bg-surface-muted px-3.5 py-2.5 text-left ring-1 ring-border transition hover:bg-background hover:ring-foreground/20"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-background text-foreground shadow-xs">
+              <AppleIcon />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold leading-tight text-foreground">App Store</span>
+                <span className="text-[10px] font-medium text-brand">Татах</span>
+              </div>
+              <p className="truncate text-[10px] text-muted">iOS 13+</p>
+            </div>
+          </a>
+
+          <a
+            href={appLinks.android}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 rounded-xl bg-surface-muted px-3.5 py-2.5 text-left ring-1 ring-border transition hover:bg-background hover:ring-foreground/20"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-background text-foreground shadow-xs">
+              <AndroidIcon />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold leading-tight text-foreground">Google Play</span>
+                <span className="text-[10px] font-medium text-brand">Татах</span>
+              </div>
+              <p className="truncate text-[10px] text-muted">Android 7.0+</p>
+            </div>
+          </a>
+        </div>
+      </section>
 
       <WebStrip
         id="web"
@@ -141,64 +194,6 @@ function Hero({ d, stats }: { d: Dictionary; stats: { stations: number; connecto
   );
 }
 
-interface QrCardProps {
-  id: string;
-  icon: ReactNode;
-  name: string;
-  store: string;
-  note: string;
-  /** Pre-rendered inline SVG from `responsiveQr`. */
-  qr: string;
-  href: string;
-  action: string;
-}
-
-function QrCard({ id, icon, name, store, note, qr, href, action }: QrCardProps) {
-  return (
-    <section
-      id={id}
-      className="flex scroll-mt-24 flex-col rounded-xl bg-surface p-3 ring-1 ring-border sm:p-4"
-    >
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className="grid size-7 shrink-0 place-items-center rounded-lg bg-surface-muted text-foreground"
-        >
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold leading-tight text-foreground">{name}</h2>
-          <p className="truncate text-[11px] text-muted">{store}</p>
-        </div>
-      </div>
-
-      {/* The code is always dark on white, in both themes — see lib/qr.ts. */}
-      <div className="mt-3 self-center rounded-lg bg-white p-1.5 ring-1 ring-black/10">
-        <div
-          className="aspect-square w-full max-w-36"
-          role="img"
-          aria-label={name}
-          dangerouslySetInnerHTML={{ __html: qr }}
-        />
-      </div>
-
-      <p className="mt-2.5 mb-3 text-pretty text-center text-[11px] leading-snug text-muted">
-        {note}
-      </p>
-
-      {/* Pinned to the floor so both cards' buttons line up whatever the note does. */}
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-auto inline-flex h-9 items-center justify-center rounded-lg bg-surface-muted px-3 text-xs font-semibold text-foreground ring-1 ring-border transition hover:bg-background"
-      >
-        {action}
-      </a>
-    </section>
-  );
-}
-
 /**
  * The website is the fallback for anyone who does not want to install anything,
  * so it sits below the two stores as a single quiet row rather than a third card.
@@ -221,7 +216,7 @@ function WebStrip({
   return (
     <section
       id={id}
-      className="mx-auto mt-3 flex max-w-md scroll-mt-24 flex-col gap-2.5 rounded-xl bg-surface px-3.5 py-3 ring-1 ring-border sm:flex-row sm:items-center sm:gap-3"
+      className="mx-auto mt-4 flex max-w-md scroll-mt-24 flex-col gap-2.5 rounded-xl bg-surface px-3.5 py-3 ring-1 ring-border sm:flex-row sm:items-center sm:gap-3"
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <span
