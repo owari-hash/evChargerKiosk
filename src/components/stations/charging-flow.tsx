@@ -179,6 +179,7 @@ export function ChargingFlow({
   useToastMessage(error, 'error', d.start.couldNotStartTitle);
   const [staleFeed, setStaleFeed] = useState(false);
   const [showEbarimtModal, setShowEbarimtModal] = useState(false);
+  const [ebarimtModalInitialType, setEbarimtModalInitialType] = useState<'B2C_RECEIPT' | 'B2B_RECEIPT'>('B2C_RECEIPT');
   const [authed, setAuthed] = useState(signedIn);
   const [tagged, setTagged] = useState(hasIdTag);
   const [showQuickPay, setShowQuickPay] = useState(false);
@@ -767,22 +768,53 @@ export function ChargingFlow({
               <StatusLine title={t.doneTitle} body={t.doneBody} />
               <SessionSummary session={session} intl={intl} />
               {session.ebarimt && (
-                <p className="text-sm text-foreground">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
                   <span className="font-semibold text-brand-strong">✓ {t.ebarimtIssued}</span>
+                  {session.ebarimt.type === 'B2B_RECEIPT' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      🏢 Байгууллага ({session.ebarimt.customerTin})
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted border border-border px-2.5 py-0.5 text-xs font-medium text-muted">
+                      👤 Хувь хүн
+                    </span>
+                  )}
                   {session.ebarimt.lottery && (
-                    <span className="ml-2 font-mono text-xs text-muted">
+                    <span className="font-mono text-xs text-muted">
                       {format(d.account.ebarimt.lotteryLabel, { id: session.ebarimt.lottery })}
                     </span>
                   )}
-                </p>
+                </div>
               )}
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="secondary" size="sm" onClick={() => void unlock()} loading={busy}>
                   {t.unlockNow}
                 </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setShowEbarimtModal(true)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setEbarimtModalInitialType(session.ebarimt?.type ?? 'B2C_RECEIPT');
+                    setShowEbarimtModal(true);
+                  }}
+                >
                   {session.ebarimt ? d.account.ebarimt.viewButton : t.ebarimtGet}
                 </Button>
+                {session.ebarimt?.type !== 'B2B_RECEIPT' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEbarimtModalInitialType('B2B_RECEIPT');
+                      setShowEbarimtModal(true);
+                    }}
+                    className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                  >
+                    🏢 Байгууллагаар авах
+                  </Button>
+                )}
                 <Link
                   href="/account/sessions"
                   className="inline-flex h-9 items-center px-2 text-sm font-semibold text-brand hover:underline"
@@ -823,6 +855,7 @@ export function ChargingFlow({
       {showEbarimtModal && session && (
         <EbarimtModal
           session={session}
+          initialType={ebarimtModalInitialType}
           onClose={() => setShowEbarimtModal(false)}
           onSuccess={(updatedSession) => {
             setLive((prev) => ({ ...prev, session: updatedSession }));
