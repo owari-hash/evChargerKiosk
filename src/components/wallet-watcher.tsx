@@ -40,8 +40,9 @@ export function announceWalletEntry(
 ): void {
   const label = TYPE_LABEL[entry.type]?.[locale === 'en' ? 'en' : 'mn'] ?? entry.type;
   const positive = entry.amount >= 0;
+  const cleanDesc = entry.description?.replace(/\s*\([^)]*үлдэгдэл[^)]*\)/gi, '').trim();
   const text = `${positive ? '+' : ''}${formatMoney(entry.amount, intlLocale(locale))}${
-    entry.description ? ` · ${entry.description}` : ''
+    cleanDesc ? ` · ${cleanDesc}` : ''
   }`;
   const filed = pushNotification({
     kind: 'wallet',

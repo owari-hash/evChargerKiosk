@@ -48,10 +48,12 @@ export function EbarimtHistoryTable({
     const eb = entry.ebarimt;
     if (!(eb?.receiptId || eb?.lottery) || (eb.status !== 'SUCCESS' && eb.status !== 'REFUNDED')) return;
     const amount = Math.abs(entry.amount);
+    const rawTitle = entry.description || t.walletTopup;
+    const title = rawTitle.replace(/\s*\([^)]*үлдэгдэл[^)]*\)/gi, '').trim();
     records.push({
       id: `w-${entry.id}`,
       source: 'WALLET',
-      title: entry.description || t.walletTopup,
+      title,
       amount,
       vatAmount: eb.totalVAT,
       lottery: eb.lottery || '—',
