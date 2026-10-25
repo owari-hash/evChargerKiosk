@@ -64,26 +64,6 @@ export default async function DownloadPage() {
           >
             {d.download.heroCtaPrimary}
           </a>
-
-          <div className="mt-3 flex items-center justify-center gap-3 text-xs text-muted">
-            <a
-              href={appLinks.ios}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition underline underline-offset-2"
-            >
-              App Store (iOS 13+)
-            </a>
-            <span aria-hidden>·</span>
-            <a
-              href={appLinks.android}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition underline underline-offset-2"
-            >
-              Google Play (Android 7.0+)
-            </a>
-          </div>
         </div>
       </section>
 
