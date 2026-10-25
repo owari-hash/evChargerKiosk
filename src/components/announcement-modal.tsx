@@ -95,6 +95,10 @@ export function AnnouncementModal({ userId }: { userId: string | null }) {
             title: unseen.title,
             body: unseen.body,
             imageUrl: unseen.imageUrl,
+            // Shown with when it was published, not when this browser saw it;
+            // the key keeps the app and the site from filing it twice.
+            at: unseen.createdAt,
+            dedupeKey: `announcement:${unseen.id}`,
           });
           showToast({
             kind: 'announcement',
