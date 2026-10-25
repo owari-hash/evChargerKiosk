@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, Button } from '@/components/ui';
+import { Card, CardHeader, CardTitle } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import type { ChargingSession, WalletEntry } from '@/lib/types';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
@@ -58,11 +58,16 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
                     }
                   : null;
 
+                // The description repeats the amount for top-ups ("Хэтэвч
+                // цэнэглэлт — 1,000₮") and was cut off as a title; the type
+                // reads cleaner, with a charge's kWh as a small detail.
+                const kwh = entry.description?.match(/([\d.,]+)\s*кВт·ц/)?.[1];
+
                 return (
-                  <li key={entry.id} className="flex items-center gap-3 px-5 py-3 transition hover:bg-surface-muted/30">
+                  <li key={entry.id} className="flex items-center gap-3 px-5 py-3.5 transition hover:bg-surface-muted/30">
                     <span
                       aria-hidden
-                      className={`grid size-9 shrink-0 place-items-center rounded-lg ${
+                      className={`grid size-10 shrink-0 place-items-center rounded-xl ${
                         credit ? 'bg-brand-soft text-brand-strong' : 'bg-danger/10 text-danger'
                       }`}
                     >
@@ -76,46 +81,48 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
                         </svg>
                       )}
                     </span>
+
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-foreground">
-                        {entry.description || d.wallet.history.type[entry.type]}
+                        {d.wallet.history.type[entry.type]}
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-muted">
-                        {entry.description && `${d.wallet.history.type[entry.type]} · `}
-                        {formatDateTime(entry.createdAt, intl)}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                        <span suppressHydrationWarning className="tabular-nums">
+                          {formatDateTime(entry.createdAt, intl)}
+                        </span>
+                        {kwh && (
+                          <span className="rounded-md bg-surface-muted px-1.5 py-0.5 font-medium tabular-nums text-foreground/80">
+                            ⚡ {kwh} кВт·ц
+                          </span>
+                        )}
+                        {receiptSession && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSession(receiptSession)}
+                            className="font-semibold text-brand hover:underline"
+                          >
+                            {d.account.ebarimt.viewButton}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-3">
-                      {receiptSession && (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          className="hidden text-xs font-medium sm:inline-flex"
-                          onClick={() => setSelectedSession(receiptSession)}
-                        >
-                          {d.account.ebarimt.viewButton}
-                        </Button>
-                      )}
-
-                      <div className="text-right">
-                        <p
-                          className={`text-sm font-bold tabular-nums ${
-                            credit ? 'text-brand-strong' : 'text-danger'
-                          }`}
-                        >
-                          {credit ? '+' : '−'}
-                          {money(Math.abs(entry.amount))}
-                        </p>
-                        {/* Plain colour but bold: the green/red amount says which way
-                            money moved, this says where the wallet ended up. */}
-                        <p className="mt-0.5 text-xs font-bold text-foreground tabular-nums">
-                          {format(d.wallet.history.balanceAfter, {
-                            balance: money(entry.balanceAfter),
-                          })}
-                        </p>
-                      </div>
+                    <div className="shrink-0 text-right">
+                      <p
+                        className={`text-[15px] font-bold tabular-nums ${
+                          credit ? 'text-brand-strong' : 'text-danger'
+                        }`}
+                      >
+                        {credit ? '+' : '−'}
+                        {money(Math.abs(entry.amount))}
+                      </p>
+                      {/* Plain colour but bold: the green/red amount says which way
+                          money moved, this says where the wallet ended up. */}
+                      <p className="mt-0.5 text-xs font-bold text-foreground tabular-nums">
+                        {format(d.wallet.history.balanceAfter, {
+                          balance: money(entry.balanceAfter),
+                        })}
+                      </p>
                     </div>
                   </li>
                 );

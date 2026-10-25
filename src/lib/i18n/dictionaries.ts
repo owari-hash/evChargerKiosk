@@ -351,7 +351,7 @@ export const en = {
       showLess: 'Show less',
       viewAll: 'See all',
       type: {
-        TOPUP: 'Top-up',
+        TOPUP: 'Wallet top-up',
         CHARGE: 'Charging',
         REFUND: 'Refund',
         ADJUSTMENT: 'Adjustment',
@@ -1457,7 +1457,7 @@ export const mn: Dictionary = {
       showLess: 'Хураах',
       viewAll: 'Бүгдийг харах',
       type: {
-        TOPUP: 'Цэнэглэлт',
+        TOPUP: 'Хэтэвч цэнэглэлт',
         CHARGE: 'Цэнэглэлтийн төлбөр',
         REFUND: 'Буцаалт',
         ADJUSTMENT: 'Тохируулга',

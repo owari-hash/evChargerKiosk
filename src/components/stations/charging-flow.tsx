@@ -1045,7 +1045,10 @@ function ConfirmDialog({
         <p className="mt-1.5 text-sm leading-6 text-muted">{body}</p>
       </div>
       <div className="grid grid-cols-2 gap-2 border-t border-border px-6 py-4">
-        <Button type="button" variant="secondary" size="lg" onClick={onNo}>
+        {/* On the start dialog «No» is «Цуцлах» — red like every cancel. On
+            the stop dialog it is «keep charging», which must not look like a
+            second stop button. */}
+        <Button type="button" variant={tone === 'danger' ? 'secondary' : 'danger'} size="lg" onClick={onNo}>
           {noLabel}
         </Button>
         <Button type="button" variant={tone} size="lg" onClick={onYes} autoFocus>

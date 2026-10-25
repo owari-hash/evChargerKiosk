@@ -398,7 +398,7 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
                 {t.cardReopen}
               </a>
             )}
-            <Button variant="ghost" onClick={reset} className="ml-auto">
+            <Button variant="danger" onClick={reset} className="ml-auto">
               {d.common.cancel}
             </Button>
           </div>
@@ -470,7 +470,7 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
             <Button loading={checking} onClick={() => void check(invoice.id, true)}>
               {checking ? ti.checking : ti.checkNow}
             </Button>
-            <Button variant="ghost" onClick={reset} className="ml-auto">
+            <Button variant="danger" onClick={reset} className="ml-auto">
               {d.common.cancel}
             </Button>
           </div>
@@ -674,16 +674,16 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         ) : null}
 
         {method.kind === 'card' && savedEnabled && (
-          <label className="-mt-3 flex cursor-pointer items-start gap-2.5 text-sm text-muted">
+          <label className="-mt-2 flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
               checked={saveCard}
               onChange={(event) => setSaveCard(event.target.checked)}
-              className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
+              className="mt-0.5 size-5 shrink-0 rounded accent-[var(--brand)]"
             />
             <span>
-              <span className="block text-foreground">{t.saveCard}</span>
-              <span className="mt-0.5 block text-xs">{t.saveCardNote}</span>
+              <span className="block text-[15px] leading-snug text-foreground">{t.saveCard}</span>
+              <span className="mt-1 block text-[13px] text-muted">{t.saveCardNote}</span>
             </span>
           </label>
         )}
@@ -883,7 +883,8 @@ function ConfirmDialog({
         <p className="mt-1.5 text-xs sm:text-sm leading-5 sm:leading-6 text-muted">{body}</p>
       </div>
       <div className="grid grid-cols-2 gap-2 border-t border-border px-4 sm:px-6 py-3.5 sm:py-4">
-        <Button type="button" variant="secondary" size="md" className="sm:h-11" onClick={onNo} disabled={busy}>
+        {/* «Цуцлах» is red with white text everywhere. */}
+        <Button type="button" variant="danger" size="md" className="sm:h-11" onClick={onNo} disabled={busy}>
           {no}
         </Button>
         <Button type="button" variant={danger ? 'danger' : 'primary'} size="md" className="sm:h-11" onClick={onYes} loading={busy} autoFocus>

@@ -536,7 +536,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                       <Button type="submit" size="sm" loading={sendingCode} disabled={!newPhone.trim()}>
                         {codeSent ? d.account.verification.sendNewCode : d.account.verification.sendCode}
                       </Button>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setChangingPhone(false)}>
+                      <Button type="button" variant="danger" size="sm" onClick={() => setChangingPhone(false)}>
                         {d.common.cancel}
                       </Button>
                     </div>
