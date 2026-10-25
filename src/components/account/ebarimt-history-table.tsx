@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import { format, useI18n } from '@/components/i18n-provider';
-import type { ChargingSession } from '@/lib/types';
-import type { WalletEntry } from '@/lib/types';
+import type { ChargingSession, WalletEntry } from '@/lib/types';
 import { formatDateTime, formatMoney, intlLocale } from '@/lib/utils';
 
 interface EbarimtRecordItem {
@@ -20,6 +19,7 @@ interface EbarimtRecordItem {
   customerTin?: string;
   createdAt: string;
   qrData?: string;
+  isIssued: boolean;
   sessionObj: ChargingSession;
 }
 
@@ -33,14 +33,17 @@ export function EbarimtHistoryTable({
   const { d, locale } = useI18n();
   const t = d.account.ebarimt;
   const intl = intlLocale(locale);
+  const [sessionList, setSessionList] = useState<ChargingSession[]>(sessions);
   const [selectedSession, setSelectedSession] = useState<ChargingSession | null>(null);
+
+  useEffect(() => {
+    setSessionList(sessions);
+  }, [sessions]);
 
   // Consolidate eBarimt items from wallet top-ups & charging sessions
   const records: EbarimtRecordItem[] = [];
 
   // Add wallet entries — only those the PosAPI actually issued a receipt for.
-  // Nothing is shown for an entry without one: a made-up lottery number or
-  // receipt id would look like a real tax receipt.
   walletEntries.forEach((entry) => {
     const eb = entry.ebarimt;
     if (!(eb?.receiptId || eb?.lottery) || (eb.status !== 'SUCCESS' && eb.status !== 'REFUNDED')) return;
@@ -57,6 +60,7 @@ export function EbarimtHistoryTable({
       customerTin: eb.customerTin,
       createdAt: entry.createdAt,
       qrData: eb.qrData,
+      isIssued: true,
       sessionObj: {
         transactionId: entry.transactionId ?? 0,
         status: 'Completed',
@@ -72,29 +76,35 @@ export function EbarimtHistoryTable({
     });
   });
 
-  // Add charging sessions if not already in wallet entries
-  sessions.forEach((s) => {
-    const issued = (s.ebarimt?.receiptId || s.ebarimt?.lottery) && (s.ebarimt.status === 'SUCCESS' || s.ebarimt.status === 'REFUNDED');
-    if (s.ebarimt && issued && !records.some((r) => r.sessionObj.transactionId === s.transactionId)) {
-      const amount = s.cost || 0;
-      records.push({
-        id: `s-${s.transactionId}`,
-        source: 'SESSION',
-        title: format(t.sessionTitle, {
-          id: s.transactionId,
-          station: s.stationName || s.chargePointId,
-        }),
-        amount,
-        vatAmount: s.ebarimt.totalVAT ?? Math.round((amount - amount / 1.1) * 100) / 100,
-        lottery: s.ebarimt.lottery || '—',
-        receiptId: s.ebarimt.receiptId,
-        type: s.ebarimt.type || 'B2C_RECEIPT',
-        customerTin: s.ebarimt.customerTin,
-        createdAt: s.stopTimestamp || s.startTimestamp,
-        qrData: s.ebarimt.qrData,
-        sessionObj: s,
-      });
-    }
+  // Add charging sessions (both issued and unissued completed sessions)
+  sessionList.forEach((s) => {
+    if (s.status !== 'Completed' || !(s.cost && s.cost > 0)) return;
+    if (records.some((r) => r.sessionObj.transactionId === s.transactionId)) return;
+
+    const issued = Boolean(
+      (s.ebarimt?.receiptId || s.ebarimt?.lottery) &&
+      (s.ebarimt?.status === 'SUCCESS' || s.ebarimt?.status === 'REFUNDED')
+    );
+
+    const amount = s.cost || 0;
+    records.push({
+      id: `s-${s.transactionId}`,
+      source: 'SESSION',
+      title: format(t.sessionTitle, {
+        id: s.transactionId,
+        station: s.stationName || s.chargePointId,
+      }),
+      amount,
+      vatAmount: s.ebarimt?.totalVAT ?? Math.round((amount - amount / 1.1) * 100) / 100,
+      lottery: s.ebarimt?.lottery || '',
+      receiptId: s.ebarimt?.receiptId,
+      type: s.ebarimt?.type || 'B2C_RECEIPT',
+      customerTin: s.ebarimt?.customerTin,
+      createdAt: s.stopTimestamp || s.startTimestamp,
+      qrData: s.ebarimt?.qrData,
+      isIssued: issued,
+      sessionObj: s,
+    });
   });
 
   // Sort by date descending
@@ -123,21 +133,34 @@ export function EbarimtHistoryTable({
                       <span className="font-semibold text-sm text-foreground">
                         {r.title}
                       </span>
-                      <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
-                        {format(t.lotteryLabel, { id: r.lottery })}
-                      </span>
-                      {r.sessionObj.ebarimt?.status === 'REFUNDED' && (
+                      {r.isIssued ? (
+                        <>
+                          {r.lottery ? (
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
+                              {format(t.lotteryLabel, { id: r.lottery })}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
+                              🏢 Байгууллага
+                            </span>
+                          )}
+                          {r.sessionObj.ebarimt?.status === 'REFUNDED' && (
+                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
+                              {t.refundedLabel}
+                            </span>
+                          )}
+                        </>
+                      ) : (
                         <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
-                          {t.refundedLabel}
+                          {t.unissuedLabel || 'Баримт аваагүй'}
                         </span>
                       )}
                     </div>
 
                     <p className="text-xs text-muted">
-                      {r.type === 'B2B_RECEIPT'
-                        ? format(t.b2bLabel, { tin: r.customerTin || '—' })
-                        : t.b2cLabel}{' '}
-                      · {formatDateTime(r.createdAt, intl)}
+                      {r.isIssued
+                        ? `${r.type === 'B2B_RECEIPT' ? format(t.b2bLabel, { tin: r.customerTin || '—' }) : t.b2cLabel} · ${formatDateTime(r.createdAt, intl)}`
+                        : `${t.unissuedDesc || 'Баримт үүсээгүй байна'} · ${formatDateTime(r.createdAt, intl)}`}
                     </p>
                   </div>
 
@@ -151,14 +174,26 @@ export function EbarimtHistoryTable({
                       </p>
                     </div>
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm"
-                      onClick={() => setSelectedSession(r.sessionObj)}
-                    >
-                      {t.viewButton}
-                    </Button>
+                    {r.isIssued ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="font-semibold text-xs shadow-sm"
+                        onClick={() => setSelectedSession(r.sessionObj)}
+                      >
+                        {t.viewButton}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm"
+                        onClick={() => setSelectedSession(r.sessionObj)}
+                      >
+                        {t.getButton || 'И-Баримт авах'}
+                      </Button>
+                    )}
                   </div>
                 </li>
               ))}
@@ -171,6 +206,12 @@ export function EbarimtHistoryTable({
         <EbarimtModal
           session={selectedSession}
           onClose={() => setSelectedSession(null)}
+          onSuccess={(updated) => {
+            setSessionList((prev) =>
+              prev.map((s) => (s.transactionId === updated.transactionId ? updated : s)),
+            );
+            setSelectedSession(updated);
+          }}
         />
       )}
     </>

@@ -64,7 +64,10 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
   // Organization auto-fetch state
   const [orgChecking, setOrgChecking] = useState(false);
   const [orgData, setOrgData] = useState<OrgCheckResult | null>(null);
-  const [isEditingB2B, setIsEditingB2B] = useState(false);
+
+  const isAlreadyIssued = Boolean(
+    ebarimt?.status === 'SUCCESS' && (ebarimt?.receiptId || ebarimt?.lottery)
+  );
 
   useEffect(() => {
     const qrText = ebarimt?.qrData;
@@ -103,6 +106,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
 
   // Debounced live organization register verification via original ebarimt API
   useEffect(() => {
+    if (isAlreadyIssued) return;
     const clean = customerTin.trim();
     if (type !== 'B2B_RECEIPT' || clean.length < 5) {
       setOrgData(null);
@@ -137,7 +141,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
       active = false;
       clearTimeout(timer);
     };
-  }, [customerTin, type]);
+  }, [customerTin, type, isAlreadyIssued]);
 
   async function copyText(text: string, field: string) {
     try {
@@ -150,6 +154,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
   }
 
   async function submit(targetType?: 'B2C_RECEIPT' | 'B2B_RECEIPT') {
+    if (isAlreadyIssued) return;
     const chosenType = targetType ?? type;
     setLoading(true);
     setError(null);
@@ -203,7 +208,6 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
       if (data.session?.ebarimt) {
         setEbarimt(data.session.ebarimt);
         setType(data.session.ebarimt.type ?? chosenType);
-        setIsEditingB2B(false);
         onSuccess?.(data.session);
       }
     } catch (err) {
@@ -213,8 +217,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
     }
   }
 
-  const isCurrentB2B = ebarimt?.status === 'SUCCESS' && ebarimt.type === 'B2B_RECEIPT';
-  const isCurrentB2C = ebarimt?.status === 'SUCCESS' && ebarimt.type !== 'B2B_RECEIPT';
+  const isB2B = ebarimt?.type === 'B2B_RECEIPT';
 
   return (
     <Modal onClose={onClose} maxWidth="md">
@@ -262,181 +265,193 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
           </div>
         </div>
 
-        {/* Tab Selection: Хувь хүн (B2C) vs Байгууллага (B2B) */}
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface-muted p-1 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => {
-              setType('B2C_RECEIPT');
-              setError(null);
-            }}
-            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition ${
-              type === 'B2C_RECEIPT'
-                ? 'bg-surface text-foreground shadow-sm'
-                : 'text-muted hover:text-foreground'
-            }`}
-          >
-            <span>👤</span>
-            <span>Хувь хүн (B2C)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setType('B2B_RECEIPT');
-              setError(null);
-            }}
-            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition ${
-              type === 'B2B_RECEIPT'
-                ? 'bg-surface text-foreground shadow-sm'
-                : 'text-muted hover:text-foreground'
-            }`}
-          >
-            <span>🏢</span>
-            <span>Байгууллага (B2B)</span>
-          </button>
-        </div>
-
         {error && <Alert tone="danger">{error}</Alert>}
 
-        {/* ----------------- TAB 1: ХУВЬ ХҮН (B2C) ----------------- */}
-        {type === 'B2C_RECEIPT' && (
-          <>
-            {isCurrentB2C ? (
-              <div className="space-y-3.5 text-center">
-                {/* QR Code Container */}
-                {ebarimt?.qrData && (
-                  <div className="flex flex-col items-center justify-center py-1">
-                    <div className="relative rounded-2xl bg-white p-3.5 sm:p-4 shadow-xl shadow-black/30 ring-1 ring-black/5 flex items-center justify-center">
-                      <div className="absolute top-2.5 left-2.5 size-3 border-t-2 border-l-2 border-emerald-500/60 rounded-tl-[3px] pointer-events-none" />
-                      <div className="absolute top-2.5 right-2.5 size-3 border-t-2 border-r-2 border-emerald-500/60 rounded-tr-[3px] pointer-events-none" />
-                      <div className="absolute bottom-2.5 left-2.5 size-3 border-b-2 border-l-2 border-emerald-500/60 rounded-bl-[3px] pointer-events-none" />
-                      <div className="absolute bottom-2.5 right-2.5 size-3 border-b-2 border-r-2 border-emerald-500/60 rounded-br-[3px] pointer-events-none" />
+        {/* =========================================================================
+            STATE 1: ALREADY GENERATED / ISSUED (READ-ONLY, PERMANENT, CANNOT SWITCH)
+           ========================================================================= */}
+        {isAlreadyIssued ? (
+          <div className="space-y-3.5 text-center">
+            {/* Locked Status Badge */}
+            <div className="flex items-center justify-between rounded-xl bg-surface-muted/60 border border-border/50 px-3.5 py-2.5 text-xs">
+              <span className="text-muted">Баримтын төлөв:</span>
+              <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                {isB2B ? '🏢 Байгууллага (B2B)' : '👤 Хувь хүн (B2C)'}
+                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold">Олгогдсон</span>
+              </span>
+            </div>
 
-                      {qrDataUrl ? (
-                        <img
-                          src={qrDataUrl}
-                          alt="eBarimt QR Code"
-                          width={180}
-                          height={180}
-                          className="size-44 sm:size-48 object-contain rounded-none select-none"
-                        />
-                      ) : (
-                        <div className="size-44 sm:size-48 flex items-center justify-center bg-slate-50 text-slate-400">
-                          <ScanIcon className="size-8 animate-pulse text-slate-400" />
-                        </div>
-                      )}
-                    </div>
+            {/* QR Code Container */}
+            {ebarimt?.qrData && (
+              <div className="flex flex-col items-center justify-center py-1">
+                <div className="relative rounded-2xl bg-white p-3.5 sm:p-4 shadow-xl shadow-black/30 ring-1 ring-black/5 flex items-center justify-center">
+                  <div className="absolute top-2.5 left-2.5 size-3 border-t-2 border-l-2 border-emerald-500/60 rounded-tl-[3px] pointer-events-none" />
+                  <div className="absolute top-2.5 right-2.5 size-3 border-t-2 border-r-2 border-emerald-500/60 rounded-tr-[3px] pointer-events-none" />
+                  <div className="absolute bottom-2.5 left-2.5 size-3 border-b-2 border-l-2 border-emerald-500/60 rounded-bl-[3px] pointer-events-none" />
+                  <div className="absolute bottom-2.5 right-2.5 size-3 border-b-2 border-r-2 border-emerald-500/60 rounded-br-[3px] pointer-events-none" />
 
-                    <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-surface-muted/80 border border-border/60 px-3 py-1 text-[11px] text-muted">
-                      <ScanIcon className="size-3 text-brand" />
-                      <span>eBarimt аппликейшнээр уншуулах QR код</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Lottery Spotlight Card */}
-                {ebarimt?.lottery && (
-                  <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-soft to-emerald-500/5 border border-emerald-500/20 p-3 sm:p-3.5 flex items-center justify-between shadow-sm text-left">
-                    <div>
-                      <div className="text-[10px] font-bold tracking-wider uppercase text-muted">
-                        Сугалааны дугаар
-                      </div>
-                      <div className="font-mono text-xl sm:text-2xl font-extrabold tracking-widest text-emerald-400 mt-0.5 select-all">
-                        {ebarimt.lottery}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => copyText(ebarimt.lottery!, 'lottery')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-muted border border-border text-xs font-medium text-foreground transition active:scale-95 shadow-sm"
-                    >
-                      {copiedField === 'lottery' ? (
-                        <>
-                          <CheckIcon className="size-3.5 text-emerald-500" />
-                          <span className="text-emerald-500 font-semibold">Хуулагдлаа</span>
-                        </>
-                      ) : (
-                        <>
-                          <CopyIcon className="size-3.5 text-muted" />
-                          <span>Хуулах</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {/* Receipt Details Grid */}
-                <div className="grid grid-cols-2 gap-2 text-left text-xs">
-                  <div className="rounded-xl bg-surface-muted/60 border border-border/50 p-2.5">
-                    <span className="text-[11px] text-muted">НӨАТ-ын дүн</span>
-                    <div className="font-bold text-foreground font-mono mt-0.5">
-                      {formatMoney(ebarimt?.totalVAT, 'mn')}
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-surface-muted/60 border border-border/50 p-2.5">
-                    <span className="text-[11px] text-muted">Баримтын төрөл</span>
-                    <div className="font-medium text-foreground mt-0.5">
-                      Иргэн (B2C)
-                    </div>
-                  </div>
-                  {ebarimt?.receiptId && (
-                    <div className="col-span-2 rounded-xl bg-surface-muted/60 border border-border/50 p-2.5 flex items-center justify-between">
-                      <div className="min-w-0 flex-1 pr-2">
-                        <span className="text-[11px] text-muted">ДДТД / Баримтын №</span>
-                        <div className="font-mono text-[11px] text-foreground truncate mt-0.5 select-all" title={ebarimt.receiptId}>
-                          {ebarimt.receiptId}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => copyText(ebarimt.receiptId!, 'receiptId')}
-                        className="shrink-0 p-1.5 rounded-lg hover:bg-surface text-muted hover:text-foreground transition active:scale-95"
-                        title="ДДТД хуулах"
-                      >
-                        {copiedField === 'receiptId' ? (
-                          <CheckIcon className="size-3.5 text-emerald-500" />
-                        ) : (
-                          <CopyIcon className="size-3.5" />
-                        )}
-                      </button>
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="eBarimt QR Code"
+                      width={180}
+                      height={180}
+                      className="size-44 sm:size-48 object-contain rounded-none select-none"
+                    />
+                  ) : (
+                    <div className="size-44 sm:size-48 flex items-center justify-center bg-slate-50 text-slate-400">
+                      <ScanIcon className="size-8 animate-pulse text-slate-400" />
                     </div>
                   )}
                 </div>
 
-                {/* Switch to Organization Notice */}
-                <div className="rounded-xl bg-surface-muted/60 border border-border/50 p-3 text-xs flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-muted">
-                    <span>🏢</span>
-                    <span>Байгууллагаар авах уу?</span>
+                <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-surface-muted/80 border border-border/60 px-3 py-1 text-[11px] text-muted">
+                  <ScanIcon className="size-3 text-brand" />
+                  <span>eBarimt аппликейшнээр уншуулах QR код</span>
+                </div>
+              </div>
+            )}
+
+            {/* Lottery Spotlight Card (if provided by PosAPI) */}
+            {ebarimt?.lottery && (
+              <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-soft to-emerald-500/5 border border-emerald-500/20 p-3 sm:p-3.5 flex items-center justify-between shadow-sm text-left">
+                <div>
+                  <div className="text-[10px] font-bold tracking-wider uppercase text-muted">
+                    Сугалааны дугаар
                   </div>
-                  <Button
+                  <div className="font-mono text-xl sm:text-2xl font-extrabold tracking-widest text-emerald-400 mt-0.5 select-all">
+                    {ebarimt.lottery}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyText(ebarimt.lottery!, 'lottery')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-muted border border-border text-xs font-medium text-foreground transition active:scale-95 shadow-sm"
+                >
+                  {copiedField === 'lottery' ? (
+                    <>
+                      <CheckIcon className="size-3.5 text-emerald-500" />
+                      <span className="text-emerald-500 font-semibold">Хуулагдлаа</span>
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon className="size-3.5 text-muted" />
+                      <span>Хуулах</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Receipt Details Grid */}
+            <div className="grid grid-cols-2 gap-2 text-left text-xs">
+              <div className="rounded-xl bg-surface-muted/60 border border-border/50 p-2.5">
+                <span className="text-[11px] text-muted">НӨАТ-ын дүн</span>
+                <div className="font-bold text-foreground font-mono mt-0.5">
+                  {formatMoney(ebarimt?.totalVAT, 'mn')}
+                </div>
+              </div>
+              <div className="rounded-xl bg-surface-muted/60 border border-border/50 p-2.5">
+                <span className="text-[11px] text-muted">Баримтын төрөл</span>
+                <div className="font-medium text-foreground mt-0.5">
+                  {isB2B
+                    ? `Байгууллага (TIN: ${ebarimt?.customerTin || '—'})`
+                    : 'Иргэн (B2C)'}
+                </div>
+              </div>
+              {ebarimt?.receiptId && (
+                <div className="col-span-2 rounded-xl bg-surface-muted/60 border border-border/50 p-2.5 flex items-center justify-between">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <span className="text-[11px] text-muted">ДДТД / Баримтын №</span>
+                    <div className="font-mono text-[11px] text-foreground truncate mt-0.5 select-all" title={ebarimt.receiptId}>
+                      {ebarimt.receiptId}
+                    </div>
+                  </div>
+                  <button
                     type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setType('B2B_RECEIPT')}
-                    className="text-xs h-7 px-3 text-brand"
+                    onClick={() => copyText(ebarimt.receiptId!, 'receiptId')}
+                    className="shrink-0 p-1.5 rounded-lg hover:bg-surface text-muted hover:text-foreground transition active:scale-95"
+                    title="ДДТД хуулах"
                   >
-                    Байгууллагаар авах
-                  </Button>
+                    {copiedField === 'receiptId' ? (
+                      <CheckIcon className="size-3.5 text-emerald-500" />
+                    ) : (
+                      <CopyIcon className="size-3.5" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-muted text-center pt-0.5">
+              Энэ баримт татварын системд баталгаажсан тул дахин өөрчлөх боломжгүй.
+            </p>
+
+            <Button type="button" variant="primary" onClick={onClose} className="w-full mt-2">
+              Хаах
+            </Button>
+          </div>
+        ) : (
+          /* =========================================================================
+              STATE 2: NOT GENERATED YET (USER CHOOSES B2C OR B2B)
+             ========================================================================= */
+          <div className="space-y-4">
+            {/* Tab Selection: Хувь хүн (B2C) vs Байгууллага (B2B) */}
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface-muted p-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => {
+                  setType('B2C_RECEIPT');
+                  setError(null);
+                }}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                  type === 'B2C_RECEIPT'
+                    ? 'bg-surface text-foreground shadow-sm'
+                    : 'text-muted hover:text-foreground'
+                }`}
+              >
+                <span>👤</span>
+                <span>Хувь хүн (B2C)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setType('B2B_RECEIPT');
+                  setError(null);
+                }}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                  type === 'B2B_RECEIPT'
+                    ? 'bg-surface text-foreground shadow-sm'
+                    : 'text-muted hover:text-foreground'
+                }`}
+              >
+                <span>🏢</span>
+                <span>Байгууллага (B2B)</span>
+              </button>
+            </div>
+
+            {/* TAB 1: ХУВЬ ХҮН (B2C) */}
+            {type === 'B2C_RECEIPT' && (
+              <div className="space-y-3.5">
+                <div className="rounded-xl bg-surface-muted/50 border border-border/50 p-3 text-xs text-muted">
+                  Цэнэглэлтийн төлбөрийн НӨАТ-ын буцаан олголт, сугалааны эрх бүхий хувь хүний баримт авна.
                 </div>
 
-                <Button type="button" variant="primary" onClick={onClose} className="w-full mt-1">
-                  Хаах
-                </Button>
-              </div>
-            ) : isCurrentB2B ? (
-              <div className="space-y-3.5 text-center">
-                <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-left text-amber-700 dark:text-amber-300">
-                  <p className="font-medium">
-                    Одоогоор энэ цэнэглэлтэд <strong>Байгууллагын (B2B)</strong> баримт олгогдсон байна.
+                <Field label="И-Баримтын хэрэглэгчийн код (эсвэл утас)" htmlFor="b2c-customer-no">
+                  <Input
+                    id="b2c-customer-no"
+                    placeholder="8 оронтой код эсвэл утасны дугаар"
+                    value={customerNo}
+                    onChange={(e) => setCustomerNo(e.target.value)}
+                  />
+                  <p className="mt-1 text-[11px] text-muted">
+                    Хоосон үлдээвэл таны бүртгэлтэй дугаарт автоматаар олгогдоно.
                   </p>
-                  <p className="mt-1 text-[11px] opacity-80">
-                    Хэрэв та хувийн Иргэний баримт болгож өөрчлөх бол доорх товчийг дарна уу.
-                  </p>
-                </div>
-                <div className="flex gap-2">
+                </Field>
+
+                <div className="flex gap-2 pt-2">
                   <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
-                    Хаах
+                    Цуцлах
                   </Button>
                   <Button
                     type="button"
@@ -445,234 +460,79 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
                     loading={loading}
                     className="flex-1"
                   >
-                    👤 Хувь хүн рүү шилжүүлэх
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3.5">
-                <Field label="И-Баримтын код (Хялбар бүртгэл)" htmlFor="b2c-customer-no">
-                  <Input
-                    id="b2c-customer-no"
-                    placeholder="8 оронтой код эсвэл утасны дугаар"
-                    value={customerNo}
-                    onChange={(e) => setCustomerNo(e.target.value)}
-                  />
-                </Field>
-                <div className="flex gap-2 pt-2">
-                  <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
-                    Цуцлах
-                  </Button>
-                  <Button type="button" onClick={() => submit('B2C_RECEIPT')} loading={loading} className="flex-1">
-                    И-Баримт үүсгэх
+                    👤 Хувь хүнээр авах
                   </Button>
                 </div>
               </div>
             )}
-          </>
-        )}
 
-        {/* ----------------- TAB 2: БАЙГУУЛЛАГА (B2B) ----------------- */}
-        {type === 'B2B_RECEIPT' && (
-          <>
-            {isCurrentB2B && !isEditingB2B ? (
-              <div className="space-y-3.5 text-center">
-                {/* Organization Active Banner */}
-                <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-soft/30 to-emerald-500/5 border border-emerald-500/30 p-3 text-xs flex items-center justify-between text-left">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <span>🏢</span> Байгууллагын баримт олгогдсон
-                    </div>
-                    <div className="font-mono text-sm font-bold text-foreground mt-0.5">
-                      ТТД / Регистр: {ebarimt?.customerTin}
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditingB2B(true)}
-                    className="text-xs text-brand hover:underline h-7 px-2"
-                  >
-                    Өөрчлөх
-                  </Button>
-                </div>
-
-                {/* QR Code Container */}
-                {ebarimt?.qrData && (
-                  <div className="flex flex-col items-center justify-center py-1">
-                    <div className="relative rounded-2xl bg-white p-3.5 sm:p-4 shadow-xl shadow-black/30 ring-1 ring-black/5 flex items-center justify-center">
-                      <div className="absolute top-2.5 left-2.5 size-3 border-t-2 border-l-2 border-emerald-500/60 rounded-tl-[3px] pointer-events-none" />
-                      <div className="absolute top-2.5 right-2.5 size-3 border-t-2 border-r-2 border-emerald-500/60 rounded-tr-[3px] pointer-events-none" />
-                      <div className="absolute bottom-2.5 left-2.5 size-3 border-b-2 border-l-2 border-emerald-500/60 rounded-bl-[3px] pointer-events-none" />
-                      <div className="absolute bottom-2.5 right-2.5 size-3 border-b-2 border-r-2 border-emerald-500/60 rounded-br-[3px] pointer-events-none" />
-
-                      {qrDataUrl ? (
-                        <img
-                          src={qrDataUrl}
-                          alt="eBarimt QR Code"
-                          width={180}
-                          height={180}
-                          className="size-44 sm:size-48 object-contain rounded-none select-none"
-                        />
-                      ) : (
-                        <div className="size-44 sm:size-48 flex items-center justify-center bg-slate-50 text-slate-400">
-                          <ScanIcon className="size-8 animate-pulse text-slate-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-surface-muted/80 border border-border/60 px-3 py-1 text-[11px] text-muted">
-                      <ScanIcon className="size-3 text-brand" />
-                      <span>Байгууллагын eBarimt QR код</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Lottery Spotlight Card */}
-                {ebarimt?.lottery && (
-                  <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-soft to-emerald-500/5 border border-emerald-500/20 p-3 sm:p-3.5 flex items-center justify-between shadow-sm text-left">
-                    <div>
-                      <div className="text-[10px] font-bold tracking-wider uppercase text-muted">
-                        Сугалааны дугаар
-                      </div>
-                      <div className="font-mono text-xl sm:text-2xl font-extrabold tracking-widest text-emerald-400 mt-0.5 select-all">
-                        {ebarimt.lottery}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => copyText(ebarimt.lottery!, 'lottery')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-muted border border-border text-xs font-medium text-foreground transition active:scale-95 shadow-sm"
-                    >
-                      {copiedField === 'lottery' ? (
-                        <>
-                          <CheckIcon className="size-3.5 text-emerald-500" />
-                          <span className="text-emerald-500 font-semibold">Хуулагдлаа</span>
-                        </>
-                      ) : (
-                        <>
-                          <CopyIcon className="size-3.5 text-muted" />
-                          <span>Хуулах</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {/* Receipt Details Grid */}
-                <div className="grid grid-cols-2 gap-2 text-left text-xs">
-                  <div className="rounded-xl bg-surface-muted/60 border border-border/50 p-2.5">
-                    <span className="text-[11px] text-muted">НӨАТ-ын дүн</span>
-                    <div className="font-bold text-foreground font-mono mt-0.5">
-                      {formatMoney(ebarimt?.totalVAT, 'mn')}
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-surface-muted/60 border border-border/50 p-2.5">
-                    <span className="text-[11px] text-muted">Баримтын төрөл</span>
-                    <div className="font-medium text-foreground mt-0.5">
-                      Байгууллага (B2B)
-                    </div>
-                  </div>
-                  {ebarimt?.receiptId && (
-                    <div className="col-span-2 rounded-xl bg-surface-muted/60 border border-border/50 p-2.5 flex items-center justify-between">
-                      <div className="min-w-0 flex-1 pr-2">
-                        <span className="text-[11px] text-muted">ДДТД / Баримтын №</span>
-                        <div className="font-mono text-[11px] text-foreground truncate mt-0.5 select-all" title={ebarimt.receiptId}>
-                          {ebarimt.receiptId}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => copyText(ebarimt.receiptId!, 'receiptId')}
-                        className="shrink-0 p-1.5 rounded-lg hover:bg-surface text-muted hover:text-foreground transition active:scale-95"
-                        title="ДДТД хуулах"
-                      >
-                        {copiedField === 'receiptId' ? (
-                          <CheckIcon className="size-3.5 text-emerald-500" />
-                        ) : (
-                          <CopyIcon className="size-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <Button type="button" variant="primary" onClick={onClose} className="w-full mt-1">
-                  Хаах
-                </Button>
-              </div>
-            ) : (
-              /* Organization Register Entry & Real-time Auto-fetch Form */
+            {/* TAB 2: БАЙГУУЛЛАГА (B2B) */}
+            {type === 'B2B_RECEIPT' && (
               <div className="space-y-3.5">
-                <Field label="Байгууллагын регистрийн дугаар / ТТД" htmlFor="b2b-tin">
+                <div className="rounded-xl bg-surface-muted/50 border border-border/50 p-3 text-xs text-muted">
+                  Байгууллагын зардалд суутгах албан ёсны НӨАТ-ын баримт авна.
+                </div>
+
+                <Field label="Байгууллагын ТТД / Регистрийн дугаар" htmlFor="b2b-customer-tin">
                   <Input
-                    id="b2b-tin"
-                    placeholder="Жишээ: 55000864119 эсвэл 7 оронтой регистр"
+                    id="b2b-customer-tin"
+                    placeholder="Жишээ: 55000864119 эсвэл 61101242402"
                     value={customerTin}
                     onChange={(e) => setCustomerTin(e.target.value)}
-                    autoFocus
                   />
                 </Field>
 
-                {/* Auto-check status card */}
+                {/* Live Organization Check Status */}
                 {orgChecking && (
-                  <div className="flex items-center gap-2 rounded-xl bg-surface-muted/80 border border-border/60 p-3 text-xs text-muted animate-pulse">
-                    <svg className="size-4 animate-spin text-brand" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
+                  <div className="rounded-xl border border-border/60 bg-surface-muted/70 p-3 text-xs text-muted flex items-center gap-2">
+                    <span className="size-3.5 rounded-full border-2 border-brand border-t-transparent animate-spin" />
                     <span>Татварын системээс байгууллагын мэдээлэл шалгаж байна...</span>
                   </div>
                 )}
 
-                {!orgChecking && orgData?.valid && orgData.name && (
-                  <div className="flex items-start gap-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs text-left">
-                    <span className="text-xl">🏢</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-sm text-foreground truncate">{orgData.name}</div>
-                      <div className="text-[11px] text-muted font-mono mt-0.5">
-                        ТТД: {orgData.tin} {orgData.vatPayer ? '· НӨАТ төлөгч' : '· НӨАТ төлөгч биш'}
-                      </div>
+                {orgData?.valid && (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        🏢 {orgData.name}
+                      </span>
+                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                        ✓ Баталгаажсан
+                      </span>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 rounded-md px-2 py-0.5 shrink-0">
-                      <CheckIcon className="size-3 text-emerald-500" />
-                      Баталгаажсан
-                    </span>
+                    <div className="flex items-center gap-2 text-muted text-[11px]">
+                      <span>ТТД: <strong className="text-foreground font-mono">{orgData.tin}</strong></span>
+                      <span>·</span>
+                      <span>{orgData.vatPayer ? 'НӨАТ төлөгч' : 'НӨАТ төлөгч биш'}</span>
+                    </div>
                   </div>
                 )}
 
-                {!orgChecking && orgData && !orgData.valid && (
-                  <div className="rounded-xl bg-danger/10 border border-danger/30 p-2.5 text-xs text-danger text-left flex items-center gap-2">
-                    <span className="text-base">⚠</span>
-                    <span>{orgData.error || 'Татварын ерөнхий газрын бүртгэлд олдсонгүй.'}</span>
+                {orgData && !orgData.valid && !orgChecking && (
+                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>{orgData.error || 'Байгууллагын регистрийн дугаар хүчингүй байна'}</span>
                   </div>
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  {isEditingB2B && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setIsEditingB2B(false)}
-                      className="flex-1"
-                    >
-                      Буцах
-                    </Button>
-                  )}
+                  <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+                    Цуцлах
+                  </Button>
                   <Button
                     type="button"
                     variant="primary"
                     onClick={() => submit('B2B_RECEIPT')}
                     loading={loading}
-                    disabled={!orgData?.valid || orgChecking || loading}
+                    disabled={!orgData?.valid && customerTin.trim().length < 5}
                     className="flex-1"
                   >
-                    🏢 Байгууллагын баримт авах
+                    🏢 Байгууллагаар авах
                   </Button>
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </Modal>
