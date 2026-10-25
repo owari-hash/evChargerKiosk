@@ -94,6 +94,8 @@ function DevValue({ label, value, caveat }: { label: string; value: string; cave
   );
 }
 
+const SHOW_EBARIMT_SECTION = false; // Temporarily hidden from user profile
+
 export function ProfileForm({ user }: ProfileFormProps) {
   const { d } = useI18n();
   const [account, setAccount] = useState(user);
@@ -192,7 +194,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
   }
 
   useEffect(() => {
-    if (account.ebarimtCustomerNo?.trim()) {
+    if (SHOW_EBARIMT_SECTION && account.ebarimtCustomerNo?.trim()) {
       checkEbarimtCode(account.ebarimtCustomerNo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,7 +207,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setError('');
     setFields({});
 
-    const trimmedEbarimt = ebarimtCustomerNo.trim();
+    const trimmedEbarimt = SHOW_EBARIMT_SECTION ? ebarimtCustomerNo.trim() : '';
     if (trimmedEbarimt) {
       if (!/^\d{7,12}$/.test(trimmedEbarimt)) {
         setFields({
@@ -246,7 +248,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           email: email.trim(),
           vehicleBrand: vehicleBrand.trim(),
           vehicleModel: vehicleModel.trim(),
-          ebarimtCustomerNo: ebarimtCustomerNo.trim(),
+          ...(SHOW_EBARIMT_SECTION ? { ebarimtCustomerNo: ebarimtCustomerNo.trim() } : {}),
         }),
       });
       const data = (await res.json().catch(() => ({}))) as ProfileResponse;
@@ -383,7 +385,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     email.trim() !== (account.email ?? '') ||
     vehicleBrand.trim() !== (user.vehicleBrand ?? '') ||
     vehicleModel.trim() !== (user.vehicleModel ?? '') ||
-    ebarimtCustomerNo.trim() !== (account.ebarimtCustomerNo ?? '');
+    (SHOW_EBARIMT_SECTION && ebarimtCustomerNo.trim() !== (account.ebarimtCustomerNo ?? ''));
 
   return (
     <>
@@ -632,8 +634,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 </div>
               </div>
 
-              <div>
-                <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
+              {SHOW_EBARIMT_SECTION && (
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{d.account.profile.ebarimtTitle}</p>
                 <p className="mt-1 text-xs text-muted">{d.account.profile.ebarimtHint}</p>
                 <div className="mt-3 space-y-2.5">
               <div className="flex gap-2 items-start">
@@ -734,6 +737,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               })()}
                 </div>
               </div>
+              )}
             </div>
           </div>
 

@@ -85,7 +85,7 @@ export function AccountNav() {
                 data-tour={item.tour}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative flex h-16 flex-col items-center justify-center gap-1 rounded-xl px-1.5 text-center text-[11px] font-medium transition-colors duration-200',
+                  'relative flex h-14 sm:h-16 flex-col items-center justify-center gap-0.5 sm:gap-1 rounded-xl px-1 sm:px-1.5 text-center text-[10px] sm:text-[11px] font-medium leading-tight transition-colors duration-200',
                   'md:h-11 md:w-full md:flex-row md:justify-start md:gap-2.5 md:px-3.5 md:text-sm',
                   active ? 'font-semibold text-foreground' : 'text-muted hover:text-foreground',
                 )}
@@ -96,11 +96,11 @@ export function AccountNav() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.75"
-                  className={cn('size-4 shrink-0 transition-colors', active ? 'text-brand' : 'text-muted')}
+                  className={cn('size-3.5 sm:size-4 shrink-0 transition-colors', active ? 'text-brand' : 'text-muted')}
                 >
                   <Icon />
                 </svg>
-                <span className="line-clamp-2 leading-tight md:line-clamp-1 md:whitespace-nowrap">{item.label}</span>
+                <span className="truncate max-w-full leading-tight md:line-clamp-1 md:whitespace-nowrap">{item.label}</span>
               </Link>
             </li>
           );

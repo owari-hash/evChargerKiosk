@@ -52,7 +52,12 @@ export function PinInput({
   return (
     <div className={cn('flex w-full justify-center', className)}>
       <div
-        className={cn('relative inline-flex gap-2.5 sm:gap-3', disabled && 'opacity-60', shaking && 'pin-shake')}
+        className={cn(
+          'relative inline-flex',
+          length > 4 ? 'gap-1.5 sm:gap-2.5' : 'gap-2 sm:gap-3',
+          disabled && 'opacity-60',
+          shaking && 'pin-shake',
+        )}
         onAnimationEnd={(event) => {
           if (event.animationName === 'pin-shake') setShaking(false);
         }}
@@ -65,8 +70,10 @@ export function PinInput({
               key={index}
               aria-hidden="true"
               className={cn(
-                'pin-cell flex h-14 items-center justify-center rounded-2xl text-xl font-semibold',
-                length > 4 ? 'w-11 sm:w-12' : 'w-13 sm:w-14',
+                'pin-cell flex items-center justify-center rounded-xl sm:rounded-2xl font-semibold',
+                length > 4
+                  ? 'w-9 sm:w-11 md:w-12 h-12 sm:h-14 text-lg sm:text-xl'
+                  : 'w-11 sm:w-13 md:w-14 h-13 sm:h-14 text-xl',
                 filled
                   ? 'is-filled bg-brand text-brand-contrast ring-1 ring-brand'
                   : 'bg-surface text-foreground',

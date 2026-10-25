@@ -42,7 +42,7 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
 
                 // Only a receipt the PosAPI actually issued gets a button — a
                 // made-up lottery number or receipt id would pass as a real one.
-                const issued = !!eb?.receiptId && (eb.status === 'SUCCESS' || eb.status === 'REFUNDED');
+                const issued = !!(eb?.receiptId || eb?.lottery) && (eb.status === 'SUCCESS' || eb.status === 'REFUNDED');
                 const receiptSession: ChargingSession | null = issued
                   ? {
                       transactionId: entry.transactionId ?? 0,

@@ -432,7 +432,7 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
           <p className="text-center text-sm text-muted">{ti.instruction}</p>
 
           {invoice.deeplinks && invoice.deeplinks.length > 0 && (
-            <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+            <ul className="grid grid-cols-3 min-[360px]:grid-cols-4 gap-2 sm:grid-cols-6">
               {[...invoice.deeplinks]
                 .filter((link) => link.link)
                 // SocialPay is the app most drivers reach for, so it leads.
@@ -520,7 +520,7 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         {/* 1 — amount */}
         <fieldset>
           <Step n={1} label={t.stepAmount} />
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 min-[360px]:grid-cols-3 gap-2 sm:grid-cols-4">
             {config.presets.map((preset) => {
               const active = selected === preset;
               return (
@@ -878,15 +878,15 @@ function ConfirmDialog({
 }) {
   return (
     <Modal onClose={onNo} maxWidth="sm">
-      <div className="px-6 pt-6 pb-5 text-center">
-        <h3 className="text-lg font-bold text-foreground">{title}</h3>
-        <p className="mt-1.5 text-sm leading-6 text-muted">{body}</p>
+      <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 text-center">
+        <h3 className="text-base sm:text-lg font-bold text-foreground">{title}</h3>
+        <p className="mt-1.5 text-xs sm:text-sm leading-5 sm:leading-6 text-muted">{body}</p>
       </div>
-      <div className="grid grid-cols-2 gap-2 border-t border-border px-6 py-4">
-        <Button type="button" variant="secondary" size="lg" onClick={onNo} disabled={busy}>
+      <div className="grid grid-cols-2 gap-2 border-t border-border px-4 sm:px-6 py-3.5 sm:py-4">
+        <Button type="button" variant="secondary" size="md" className="sm:h-11" onClick={onNo} disabled={busy}>
           {no}
         </Button>
-        <Button type="button" variant={danger ? 'danger' : 'primary'} size="lg" onClick={onYes} loading={busy} autoFocus>
+        <Button type="button" variant={danger ? 'danger' : 'primary'} size="md" className="sm:h-11" onClick={onYes} loading={busy} autoFocus>
           {yes}
         </Button>
       </div>

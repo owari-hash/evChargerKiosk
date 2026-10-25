@@ -15,7 +15,7 @@ export function Card({ className, ...rest }: ComponentProps<'div'>) {
 }
 
 export function CardHeader({ className, ...rest }: ComponentProps<'div'>) {
-  return <div {...rest} className={cn('border-b border-border px-5 py-4', className)} />;
+  return <div {...rest} className={cn('border-b border-border px-4 sm:px-5 py-3.5 sm:py-4', className)} />;
 }
 
 export function CardTitle({ className, ...rest }: ComponentProps<'h2'>) {
@@ -23,5 +23,5 @@ export function CardTitle({ className, ...rest }: ComponentProps<'h2'>) {
 }
 
 export function CardBody({ className, ...rest }: ComponentProps<'div'>) {
-  return <div {...rest} className={cn('px-5 py-4', className)} />;
+  return <div {...rest} className={cn('px-4 sm:px-5 py-3.5 sm:py-4', className)} />;
 }

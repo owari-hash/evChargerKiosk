@@ -162,7 +162,7 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Баримтын №</dt>
+                  <dt className="text-muted">ДДТД / Баримтын №</dt>
                   <dd className="font-mono text-muted truncate">{ebarimt.receiptId || '—'}</dd>
                 </div>
               </dl>

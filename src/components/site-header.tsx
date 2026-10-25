@@ -46,7 +46,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 shadow-[0_1px_0_0_rgb(15_23_42/0.03),0_8px_24px_-16px_rgb(15_23_42/0.15)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 sm:gap-3 px-3 sm:px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 font-bold text-foreground">
           <Image
             src="/eplug-mark.png"

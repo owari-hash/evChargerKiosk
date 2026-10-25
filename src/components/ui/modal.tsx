@@ -49,13 +49,13 @@ export function Modal({ onClose, children, maxWidth = 'md' }: ModalProps) {
 
   return createPortal(
     <div
-      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md"
+      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2.5 sm:p-4 backdrop-blur-md"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className={`modal-pop w-full ${WIDTHS[maxWidth]} overflow-hidden rounded-3xl bg-surface shadow-2xl ring-1 ring-border`}
+        className={`modal-pop w-full ${WIDTHS[maxWidth]} max-h-[92vh] flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl bg-surface shadow-2xl ring-1 ring-border`}
         onClick={(event) => event.stopPropagation()}
       >
         {children}
@@ -77,10 +77,10 @@ interface ModalHeaderProps {
  * under it, and the close button in the one place drivers expect it. */
 export function ModalHeader({ title, subtitle, icon, onClose, closeLabel = 'Хаах' }: ModalHeaderProps) {
   return (
-    <div className="flex items-start gap-3.5 border-b border-border px-6 py-5">
+    <div className="flex items-start gap-2.5 sm:gap-3.5 border-b border-border px-4 py-3.5 sm:px-6 sm:py-5">
       {icon}
       <div className="min-w-0 flex-1">
-        <h3 className="text-lg font-bold text-foreground">{title}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-foreground">{title}</h3>
         {subtitle && <p className="mt-0.5 truncate text-xs text-muted">{subtitle}</p>}
       </div>
       <button

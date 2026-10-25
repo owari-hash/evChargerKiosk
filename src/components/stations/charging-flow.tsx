@@ -543,7 +543,7 @@ export function ChargingFlow({
                     <span>Дотоод хэрэглэгч · Үнэ төлбөргүй</span>
                   </div>
                 ) : walletBalance !== null && (
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-surface-muted/60 px-3 py-1 text-xs shadow-xs">
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 rounded-xl sm:rounded-full border border-border/60 bg-surface-muted/60 px-2.5 sm:px-3 py-1 text-xs shadow-xs max-w-full">
                     <span className="text-muted">Хэтэвчний үлдэгдэл:</span>
                     <span
                       className={
@@ -576,10 +576,10 @@ export function ChargingFlow({
 
               {/* Shown when balance is too low — lets the driver top up inline. */}
               {!busy && requireBalanceToStart && walletBalance !== null && walletBalance < minStartBalance && (
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <Button
                     type="button"
-                    className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
+                    className="h-11 sm:h-12 w-full px-3 sm:px-4 text-xs sm:text-sm font-semibold justify-center text-center"
                     onClick={() => setConfirming('start')}
                     loading={busy}
                     disabled={offline}
@@ -589,7 +589,7 @@ export function ChargingFlow({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="h-11 sm:h-12 w-full px-2 sm:px-4 text-[11px] sm:text-sm font-semibold justify-center text-center truncate"
+                    className="h-11 sm:h-12 w-full px-3 sm:px-4 text-xs sm:text-sm font-semibold justify-center text-center"
                     onClick={() => setShowQuickPay(true)}
                     disabled={busy}
                   >
@@ -794,51 +794,65 @@ function Stepper({
   label: string;
 }) {
   return (
-    <ol aria-label={label} className="grid grid-cols-4 gap-1 sm:gap-1.5">
-      {steps.map((title, index) => {
-        const state =
-          finished || index < current ? 'done' : index === current ? 'current' : 'todo';
-        return (
-          <li
-            key={title}
-            aria-current={state === 'current' ? 'step' : undefined}
-            className="min-w-0"
-          >
-            <div
-              className={cn(
-                'h-1.5 rounded-full',
-                state === 'todo'
-                  ? 'bg-surface-muted ring-1 ring-border'
-                  : state === 'current'
-                    ? 'step-glow bg-brand'
-                    : 'bg-brand',
-              )}
-            />
-            <p
-              className={cn(
-                'mt-1.5 flex items-start gap-1 text-[11px] leading-3.5 sm:mt-2 sm:gap-1.5 sm:text-xs md:text-sm sm:leading-4',
-                state === 'todo' ? 'text-muted' : 'font-semibold text-foreground',
-              )}
+    <div className="space-y-1.5 sm:space-y-0">
+      <ol aria-label={label} className="grid grid-cols-4 gap-1 sm:gap-1.5">
+        {steps.map((title, index) => {
+          const state =
+            finished || index < current ? 'done' : index === current ? 'current' : 'todo';
+          return (
+            <li
+              key={title}
+              aria-current={state === 'current' ? 'step' : undefined}
+              className="min-w-0"
             >
-              <span
-                aria-hidden
+              <div
                 className={cn(
-                  'grid size-3.5 shrink-0 place-items-center rounded-full text-[9px] font-bold sm:size-5 sm:text-[11px]',
+                  'h-1.5 rounded-full',
                   state === 'todo'
-                    ? 'bg-surface-muted text-muted ring-1 ring-border'
+                    ? 'bg-surface-muted ring-1 ring-border'
                     : state === 'current'
-                      ? 'step-glow bg-brand text-brand-contrast'
-                      : 'bg-brand text-brand-contrast',
+                      ? 'step-glow bg-brand'
+                      : 'bg-brand',
+                )}
+              />
+              <p
+                className={cn(
+                  'mt-1.5 hidden sm:flex items-start gap-1 sm:mt-2 sm:gap-1.5 sm:text-xs md:text-sm sm:leading-4',
+                  state === 'todo' ? 'text-muted' : 'font-semibold text-foreground',
                 )}
               >
-                {state === 'done' ? '✓' : index + 1}
-              </span>
-              <span className="min-w-0 break-words leading-tight">{title}</span>
-            </p>
-          </li>
-        );
-      })}
-    </ol>
+                <span
+                  aria-hidden
+                  className={cn(
+                    'grid size-3.5 shrink-0 place-items-center rounded-full text-[9px] font-bold sm:size-5 sm:text-[11px]',
+                    state === 'todo'
+                      ? 'bg-surface-muted text-muted ring-1 ring-border'
+                      : state === 'current'
+                        ? 'step-glow bg-brand text-brand-contrast'
+                        : 'bg-brand text-brand-contrast',
+                  )}
+                >
+                  {state === 'done' ? '✓' : index + 1}
+                </span>
+                <span className="min-w-0 break-words leading-tight">{title}</span>
+              </p>
+            </li>
+          );
+        })}
+      </ol>
+      {/* Mobile step indicator under the 4 progress bars */}
+      <div className="flex items-center justify-between text-xs sm:hidden pt-0.5">
+        <div className="flex items-center gap-1.5 font-semibold text-foreground min-w-0">
+          <span className="grid size-4 shrink-0 place-items-center rounded-full bg-brand text-[10px] font-bold text-brand-contrast">
+            {finished ? '✓' : current + 1}
+          </span>
+          <span className="truncate">{finished ? steps[steps.length - 1] : steps[current]}</span>
+        </div>
+        <span className="text-[11px] text-muted shrink-0 ml-2 tabular-nums">
+          {finished ? `${steps.length}/${steps.length}` : `${current + 1}/${steps.length}`}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -979,7 +993,7 @@ function ConnectorPicker({
             <span
               aria-hidden
               className={cn(
-                'grid size-10 shrink-0 place-items-center rounded-xl text-sm font-semibold',
+                'grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl text-sm font-semibold',
                 selected ? 'bg-brand text-brand-contrast' : 'bg-surface-muted text-foreground',
               )}
             >
@@ -1028,7 +1042,7 @@ function ConnectorPicker({
         );
 
         const rowClass = cn(
-          'flex w-full items-center gap-3 rounded-xl p-3 text-left ring-1 transition',
+          'flex w-full items-center gap-2 sm:gap-3 rounded-xl p-2.5 sm:p-3 text-left ring-1 transition',
           selected ? 'bg-brand-soft ring-brand/40' : 'bg-surface-muted/40 ring-border',
         );
 
@@ -1080,7 +1094,7 @@ function LiveReadout({
       : undefined;
 
   return (
-    <dl className="grid grid-cols-2 gap-3 rounded-2xl bg-surface-muted/60 p-4 ring-1 ring-border sm:grid-cols-3">
+    <dl className="grid grid-cols-2 gap-2.5 sm:gap-3 rounded-2xl bg-surface-muted/60 p-3 sm:p-4 ring-1 ring-border sm:grid-cols-3">
       <Metric label={t.liveEnergy} value={formatKwh(session.energyKwh, intl)} strong />
       <Metric label={t.livePower} value={formatPower(session.lastPowerW, intl)} strong />
       <Metric
@@ -1130,9 +1144,14 @@ function SessionSummary({ session, intl }: { session: ChargingSession; intl: str
 
 function Metric({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div>
-      <dt className="text-[11px] text-muted">{label}</dt>
-      <dd className={cn('mt-0.5 text-foreground', strong ? 'text-lg font-bold' : 'text-sm font-semibold')}>
+    <div className="min-w-0">
+      <dt className="text-[11px] text-muted truncate">{label}</dt>
+      <dd
+        className={cn(
+          'mt-0.5 text-foreground truncate',
+          strong ? 'text-base sm:text-lg font-bold' : 'text-xs sm:text-sm font-semibold',
+        )}
+      >
         {value}
       </dd>
     </div>

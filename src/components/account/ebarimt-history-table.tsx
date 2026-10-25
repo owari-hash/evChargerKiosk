@@ -15,7 +15,7 @@ interface EbarimtRecordItem {
   amount: number;
   vatAmount: number;
   lottery: string;
-  receiptId: string;
+  receiptId?: string;
   type: 'B2C_RECEIPT' | 'B2B_RECEIPT';
   customerTin?: string;
   createdAt: string;
@@ -43,7 +43,7 @@ export function EbarimtHistoryTable({
   // receipt id would look like a real tax receipt.
   walletEntries.forEach((entry) => {
     const eb = entry.ebarimt;
-    if (!eb?.receiptId || (eb.status !== 'SUCCESS' && eb.status !== 'REFUNDED')) return;
+    if (!(eb?.receiptId || eb?.lottery) || (eb.status !== 'SUCCESS' && eb.status !== 'REFUNDED')) return;
     const amount = Math.abs(entry.amount);
     records.push({
       id: `w-${entry.id}`,
@@ -74,7 +74,7 @@ export function EbarimtHistoryTable({
 
   // Add charging sessions if not already in wallet entries
   sessions.forEach((s) => {
-    const issued = s.ebarimt?.receiptId && (s.ebarimt.status === 'SUCCESS' || s.ebarimt.status === 'REFUNDED');
+    const issued = (s.ebarimt?.receiptId || s.ebarimt?.lottery) && (s.ebarimt.status === 'SUCCESS' || s.ebarimt.status === 'REFUNDED');
     if (s.ebarimt && issued && !records.some((r) => r.sessionObj.transactionId === s.transactionId)) {
       const amount = s.cost || 0;
       records.push({
@@ -87,7 +87,7 @@ export function EbarimtHistoryTable({
         amount,
         vatAmount: s.ebarimt.totalVAT ?? Math.round((amount - amount / 1.1) * 100) / 100,
         lottery: s.ebarimt.lottery || '—',
-        receiptId: s.ebarimt.receiptId ?? '',
+        receiptId: s.ebarimt.receiptId,
         type: s.ebarimt.type || 'B2C_RECEIPT',
         customerTin: s.ebarimt.customerTin,
         createdAt: s.stopTimestamp || s.startTimestamp,

@@ -623,7 +623,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
           <div className="pointer-events-auto flex items-center gap-2 sm:hidden">
             <label
               className={cn(
-                'flex h-11 flex-1 items-center gap-2 rounded-full bg-surface pl-3.5 pr-1.5 ring-1 ring-border transition focus-within:ring-2 focus-within:ring-brand',
+                'flex h-11 flex-1 min-w-0 items-center gap-2 rounded-full bg-surface pl-3 pr-1.5 ring-1 ring-border transition focus-within:ring-2 focus-within:ring-brand',
                 CHIP_SHADOW,
               )}
             >
@@ -1449,7 +1449,7 @@ function Sheet({
   return (
     <div
       className={cn(
-        'pointer-events-auto relative w-[85vw] max-w-sm overflow-hidden rounded-3xl bg-surface',
+        'pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-sm overflow-hidden rounded-2xl sm:rounded-3xl bg-surface',
         'shadow-[0_20px_60px_-24px_rgb(2_6_23/0.6)] ring-1 ring-border',
         'sm:flex sm:max-h-full sm:w-[320px] sm:flex-col',
         // The list view's mobile trigger and panel live in the portal below
@@ -1470,12 +1470,12 @@ function Sheet({
             ref={scrollRef}
             className="max-h-[72svh] overflow-y-auto sm:max-h-none sm:min-h-0 sm:flex-auto"
           >
-            <div className="flex items-start gap-2 px-3 pb-1 pt-3">
+            <div className="flex items-start gap-1.5 sm:gap-2 px-2.5 sm:px-3 pb-1 pt-3">
               <button
                 type="button"
                 onClick={onClearSelection}
                 aria-label={d.common.back}
-                className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-surface-muted hover:text-foreground"
+                className="grid size-8 sm:size-9 shrink-0 place-items-center rounded-lg sm:rounded-xl text-muted transition hover:bg-surface-muted hover:text-foreground"
               >
                 <svg
                   aria-hidden
@@ -1498,7 +1498,7 @@ function Sheet({
                 href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20 active:scale-95"
+                className="inline-flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20 active:scale-95"
                 aria-label={t.directions}
                 title={t.directions}
               >
@@ -1513,7 +1513,7 @@ function Sheet({
                 aria-label={favorites.has(selected.id) ? t.removeFavorite : t.addFavorite}
                 title={favorites.has(selected.id) ? t.removeFavorite : t.addFavorite}
                 className={cn(
-                  'grid size-9 shrink-0 place-items-center rounded-xl transition hover:bg-surface-muted',
+                  'grid size-8 sm:size-9 shrink-0 place-items-center rounded-lg sm:rounded-xl transition hover:bg-surface-muted',
                   favorites.has(selected.id) ? 'text-amber-400' : 'text-muted hover:text-foreground',
                 )}
               >
@@ -1635,7 +1635,7 @@ function Sheet({
 
                 <div
                   className={cn(
-                    'fixed inset-y-0 left-0 z-[60] flex w-[85vw] max-w-sm flex-col overflow-hidden bg-surface/90 shadow-2xl ring-1 ring-border backdrop-blur-2xl transition-transform duration-300 ease-out sm:hidden',
+                    'fixed inset-y-0 left-0 z-[60] flex w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden bg-surface/90 shadow-2xl ring-1 ring-border backdrop-blur-2xl transition-transform duration-300 ease-out sm:hidden',
                     open ? 'translate-x-0' : '-translate-x-full pointer-events-none',
                   )}
                 >

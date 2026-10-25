@@ -61,16 +61,16 @@ export function StationCard({ station, selected = false, className, locale }: St
         </div>
       )}
 
-      <dl className="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 pt-4 text-sm">
-        <div className="min-w-0 border-t border-border pt-3">
-          <dt className="text-xs text-muted">{d.stations.maxPower}</dt>
-          <dd className="mt-0.5 whitespace-nowrap font-semibold text-foreground">
+      <dl className="mt-auto grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 pt-3 sm:pt-4 text-sm">
+        <div className="min-w-0 border-t border-border pt-2.5 sm:pt-3">
+          <dt className="truncate text-xs text-muted">{d.stations.maxPower}</dt>
+          <dd className="mt-0.5 truncate font-semibold text-foreground">
             {station.maxPowerKw ? formatPowerKw(station.maxPowerKw, intl) : '—'}
           </dd>
         </div>
-        <div className="min-w-0 border-t border-border pt-3">
-          <dt className="text-xs text-muted">{d.stations.price}</dt>
-          <dd className="mt-0.5 whitespace-nowrap font-semibold text-foreground">
+        <div className="min-w-0 border-t border-border pt-2.5 sm:pt-3">
+          <dt className="truncate text-xs text-muted">{d.stations.price}</dt>
+          <dd className="mt-0.5 truncate font-semibold text-foreground">
             {formatTariff(station.tariffPerKwh, intl)}
           </dd>
         </div>
