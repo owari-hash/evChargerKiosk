@@ -9,6 +9,8 @@ import { SessionWatcher } from '@/components/session-watcher';
 import { ToastHost } from '@/components/toast-host';
 import { UserScope } from '@/components/user-scope';
 import { AnnouncementModal } from '@/components/announcement-modal';
+import { AnalyticsTracker } from '@/components/analytics-tracker';
+import { GoogleAnalytics } from '@/components/google-analytics';
 import { I18nProvider } from '@/components/i18n-provider';
 import { getCurrentUser } from '@/lib/driver-api';
 import { getLocale } from '@/lib/i18n';
@@ -74,6 +76,8 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
             </>
           ) : null}
           <AnnouncementModal key={`news-${user?.id ?? 'guest'}`} userId={user?.id ?? null} />
+          <AnalyticsTracker />
+          <GoogleAnalytics />
           <ToastHost />
         </I18nProvider>
       </body>
