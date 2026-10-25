@@ -66,11 +66,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
   const user = await getCurrentUser();
   const directions = directionsUrl(station);
 
-  const baseTariff =
-    station.baseTariffPerKwh ??
-    (station.tariffPerKwh !== undefined && station.feePercent
-      ? Math.round(station.tariffPerKwh / (1 + station.feePercent / 100))
-      : station.tariffPerKwh);
+  const baseTariff = station.baseTariffPerKwh ?? station.tariffPerKwh;
 
   const facts = [
     station.maxPowerKw

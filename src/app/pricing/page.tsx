@@ -6,12 +6,9 @@ import { format, getTranslations } from '@/lib/i18n';
 import type { Station } from '@/lib/types';
 import { formatMoney, formatPowerKw, intlLocale } from '@/lib/utils';
 
-/** Returns the base tariff per kWh without the service fee markup. */
+/** Returns the tariff per kWh. */
 function stationBaseTariff(station: Station): number | undefined {
   if (station.baseTariffPerKwh !== undefined) return station.baseTariffPerKwh;
-  if (station.tariffPerKwh === undefined) return undefined;
-  if (station.feePercent)
-    return Math.round(station.tariffPerKwh / (1 + station.feePercent / 100));
   return station.tariffPerKwh;
 }
 
