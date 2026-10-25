@@ -386,22 +386,21 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         <div className="space-y-4">
           <AmountHeadline label={ti.amount} value={money(invoice.amount)} />
           <WaitingLine text={invoice.golomtChannel === 'SOCIALPAY' ? t.socialBody : t.cardBody} />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button loading={checking} onClick={() => void check(invoice.id, true)}>
-              {checking ? ti.checking : ti.checkNow}
-            </Button>
-            {invoice.paymentUrl && (
-              <a
-                href={invoice.paymentUrl}
-                className="inline-flex h-11 items-center px-3 text-sm font-semibold text-brand hover:underline"
-              >
-                {t.cardReopen}
-              </a>
-            )}
-            <Button variant="danger" onClick={reset} className="ml-auto">
-              {d.common.cancel}
-            </Button>
-          </div>
+          {invoice.paymentUrl && (
+            <a
+              href={invoice.paymentUrl}
+              className="inline-flex items-center text-sm font-semibold text-brand hover:underline"
+            >
+              {t.cardReopen}
+            </a>
+          )}
+          <InvoiceActions
+            checking={checking}
+            checkLabel={checking ? ti.checking : ti.checkNow}
+            cancelLabel={d.common.cancel}
+            onCheck={() => void check(invoice.id, true)}
+            onCancel={reset}
+          />
         </div>
       </Panel>
     );
@@ -466,14 +465,13 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
 
 
           <WaitingLine text={ti.waiting} />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button loading={checking} onClick={() => void check(invoice.id, true)}>
-              {checking ? ti.checking : ti.checkNow}
-            </Button>
-            <Button variant="danger" onClick={reset} className="ml-auto">
-              {d.common.cancel}
-            </Button>
-          </div>
+          <InvoiceActions
+            checking={checking}
+            checkLabel={checking ? ti.checking : ti.checkNow}
+            cancelLabel={d.common.cancel}
+            onCheck={() => void check(invoice.id, true)}
+            onCancel={reset}
+          />
 
           {invoice.expiresAt && (
             <p className="text-xs text-muted">
@@ -674,16 +672,16 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         ) : null}
 
         {method.kind === 'card' && savedEnabled && (
-          <label className="-mt-2 flex cursor-pointer items-start gap-3">
+          <label className="-mt-2 flex cursor-pointer items-center gap-3">
             <input
               type="checkbox"
               checked={saveCard}
               onChange={(event) => setSaveCard(event.target.checked)}
-              className="mt-0.5 size-5 shrink-0 rounded accent-[var(--brand)]"
+              className="size-5 shrink-0 rounded accent-[var(--brand)]"
             />
             <span>
-              <span className="block text-[15px] leading-snug text-foreground">{t.saveCard}</span>
-              <span className="mt-1 block text-[13px] text-muted">{t.saveCardNote}</span>
+              <span className="block text-[13px] leading-snug text-muted">{t.saveCard}</span>
+              {t.saveCardNote && <span className="mt-1 block text-[13px] text-muted">{t.saveCardNote}</span>}
             </span>
           </label>
         )}
@@ -892,5 +890,31 @@ function ConfirmDialog({
         </Button>
       </div>
     </Modal>
+  );
+}
+
+/** «I've paid» and «Цуцлах» under an open invoice: one row, equal halves. */
+function InvoiceActions({
+  checking,
+  checkLabel,
+  cancelLabel,
+  onCheck,
+  onCancel,
+}: {
+  checking: boolean;
+  checkLabel: string;
+  cancelLabel: string;
+  onCheck: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      <Button size="lg" className="w-full justify-center" loading={checking} onClick={onCheck}>
+        {checkLabel}
+      </Button>
+      <Button size="lg" variant="danger" className="w-full justify-center" onClick={onCancel}>
+        {cancelLabel}
+      </Button>
+    </div>
   );
 }

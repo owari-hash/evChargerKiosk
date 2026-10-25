@@ -3,7 +3,8 @@
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Field, Input, SelectMenu } from '@/components/ui';
+import { Button, Input, SelectMenu } from '@/components/ui';
+import { AvailabilityDot } from './availability-dot';
 import { format, useI18n } from '@/components/i18n-provider';
 import { CONNECTOR_TYPES, type Station } from '@/lib/types';
 import { cn, formatPowerKw, intlLocale } from '@/lib/utils';
@@ -204,66 +205,93 @@ export function StationFinder({
       (filters.origin ? d.stations.nearestFirst : '');
 
   return (
-    <div className="space-y-4 sm:space-y-6 min-w-0 max-w-full">
+    <div className="min-w-0 space-y-4 sm:space-y-5">
       <form
         role="search"
         onSubmit={(event: FormEvent<HTMLFormElement>) => event.preventDefault()}
-        className="rounded-2xl bg-surface p-3.5 sm:p-4 ring-1 ring-border shadow-[var(--shadow-card)] min-w-0 max-w-full overflow-hidden"
+        className="space-y-3 rounded-2xl bg-surface p-3 ring-1 ring-border shadow-[var(--shadow-card)] sm:p-4"
       >
-        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 min-w-0 max-w-full">
-          <Field
-            label={d.stations.searchLabel}
-            htmlFor="station-search"
-            className="sm:col-span-2 lg:col-span-1 min-w-0 max-w-full"
-          >
-            <div className="flex gap-2 min-w-0 max-w-full">
-              <div className="min-w-0 flex-1">
-                <Input
-                  id="station-search"
-                  type="search"
-                  value={filters.search}
-                  placeholder={d.stations.searchPlaceholder}
-                  autoComplete="off"
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, search: event.target.value }))
-                  }
-                />
-              </div>
-              <Button
-                type="button"
-                variant={filters.origin ? 'primary' : 'secondary'}
-                onClick={locate}
-                loading={locating}
-                className="shrink-0 text-xs sm:text-sm px-3 sm:px-4"
-              >
-                {d.stations.nearMe}
-              </Button>
-            </div>
-          </Field>
-
-          <Field label={d.stations.statusLabel} htmlFor="station-status">
-            <SelectMenu
-              id="station-status"
-              label={d.stations.statusLabel}
-              value={filters.status}
-              onChange={(value) =>
-                setFilters((current) => ({
-                  ...current,
-                  status: value as StationStatusFilter,
-                }))
+        {/* Search, with "near me" beside it. */}
+        <div className="flex gap-2">
+          <label htmlFor="station-search" className="sr-only">
+            {d.stations.searchLabel}
+          </label>
+          <div className="relative min-w-0 flex-1">
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path strokeLinecap="round" d="m20 20-3.5-3.5" />
+            </svg>
+            <Input
+              id="station-search"
+              type="search"
+              value={filters.search}
+              placeholder={d.stations.searchPlaceholder}
+              autoComplete="off"
+              className="h-11 pl-10"
+              onChange={(event) =>
+                setFilters((current) => ({ ...current, search: event.target.value }))
               }
-              options={STATUS_OPTIONS.map((option) => ({
-                value: option,
-                label: option === 'all' ? d.stations.anyStatus : d.status.availability[option],
-              }))}
             />
-          </Field>
+          </div>
+          <Button
+            type="button"
+            variant={filters.origin ? 'primary' : 'secondary'}
+            onClick={locate}
+            loading={locating}
+            className="h-11 shrink-0 gap-1.5 px-3.5"
+          >
+            {!locating && (
+              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
+              </svg>
+            )}
+            <span className="hidden sm:inline">{d.stations.nearMe}</span>
+          </Button>
+        </div>
 
-          <Field label={d.stations.connectorLabel} htmlFor="station-connector">
+        {/* Status as chips; plug type and power as compact menus. */}
+        <div className="flex min-w-0 flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <div
+            role="radiogroup"
+            aria-label={d.stations.statusLabel}
+            className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] sm:-mx-4 sm:px-4 lg:mx-0 lg:px-0"
+          >
+            {STATUS_OPTIONS.map((option) => {
+              const active = filters.status === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setFilters((current) => ({ ...current, status: option }))}
+                  className={cn(
+                    'inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm font-medium transition',
+                    active
+                      ? 'bg-foreground text-background'
+                      : 'bg-surface-muted text-foreground ring-1 ring-border hover:ring-brand/40',
+                  )}
+                >
+                  {option !== 'all' && <AvailabilityDot availability={option} className="size-2" />}
+                  {option === 'all' ? d.stations.anyStatus : d.status.availability[option]}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 lg:w-[26rem] lg:shrink-0">
             <SelectMenu
               id="station-connector"
               label={d.stations.connectorLabel}
               value={filters.connectorType}
+              className="[&>button]:h-10"
               onChange={(value) =>
                 setFilters((current) => ({ ...current, connectorType: value }))
               }
@@ -272,13 +300,11 @@ export function StationFinder({
                 ...CONNECTOR_TYPES.map((type) => ({ value: type, label: type })),
               ]}
             />
-          </Field>
-
-          <Field label={d.stations.minPowerLabel} htmlFor="station-power">
             <SelectMenu
               id="station-power"
               label={d.stations.minPowerLabel}
               value={String(filters.minPowerKw)}
+              className="[&>button]:h-10"
               onChange={(value) =>
                 setFilters((current) => ({ ...current, minPowerKw: Number(value) }))
               }
@@ -290,59 +316,69 @@ export function StationFinder({
                     : format(d.stations.powerOrMore, { power: formatPowerKw(option, intl) }),
               }))}
             />
-          </Field>
+          </div>
         </div>
 
         {(filters.origin || hasFilters) && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
             {filters.origin && (
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => setFilters((current) => ({ ...current, origin: null }))}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand/10 px-3 text-xs font-semibold text-brand ring-1 ring-brand/25 hover:bg-brand/15"
               >
-                ✕ {d.stations.stopSortingByDistance}
-              </Button>
+                {d.stations.stopSortingByDistance} ✕
+              </button>
             )}
             {hasFilters && (
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => {
                   setGeoError(null);
                   setFilters(EMPTY_FILTERS);
                 }}
+                className="inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold text-muted hover:text-foreground"
               >
                 ✕ {d.stations.clearFilters}
-              </Button>
+              </button>
             )}
           </div>
         )}
 
         {geoError && (
-          <p role="alert" className="mt-3 text-sm text-danger">
+          <p role="alert" className="text-sm text-danger">
             {d.stations[geoError]}
           </p>
         )}
       </form>
 
       {error && (
-        <Alert tone="danger" title={d.errors.stationsFailed}>
-          {error}
-        </Alert>
+        <div
+          role="alert"
+          className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 ring-1 ring-danger/25"
+        >
+          <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-danger/15 text-danger">
+            !
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-danger">{d.errors.stationsFailed}</p>
+            <p className="mt-0.5 text-xs text-muted">{error}</p>
+          </div>
+          <Button type="button" size="sm" variant="secondary" onClick={() => window.location.reload()}>
+            {d.common.retry}
+          </Button>
+        </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 min-w-0 max-w-full">
-        <p className="text-xs sm:text-sm text-muted" aria-live="polite">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-muted" aria-live="polite">
           {countLabel}
         </p>
 
         <div
           role="group"
           aria-label={d.stations.resultView}
-          className="inline-flex rounded-xl bg-surface-muted p-1 ring-1 ring-border shrink-0"
+          className="inline-flex shrink-0 rounded-xl bg-surface-muted p-1 ring-1 ring-border"
         >
           {(['list', 'map'] as const).map((option) => (
             <button
@@ -351,12 +387,19 @@ export function StationFinder({
               aria-pressed={view === option}
               onClick={() => changeView(option)}
               className={cn(
-                'h-9 rounded-lg px-4 text-sm font-medium transition',
+                'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition',
                 view === option
                   ? 'bg-surface text-foreground shadow-[var(--shadow-card)]'
                   : 'text-muted hover:text-foreground',
               )}
             >
+              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+                {option === 'list' ? (
+                  <path strokeLinecap="round" d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
+                ) : (
+                  <path strokeLinejoin="round" d="m9 4-6 2v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
+                )}
+              </svg>
               {option === 'list' ? d.stations.list : d.stations.map}
             </button>
           ))}
@@ -453,6 +496,11 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
 
   return (
     <div className="rounded-2xl bg-surface px-6 py-12 text-center ring-1 ring-border shadow-[var(--shadow-card)]">
+      <span aria-hidden className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-surface-muted text-muted">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-6">
+          <path strokeLinejoin="round" d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M15 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3M9 8l-2 4h4l-2 4" />
+        </svg>
+      </span>
       <p className="text-base font-semibold text-foreground">{d.stations.noMatchTitle}</p>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted">
         {hasFilters ? d.stations.noMatchFiltered : d.home.noStations}

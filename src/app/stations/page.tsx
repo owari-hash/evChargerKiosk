@@ -61,12 +61,12 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-3 sm:px-4 py-5 sm:py-10 min-w-0 max-w-full overflow-hidden">
-      <header className="mb-4 sm:mb-6 min-w-0 max-w-full">
-        <h1 className="truncate text-xl sm:text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {d.stations.title}
-        </h1>
-      </header>
+    // Same frame as the account pages: centred, max-w-6xl. A trailing
+    // `max-w-full` used to override the cap and stretch this edge to edge.
+    <div className="mx-auto w-full min-w-0 max-w-6xl px-4 py-6 md:py-10">
+      {/* No visible heading: the search box says what the page is for. Kept
+          for screen readers and the document outline. */}
+      <h1 className="sr-only">{d.stations.title}</h1>
 
       <Suspense fallback={<FinderFallback />}>
         <StationFinder
@@ -81,8 +81,8 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
 
 function FinderFallback() {
   return (
-    <div className="space-y-4 sm:space-y-6 min-w-0 max-w-full" aria-hidden>
-      <div className="h-44 animate-pulse rounded-2xl bg-surface ring-1 ring-border sm:h-32 min-w-0 max-w-full" />
+    <div className="space-y-4 sm:space-y-5" aria-hidden>
+      <div className="h-32 animate-pulse rounded-2xl bg-surface ring-1 ring-border" />
       <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3 min-w-0 max-w-full">
         {Array.from({ length: 6 }, (_, index) => (
           <div key={index} className="h-48 animate-pulse rounded-2xl bg-surface ring-1 ring-border min-w-0 max-w-full" />
