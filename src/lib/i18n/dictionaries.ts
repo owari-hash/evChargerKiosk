@@ -2016,7 +2016,7 @@ export const mn: Dictionary = {
     getApp: 'Татах',
     heroBadge: 'Eplug · ЦМ цэнэглэх апп',
     heroTitleStart: 'Eplug-аар машинаа ',
-    heroTitleHighlight: 'хурдан хялбар',
+    heroTitleHighlight: 'хурдан, хялбар',
     heroTitleEnd: 'цэнэглэ',
     heroSubtitle: 'Станц хайж, QR-аар төлбөр хийж, wallet ашиглан нэг товшоод цэнэглэлтээ эхлүүл.',
     heroCtaPrimary: 'Апп татах',
