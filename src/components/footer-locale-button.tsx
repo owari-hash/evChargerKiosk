@@ -24,7 +24,7 @@ export function FooterLocaleButton({ locale }: { locale: string }) {
       onClick={toggle}
       disabled={pending}
       title="Хэл солих / Switch language"
-      className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm transition hover:bg-white/20 active:scale-95 disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-foreground transition hover:bg-surface-muted/80 active:scale-95 disabled:opacity-50"
     >
       <span>{label}</span>
       <svg
@@ -34,7 +34,7 @@ export function FooterLocaleButton({ locale }: { locale: string }) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="size-3.5"
+        className="size-3.5 text-muted"
       >
         <path d="m16 3 4 4-4 4" />
         <path d="M20 7H4" />
