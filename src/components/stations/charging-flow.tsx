@@ -33,6 +33,7 @@ import {
   intlLocale,
 } from '@/lib/utils';
 import { useToastMessage } from '@/lib/use-toast-message';
+import { showToast } from '@/lib/toast-store';
 
 /** Poll interval while a session is running, in milliseconds. */
 const LIVE_MS = 2_000;
@@ -392,10 +393,12 @@ export function ChargingFlow({
     return () => clearInterval(timer);
   }, [refresh, step, awaitingStation]);
 
-  function choose(id: number) {
-    setConnectorId(String(id));
-    setPlugged(false);
-    setError(null);
+  /**
+   * A gun is only ever picked by scanning its QR sticker, so the driver is
+   * standing at the gun the start request will name. Tapping one here says so.
+   */
+  function requireQr() {
+    showToast({ kind: 'info', title: t.qrRequiredTitle, body: '' });
   }
 
   function chooseAnother() {
@@ -624,8 +627,7 @@ export function ChargingFlow({
                 free={free}
                 selectedId={chosen?.connectorId}
                 scannedId={initialConnectorId}
-                onChoose={choose}
-                onStart={promptStart}
+                onChoose={requireQr}
                 disabled={offline}
               />
             </div>
@@ -803,9 +805,6 @@ export function ChargingFlow({
         <Card className="p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-foreground">{t.gunsTitle}</h2>
-            {!qrMode && !active && free.length > 1 && (
-              <span className="text-xs text-muted">Хошуу дээр дарж сонгох боломжтой</span>
-            )}
           </div>
           <ConnectorPicker
             className="mt-4"
@@ -813,8 +812,10 @@ export function ChargingFlow({
             free={free}
             selectedId={chosen?.connectorId ?? active?.connectorId}
             scannedId={initialConnectorId}
-            onChoose={!qrMode && !active && !busy ? choose : undefined}
-            onStart={authed && tagged && !active && !busy && !offline ? promptStart : undefined}
+            onChoose={!qrMode && !active && !busy ? requireQr : undefined}
+            onStart={
+              qrMode && authed && tagged && !active && !busy && !offline ? promptStart : undefined
+            }
           />
         </Card>
       )}

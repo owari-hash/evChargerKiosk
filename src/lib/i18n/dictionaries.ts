@@ -575,6 +575,7 @@ export const en = {
     localOnlyBody:
       'This network starts sessions on the unit. Hold your charge tag against the reader and plug in — this page then follows along.',
     plugConfirm: 'Confirm',
+    qrRequiredTitle: 'Scan the QR code',
     tariff: {
       yours: 'Your rate right now',
       free: 'Free · internal user',
@@ -1680,6 +1681,7 @@ export const mn: Dictionary = {
     localOnlyBody:
       'Энэ сүлжээнд цэнэглэлтийг станц дээр нь эхлүүлдэг. Картаа уншуулаад хошуугаа залгахад энэ хуудас өөрөө шинэчлэгдэнэ.',
     plugConfirm: 'Цэнэглэх',
+    qrRequiredTitle: 'QR код уншуулна уу',
     tariff: {
       yours: 'Таны одоогийн тариф',
       free: 'Үнэгүй · дотоод хэрэглэгч',
