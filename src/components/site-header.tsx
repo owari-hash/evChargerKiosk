@@ -10,6 +10,7 @@ import { clearUserStorage } from '@/lib/user-scope';
 import { useI18n } from './i18n-provider';
 import { LocaleSwitcher } from './locale-switcher';
 import { NotificationBell } from './notification-bell';
+import { StationStatusBadge } from './station-status-badge';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 import { buttonClass } from './ui/button';
@@ -89,6 +90,8 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               nav row next to Тусламж. An icon button, same family as the
               other header toggles, rendered before every theme toggle so it
               leads the mobile icon row too. */}
+          <StationStatusBadge />
+
           <Link
             href="/download"
             aria-label={d.nav.download}
@@ -100,7 +103,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
             </svg>
           </Link>
 
-          <div className="hidden items-center gap-0.5 rounded-xl bg-surface-muted p-0.5 ring-1 ring-border sm:flex">
+          <div className="hidden items-center gap-0.5 rounded-xl p-0.5 ring-1 ring-border sm:flex">
             <LocaleSwitcher bare />
             <span aria-hidden className="h-5 w-px bg-border" />
             <ThemeToggle className="grid size-8 place-items-center rounded-[10px] text-muted transition hover:bg-surface hover:text-foreground" />

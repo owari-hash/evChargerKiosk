@@ -45,6 +45,10 @@ export const en = {
     help: 'Help',
     download: 'Get the app',
   },
+  headerStatus: {
+    online: 'Online',
+    offline: 'Offline',
+  },
 
   footer: {
     rights: '© {year} Жиркто ХХК. All rights reserved.',
@@ -1149,6 +1153,10 @@ export const mn: Dictionary = {
     pricing: 'Үнэ тариф',
     help: 'Тусламж',
     download: 'Апп татах',
+  },
+  headerStatus: {
+    online: 'Идэвхтэй',
+    offline: 'Идэвхгүй',
   },
 
   footer: {
