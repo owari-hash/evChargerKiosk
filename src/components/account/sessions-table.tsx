@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Badge,
   Button,
@@ -24,7 +24,8 @@ import {
   formatPower,
 } from '@/lib/utils';
 import { useToastMessage } from '@/lib/use-toast-message';
-import { DatePicker } from '@/components/ui/date-picker';
+import { dateKey } from '@/components/ui/range-calendar';
+import { NO_FILTER, SessionsFilterDropdown, type SessionsFilter } from './sessions-filter-dropdown';
 import { StationReportModal } from './station-report-modal';
 
 /** Tone per session state; the label is looked up in `d.account.sessions`. */
@@ -93,11 +94,20 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   useToastMessage(notice, 'success');
   useToastMessage(error, 'error');
 
-  /** `YYYY-MM-DD` from the date inputs, in the driver's local time; '' = open-ended. */
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const filtering = Boolean(from || to);
-  const [openPicker, setOpenPicker] = useState<'from' | 'to' | null>(null);
+  const [filter, setFilter] = useState<SessionsFilter>(NO_FILTER);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const closeFilter = useCallback(() => setFilterOpen(false), []);
+  const filtering = Boolean(filter.presetDays || filter.from);
+  /** The filter as `YYYY-MM-DD` bounds in local time; a preset counts back from today. */
+  const { from, to } = useMemo(() => {
+    if (!filter.presetDays) return { from: filter.from, to: filter.to };
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (filter.presetDays - 1));
+    return { from: dateKey(start), to: dateKey(now) };
+  }, [filter]);
+  const filterLabel = filter.presetDays
+    ? format(d.account.sessions.filterDays, { n: filter.presetDays })
+    : `${from.replaceAll('-', '.')} – ${to.replaceAll('-', '.')}`;
   /** Station whose report is open, by charge point id. */
   const [reportFor, setReportFor] = useState<string | null>(null);
 
@@ -218,52 +228,67 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
   }
 
   return (
-    // No overflow clipping here: the date picker's calendar hangs below the filter row.
     <Card className="border border-border/80 shadow-xs">
       <CardHeader className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
         <CardTitle className="text-base font-semibold">{d.account.sessions.title}</CardTitle>
-        <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted ring-1 ring-border/50">
-          {format(d.account.sessions.count, { count: ordered.length })}
-        </span>
+        <div className="relative flex items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted ring-1 ring-border/50">
+            {format(d.account.sessions.count, { count: ordered.length })}
+          </span>
+          <button
+            type="button"
+            data-filter-toggle
+            onClick={() => setFilterOpen((o) => !o)}
+            aria-expanded={filterOpen}
+            aria-label={d.account.sessions.filterTitle}
+            className={cn(
+              'relative grid size-9 place-items-center rounded-xl ring-1 transition',
+              filtering || filterOpen
+                ? 'bg-brand/10 text-brand ring-brand/30'
+                : 'text-muted ring-border hover:text-foreground',
+            )}
+          >
+            <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[18px]">
+              <path strokeLinecap="round" d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="10" cy="17" r="2" />
+            </svg>
+            {filtering && (
+              <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-brand text-[10px] font-bold text-white">
+                1
+              </span>
+            )}
+          </button>
+          {filterOpen && (
+            <SessionsFilterDropdown
+              initial={filter}
+              onClose={closeFilter}
+              onApply={(next) => {
+                setFilter(next);
+                setFilterOpen(false);
+              }}
+            />
+          )}
+        </div>
       </CardHeader>
 
-      <div className="flex flex-wrap items-end gap-2 border-b border-border/60 px-5 py-3">
-        <DatePicker
-          className="min-w-0 flex-1 sm:w-44 sm:flex-none"
-          label={d.account.sessions.filterFrom}
-          value={from}
-          max={to || undefined}
-          open={openPicker === 'from'}
-          onOpenChange={(o) => setOpenPicker((p) => (o ? 'from' : p === 'from' ? null : p))}
-          onChange={(v) => {
-            setFrom(v);
-            // Picking a start date leads straight on to the end date.
-            if (v) setOpenPicker('to');
-          }}
-        />
-        <DatePicker
-          className="min-w-0 flex-1 sm:w-44 sm:flex-none"
-          align="right"
-          label={d.account.sessions.filterTo}
-          value={to}
-          min={from || undefined}
-          open={openPicker === 'to'}
-          onOpenChange={(o) => setOpenPicker((p) => (o ? 'to' : p === 'to' ? null : p))}
-          onChange={setTo}
-        />
-        {filtering && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFrom('');
-              setTo('');
-            }}
-          >
-            {d.account.sessions.filterClear}
-          </Button>
-        )}
-      </div>
+      {filtering && (
+        <div className="border-b border-border/60 px-5 py-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 py-1 pl-3 pr-1 text-xs font-semibold text-brand ring-1 ring-brand/25">
+            {filterLabel}
+            <button
+              type="button"
+              onClick={() => setFilter(NO_FILTER)}
+              aria-label={d.account.sessions.filterReset}
+              className="grid size-5 place-items-center rounded-full hover:bg-brand/15"
+            >
+              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-3">
+                <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </span>
+        </div>
+      )}
 
       {ordered.length === 0 && (
         <p className="px-5 py-8 text-center text-sm text-muted">{d.account.sessions.filterEmpty}</p>
@@ -480,11 +505,7 @@ export function SessionsTable({ sessions }: SessionsTableProps) {
             sessions.find((s) => s.chargePointId === reportFor)?.stationName ?? reportFor
           }
           chargePointId={reportFor}
-          rangeLabel={
-            filtering
-              ? `${from ? from.replaceAll('-', '.') : '…'} – ${to ? to.replaceAll('-', '.') : '…'}`
-              : undefined
-          }
+          rangeLabel={filtering ? filterLabel : undefined}
           onClose={() => setReportFor(null)}
         />
       )}

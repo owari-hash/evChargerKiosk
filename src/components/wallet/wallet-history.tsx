@@ -63,7 +63,7 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
                     <span
                       aria-hidden
                       className={`grid size-9 shrink-0 place-items-center rounded-lg ${
-                        credit ? 'bg-brand-soft text-brand-strong' : 'bg-surface-muted text-muted'
+                        credit ? 'bg-brand-soft text-brand-strong' : 'bg-danger/10 text-danger'
                       }`}
                     >
                       {credit ? (
@@ -102,13 +102,15 @@ export function WalletHistory({ entries, d, locale }: WalletHistoryProps) {
                       <div className="text-right">
                         <p
                           className={`text-sm font-bold tabular-nums ${
-                            credit ? 'text-brand-strong' : 'text-foreground'
+                            credit ? 'text-brand-strong' : 'text-danger'
                           }`}
                         >
                           {credit ? '+' : '−'}
                           {money(Math.abs(entry.amount))}
                         </p>
-                        <p className="mt-0.5 text-xs text-muted tabular-nums">
+                        {/* Plain colour but bold: the green/red amount says which way
+                            money moved, this says where the wallet ended up. */}
+                        <p className="mt-0.5 text-xs font-bold text-foreground tabular-nums">
                           {format(d.wallet.history.balanceAfter, {
                             balance: money(entry.balanceAfter),
                           })}

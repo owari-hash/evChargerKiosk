@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { ChargeCard } from '@/components/account/charge-card';
 import { ProfileForm } from '@/components/account/profile-form';
 import { getCurrentUser } from '@/lib/driver-api';
 
@@ -14,8 +13,9 @@ export default async function AccountOverviewPage() {
 
   return (
     <>
+      {/* The charge tag is the system's identifier for the driver; it is
+          issued with the account and drivers never need to see it. */}
       <ProfileForm user={publicUser} />
-      <ChargeCard user={publicUser} />
     </>
   );
 }

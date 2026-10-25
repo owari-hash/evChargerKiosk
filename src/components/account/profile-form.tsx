@@ -600,10 +600,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
           <div className="border-t border-border pt-4">
             <div className="grid gap-6 sm:grid-cols-2">
-              <div>
+              {/* Full width while the E-Barimt column is hidden, so Марк and
+                  Загвар line up under the two columns of fields above. */}
+              <div className={SHOW_EBARIMT_SECTION ? undefined : 'sm:col-span-2'}>
                 <p className="text-sm font-semibold text-foreground">{d.account.profile.vehicleTitle}</p>
-                <p className="mt-1 text-xs text-muted">{d.account.profile.vehicleHint}</p>
-                <div className="mt-3 grid gap-4">
+                <div className="mt-3 grid grid-cols-2 gap-4">
                   <Field label={d.account.profile.vehicleBrandLabel} htmlFor="profile-vehicle-brand">
                     <Input
                       id="profile-vehicle-brand"

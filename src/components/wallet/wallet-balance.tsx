@@ -61,13 +61,13 @@ export function WalletBalance({ wallet, config, d, locale }: WalletBalanceProps)
           <dl className="glass-tile grid grid-cols-2 divide-x divide-white/10 rounded-2xl text-sm sm:min-w-64">
             <div className="px-2.5 sm:px-4 py-2 sm:py-3.5 min-w-0">
               <dt className="truncate text-[10px] sm:text-[11px] font-medium uppercase tracking-wide text-muted">{d.wallet.toppedUp}</dt>
-              <dd className="mt-1 truncate text-sm sm:text-base font-bold tabular-nums text-foreground">
+              <dd className="mt-1 truncate text-sm sm:text-base font-bold tabular-nums text-brand-strong">
                 {money(wallet.totalToppedUp ?? 0)}
               </dd>
             </div>
             <div className="px-2.5 sm:px-4 py-2 sm:py-3.5 min-w-0">
               <dt className="truncate text-[10px] sm:text-[11px] font-medium uppercase tracking-wide text-muted">{d.wallet.spent}</dt>
-              <dd className="mt-1 truncate text-sm sm:text-base font-bold tabular-nums text-foreground">{money(wallet.totalSpent ?? 0)}</dd>
+              <dd className="mt-1 truncate text-sm sm:text-base font-bold tabular-nums text-danger">{money(wallet.totalSpent ?? 0)}</dd>
             </div>
           </dl>
         </div>
