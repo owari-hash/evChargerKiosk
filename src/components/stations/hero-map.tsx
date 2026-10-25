@@ -60,6 +60,9 @@ const VIEWPORT_PAD = 0.3;
 
 const MAX_FIT_ZOOM = 15;
 
+/** Street level: close enough to see which side of the road the charger is on. */
+const SELECTED_ZOOM = 16;
+
 /**
  * Room the page's own controls take at the top (search plus filter chips) and at
  * the bottom (the station sheet), so panning can keep a pin clear of them.

@@ -4,7 +4,6 @@ import { getCurrentUser, getContactInfo, DEFAULT_CONTACT_INFO } from '@/lib/driv
 import { publicEnv } from '@/lib/env';
 import { format, getTranslations } from '@/lib/i18n';
 import { FeedbackButton } from './feedback-button';
-import { FooterLocaleButton } from './footer-locale-button';
 
 export async function SiteFooter() {
   const [{ d, locale }, user, contact] = await Promise.all([
@@ -54,8 +53,6 @@ export async function SiteFooter() {
                   <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
                 </svg>
               </a>
-
-              <FooterLocaleButton locale={locale} />
             </div>
           </div>
 
