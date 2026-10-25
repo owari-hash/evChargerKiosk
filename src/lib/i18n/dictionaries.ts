@@ -43,6 +43,7 @@ export const en = {
     stations: 'Find a charger',
     pricing: 'Pricing',
     help: 'Help',
+    contact: 'Contact',
     download: 'Get the app',
   },
   feedback: {
@@ -1176,6 +1177,7 @@ export const mn: Dictionary = {
     stations: 'Цэнэглэх станц',
     pricing: 'Үнэ тариф',
     help: 'Тусламж',
+    contact: 'Холбоо барих',
     download: 'Апп татах',
   },
   feedback: {

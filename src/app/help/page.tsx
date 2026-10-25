@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { ButtonLink, Card, CardBody, CardHeader, CardTitle } from '@/components/ui';
 import { buttonClass } from '@/components/ui/button';
-import { getCurrentUser } from '@/lib/driver-api';
+import { getCurrentUser, getContactInfo, DEFAULT_CONTACT_INFO } from '@/lib/driver-api';
 import { getTranslations, type Dictionary } from '@/lib/i18n';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -67,7 +67,13 @@ function AccordionList({ entries }: { entries: Entry[] }) {
 }
 
 export default async function HelpPage() {
-  const [{ d }, user] = await Promise.all([getTranslations(), getCurrentUser()]);
+  const [{ d }, user, contact] = await Promise.all([
+    getTranslations(),
+    getCurrentUser(),
+    getContactInfo().catch(() => DEFAULT_CONTACT_INFO),
+  ]);
+
+  const primaryPhone = contact.phone ? contact.phone.split(',')[0].trim().replace(/\s+/g, '') : '';
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-14 sm:pt-8">
@@ -100,7 +106,35 @@ export default async function HelpPage() {
             </CardHeader>
             <CardBody className="space-y-3 text-sm text-muted">
               <p>{d.help.contactBody}</p>
-              <p>{d.help.contactPlaceholderBody}</p>
+              <div className="space-y-2 pt-1 text-foreground">
+                {contact.phone ? (
+                  <p>
+                    <span className="text-muted">Утас: </span>
+                    <a
+                      href={primaryPhone ? `tel:${primaryPhone}` : undefined}
+                      className="font-semibold text-brand hover:underline"
+                    >
+                      {contact.phone}
+                    </a>
+                  </p>
+                ) : null}
+                {contact.email ? (
+                  <p>
+                    <span className="text-muted">И-мэйл: </span>
+                    <a
+                      href={`mailto:${contact.email}`}
+                      className="font-semibold text-brand hover:underline"
+                    >
+                      {contact.email}
+                    </a>
+                  </p>
+                ) : null}
+                {contact.address ? (
+                  <p className="text-xs text-muted">
+                    {contact.address}
+                  </p>
+                ) : null}
+              </div>
             </CardBody>
           </Card>
 

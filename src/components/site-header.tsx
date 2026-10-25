@@ -28,6 +28,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
     // "Үнэ тариф" opens the station list: every card carries its price.
     { href: '/stations', label: d.nav.pricing },
     { href: '/help', label: d.nav.help },
+    { href: '/contact', label: d.nav.contact },
     { href: '/download', label: d.nav.download },
   ];
 

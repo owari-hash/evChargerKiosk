@@ -10,6 +10,7 @@ import type {
   WalletEntry,
   TopUpInvoice,
   SavedCard,
+  ContactInfo,
 } from '@/lib/types';
 
 /**
@@ -178,3 +179,20 @@ export async function resolveConnectorCode(code: string): Promise<ConnectorCodeL
     throw err;
   }
 }
+
+export const DEFAULT_CONTACT_INFO: ContactInfo = {
+  phone: '+976 7777 4242, 8888 5516',
+  email: 'contact@eplug.mn',
+  address: 'Улаанбаатар хот',
+  facebookUrl: 'https://facebook.com/eplug.mn',
+  facebookName: 'Eplug.mn',
+  instagramUrl: 'https://instagram.com/eplug.mn',
+  instagramName: 'Eplug.mn',
+  logoDownloadUrl: '/eplug-mark.png',
+};
+
+/** Public contact and social info shown on footer. */
+export async function getContactInfo(): Promise<ContactInfo> {
+  return driverApi<ContactInfo>('/app/contact').catch(() => DEFAULT_CONTACT_INFO);
+}
+

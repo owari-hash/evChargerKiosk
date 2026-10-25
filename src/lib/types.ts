@@ -256,3 +256,14 @@ export interface TopUpInvoice {
   expiresAt?: string;
   createdAt: string;
 }
+
+export interface ContactInfo {
+  phone: string;
+  email: string;
+  address?: string;
+  facebookUrl?: string;
+  facebookName?: string;
+  instagramUrl?: string;
+  instagramName?: string;
+  logoDownloadUrl?: string;
+}
