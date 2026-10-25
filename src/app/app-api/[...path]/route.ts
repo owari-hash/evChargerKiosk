@@ -47,6 +47,9 @@ async function handler(req: NextRequest, ctx: Ctx): Promise<Response> {
   }
 
   const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+  // Server-Sent Events stay open: no timeout, and the body is piped through
+  // as it arrives instead of buffered.
+  const streaming = (req.headers.get('accept') ?? '').includes('text/event-stream');
 
   let upstream: Response;
   try {
@@ -56,7 +59,7 @@ async function handler(req: NextRequest, ctx: Ctx): Promise<Response> {
       body: hasBody ? await req.arrayBuffer() : undefined,
       cache: 'no-store',
       redirect: 'manual',
-      signal: AbortSignal.timeout(serverEnv.apiTimeoutMs()),
+      signal: streaming ? req.signal : AbortSignal.timeout(serverEnv.apiTimeoutMs()),
     });
   } catch {
     return NextResponse.json(
@@ -79,6 +82,10 @@ async function handler(req: NextRequest, ctx: Ctx): Promise<Response> {
   // 204 and friends must not carry a body.
   if (upstream.status === 204 || upstream.status === 205 || upstream.status === 304) {
     return new Response(null, { status: upstream.status, headers: out });
+  }
+  if (streaming && upstream.body) {
+    out.set('x-accel-buffering', 'no');
+    return new Response(upstream.body, { status: upstream.status, headers: out });
   }
   return new Response(await upstream.arrayBuffer(), { status: upstream.status, headers: out });
 }

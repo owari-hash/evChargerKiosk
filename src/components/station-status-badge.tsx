@@ -5,20 +5,24 @@ import { useEffect, useState } from 'react';
 import { useI18n } from './i18n-provider';
 import type { Station } from '@/lib/types';
 
-/** How often the counts refresh while the page is open. */
-const REFRESH_MS = 60_000;
+/** Safety net only: the live stream normally pushes every change. */
+const FALLBACK_MS = 60_000;
+
+type Counts = { online: number; offline: number };
 
 /**
- * "● 5 · ● 4" in the top bar: how many stations are online and offline right
- * now. Tapping it opens the station list. Renders nothing until the first
- * count arrives, and keeps the last good count if a refresh fails.
+ * "● 4 · ● 5" in the top bar: how many stations are online and offline right
+ * now, updated live — the backend pushes new counts over Server-Sent Events
+ * the moment a charger connects, drops or reports a status. Tapping it opens
+ * the station list. Renders nothing until the first count arrives.
  */
 export function StationStatusBadge({ className = '' }: { className?: string }) {
   const { d } = useI18n();
-  const [counts, setCounts] = useState<{ online: number; offline: number } | null>(null);
+  const [counts, setCounts] = useState<Counts | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+
     async function load() {
       try {
         const res = await fetch('/app-api/stations?limit=200', { cache: 'no-store' });
@@ -31,10 +35,27 @@ export function StationStatusBadge({ className = '' }: { className?: string }) {
         // Keep whatever was shown last.
       }
     }
+
+    // Live: one connection, counts pushed on every change.
+    let stream: EventSource | null = null;
+    if (typeof EventSource !== 'undefined') {
+      stream = new EventSource('/app-api/stations/status-stream');
+      stream.addEventListener('counts', (event) => {
+        try {
+          const next = JSON.parse((event as MessageEvent<string>).data) as Counts;
+          if (!cancelled) setCounts(next);
+        } catch {
+          // Ignore a malformed frame; the next one will do.
+        }
+      });
+    }
+
+    // A backend without the stream yet (it closes on a 404) still gets counts.
     void load();
-    const timer = setInterval(() => void load(), REFRESH_MS);
+    const timer = setInterval(() => void load(), FALLBACK_MS);
     return () => {
       cancelled = true;
+      stream?.close();
       clearInterval(timer);
     };
   }, []);
