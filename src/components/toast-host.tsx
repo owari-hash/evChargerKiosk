@@ -60,7 +60,7 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       role={toast.kind === 'error' ? 'alert' : 'status'}
-      className="toast-card pointer-events-auto flex items-start gap-3.5 rounded-2xl border border-border/80 bg-surface/95 backdrop-blur-md p-4 shadow-2xl ring-1 ring-black/10 dark:ring-white/10 transition-all animate-in fade-in slide-in-from-top-2 duration-200"
+      className={`toast-card pointer-events-auto flex ${toast.body ? 'items-start' : 'items-center'} gap-3.5 rounded-2xl border border-border/80 bg-surface/95 backdrop-blur-md p-4 shadow-2xl ring-1 ring-black/10 dark:ring-white/10 transition-all animate-in fade-in slide-in-from-top-2 duration-200`}
     >
       <NotificationIcon kind={toast.kind} size="md" />
       {toast.href ? (
@@ -78,7 +78,7 @@ function ToastCard({ toast }: { toast: Toast }) {
         type="button"
         onClick={() => dismissToast(toast.id)}
         aria-label={d.common.close}
-        className="size-6 -mr-1 -mt-1 shrink-0 rounded-lg text-muted/70 hover:text-foreground hover:bg-surface-muted inline-flex items-center justify-center transition cursor-pointer text-base"
+        className={`size-6 -mr-1 ${toast.body ? '-mt-1' : ''} shrink-0 rounded-lg text-muted/70 hover:text-foreground hover:bg-surface-muted inline-flex items-center justify-center transition cursor-pointer text-base`}
       >
         ✕
       </button>
