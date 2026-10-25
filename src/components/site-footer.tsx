@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import { getCurrentUser } from '@/lib/driver-api';
 import { publicEnv } from '@/lib/env';
+import { FeedbackButton } from './feedback-button';
 import { format, getTranslations } from '@/lib/i18n';
 
 export async function SiteFooter() {
-  const { d } = await getTranslations();
+  const [{ d }, user] = await Promise.all([getTranslations(), getCurrentUser().catch(() => null)]);
 
   const links = [
     { href: '/stations', label: d.nav.pricing },
@@ -28,6 +30,7 @@ export async function SiteFooter() {
               {link.label}
             </Link>
           ))}
+          <FeedbackButton signedIn={Boolean(user)} />
         </nav>
       </div>
     </footer>
