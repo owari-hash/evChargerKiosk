@@ -668,23 +668,22 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
                 </button>
               </div>
             )}
+
+            {/* Under the method switch with the same gap as the QPay/SocialPay
+                hint, so the card option reads like the other two. */}
+            {method.kind === 'card' && savedEnabled && (
+              <label className="mt-2.5 flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={saveCard}
+                  onChange={(event) => setSaveCard(event.target.checked)}
+                  className="m-0 size-3.5 shrink-0 rounded accent-[var(--brand)]"
+                />
+                <span className="text-xs text-muted">{t.saveCard}</span>
+              </label>
+            )}
           </fieldset>
         ) : null}
-
-        {method.kind === 'card' && savedEnabled && (
-          <label className="-mt-2 flex cursor-pointer items-center gap-3">
-            <input
-              type="checkbox"
-              checked={saveCard}
-              onChange={(event) => setSaveCard(event.target.checked)}
-              className="size-5 shrink-0 rounded accent-[var(--brand)]"
-            />
-            <span>
-              <span className="block text-[13px] leading-snug text-muted">{t.saveCard}</span>
-              {t.saveCardNote && <span className="mt-1 block text-[13px] text-muted">{t.saveCardNote}</span>}
-            </span>
-          </label>
-        )}
 
         <div>
           <Button
