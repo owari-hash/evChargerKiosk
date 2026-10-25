@@ -53,21 +53,16 @@ export default async function DownloadPage() {
         </div>
 
         <p className="mt-3 text-pretty text-xs text-muted leading-relaxed max-w-xs mx-auto">
-          Камераар уншуулснаар таны утасны төрлөөс (iOS эсвэл Android) хамааран App Store эсвэл Google Play рүү автоматаар шилжинэ.
+          Утасны камераар уншуулан апп татна уу
         </p>
 
         {/* One Unified Direct Download Button */}
         <div className="mt-5">
           <a
             href="/app"
-            className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-foreground px-6 text-sm font-semibold text-background transition hover:opacity-90 shadow-sm active:scale-[0.99]"
+            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-background transition hover:opacity-90 shadow-sm active:scale-[0.99]"
           >
-            <AppleIcon className="size-4 shrink-0" />
-            <AndroidIcon className="size-4 shrink-0" />
-            <span>{d.download.heroCtaPrimary}</span>
-            <svg aria-hidden viewBox="0 0 24 24" className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0-5-5m5 5-5 5" />
-            </svg>
+            {d.download.heroCtaPrimary}
           </a>
 
           <div className="mt-3 flex items-center justify-center gap-3 text-xs text-muted">

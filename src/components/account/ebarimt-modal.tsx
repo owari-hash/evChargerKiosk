@@ -30,15 +30,6 @@ function CopyIcon({ className = 'size-4' }: { className?: string }) {
   );
 }
 
-function CheckCircleIcon({ className = 'size-4' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="12" r="10" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
-  );
-}
-
 function ScanIcon({ className = 'size-4' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -211,18 +202,6 @@ export function EbarimtModal({ session, onClose, onSuccess }: EbarimtModalProps)
 
         {ebarimt?.status === 'SUCCESS' ? (
           <div className="space-y-3.5 text-center">
-            {/* Elegant Success Status Pill */}
-            <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-4 py-2.5 text-emerald-500 shadow-sm">
-              <CheckCircleIcon className="size-4 shrink-0" />
-              <span className="text-xs font-semibold">
-                {ebarimt.customerNo
-                  ? `Хэрэглэгчийн кодоор амжилттай бүртгэгдсэн (${ebarimt.customerNo})`
-                  : ebarimt.type === 'B2B_RECEIPT'
-                  ? `Байгууллагын регистрт (${ebarimt.customerTin}) бүртгэгдлээ`
-                  : 'И-Баримт амжилттай бүртгэгдлээ!'}
-              </span>
-            </div>
-
             {/* Premium QR Code Container: Pure white card with quiet zone and frame targeting */}
             {ebarimt.qrData && (
               <div className="flex flex-col items-center justify-center py-1">
