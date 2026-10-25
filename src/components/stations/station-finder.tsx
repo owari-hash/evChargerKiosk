@@ -204,19 +204,19 @@ export function StationFinder({
       (filters.origin ? d.stations.nearestFirst : '');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 min-w-0 max-w-full">
       <form
         role="search"
         onSubmit={(event: FormEvent<HTMLFormElement>) => event.preventDefault()}
-        className="rounded-2xl bg-surface p-4 ring-1 ring-border shadow-[var(--shadow-card)]"
+        className="rounded-2xl bg-surface p-3.5 sm:p-4 ring-1 ring-border shadow-[var(--shadow-card)] min-w-0 max-w-full overflow-hidden"
       >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 min-w-0 max-w-full">
           <Field
             label={d.stations.searchLabel}
             htmlFor="station-search"
-            className="sm:col-span-2 lg:col-span-1"
+            className="sm:col-span-2 lg:col-span-1 min-w-0 max-w-full"
           >
-            <div className="flex gap-2">
+            <div className="flex gap-2 min-w-0 max-w-full">
               <div className="min-w-0 flex-1">
                 <Input
                   id="station-search"
@@ -234,7 +234,7 @@ export function StationFinder({
                 variant={filters.origin ? 'primary' : 'secondary'}
                 onClick={locate}
                 loading={locating}
-                className="shrink-0"
+                className="shrink-0 text-xs sm:text-sm px-3 sm:px-4"
               >
                 {d.stations.nearMe}
               </Button>
@@ -334,15 +334,15 @@ export function StationFinder({
         </Alert>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted" aria-live="polite">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 min-w-0 max-w-full">
+        <p className="text-xs sm:text-sm text-muted" aria-live="polite">
           {countLabel}
         </p>
 
         <div
           role="group"
           aria-label={d.stations.resultView}
-          className="inline-flex rounded-xl bg-surface-muted p-1 ring-1 ring-border"
+          className="inline-flex rounded-xl bg-surface-muted p-1 ring-1 ring-border shrink-0"
         >
           {(['list', 'map'] as const).map((option) => (
             <button
@@ -374,8 +374,8 @@ export function StationFinder({
           }}
         />
       ) : view === 'map' ? (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="h-[60vh] sm:h-[70vh]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] min-w-0 max-w-full overflow-hidden">
+          <div className="h-[60vh] sm:h-[70vh] min-w-0 max-w-full overflow-hidden rounded-2xl">
             <StationMapPanel
               stations={stations}
               selectedId={selectedId}
@@ -386,7 +386,7 @@ export function StationFinder({
             stations={stations}
             selectedId={selectedId}
             onHighlight={setSelectedId}
-            className="gap-3 lg:max-h-[70vh] lg:snap-y lg:snap-proximity lg:overflow-y-auto lg:scroll-pt-1 lg:pr-1"
+            className="grid-cols-1 gap-3 lg:max-h-[70vh] lg:snap-y lg:snap-proximity lg:overflow-y-auto lg:scroll-pt-1 lg:pr-1 min-w-0 max-w-full"
           />
         </div>
       ) : (
@@ -394,7 +394,7 @@ export function StationFinder({
           stations={stations}
           selectedId={selectedId}
           onHighlight={setSelectedId}
-          className="gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          className="grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3 min-w-0 max-w-full"
         />
       )}
     </div>
@@ -412,11 +412,11 @@ function StationList({ stations, selectedId, onHighlight, className }: StationLi
   const { locale } = useI18n();
 
   return (
-    <ul className={cn('grid', className)}>
+    <ul className={cn('grid min-w-0 max-w-full', className)}>
       {stations.map((station) => (
         <li
           key={station.id}
-          className="snap-start scroll-mt-1"
+          className="snap-start scroll-mt-1 min-w-0 max-w-full overflow-hidden"
           // Hover and keyboard focus pan the map; the click itself opens the station.
           onMouseEnter={() => onHighlight(station.id)}
           onFocus={() => onHighlight(station.id)}
@@ -434,14 +434,14 @@ function StationList({ stations, selectedId, onHighlight, className }: StationLi
 
 function ResultsSkeleton({ view }: { view: 'list' | 'map' }) {
   if (view === 'map') {
-    return <div className="h-[60vh] animate-pulse rounded-2xl bg-surface-muted sm:h-[70vh]" />;
+    return <div className="h-[60vh] animate-pulse rounded-2xl bg-surface-muted sm:h-[70vh] min-w-0 max-w-full" />;
   }
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-hidden>
+    <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3 min-w-0 max-w-full" aria-hidden>
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
-          className="h-48 animate-pulse rounded-2xl bg-surface ring-1 ring-border"
+          className="h-48 animate-pulse rounded-2xl bg-surface ring-1 ring-border min-w-0 max-w-full"
         />
       ))}
     </div>

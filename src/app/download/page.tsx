@@ -80,43 +80,39 @@ export default async function DownloadPage() {
           Камераар уншуулснаар таны утасны төрлөөс (iOS эсвэл Android) хамааран App Store эсвэл Google Play рүү автоматаар шилжинэ.
         </p>
 
-        {/* Direct Download Buttons */}
-        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-4 border-t border-border">
+        {/* One Unified Direct Download Button */}
+        <div className="mt-5 pt-4 border-t border-border">
           <a
-            href={appLinks.ios}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2.5 rounded-xl bg-surface-muted px-3.5 py-2.5 text-left ring-1 ring-border transition hover:bg-background hover:ring-foreground/20"
+            href="/app"
+            className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-foreground px-6 text-sm font-semibold text-background transition hover:opacity-90 shadow-sm active:scale-[0.99]"
           >
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-background text-foreground shadow-xs">
-              <AppleIcon />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold leading-tight text-foreground">App Store</span>
-                <span className="text-[10px] font-medium text-brand">Татах</span>
-              </div>
-              <p className="truncate text-[10px] text-muted">iOS 13+</p>
-            </div>
+            <AppleIcon className="size-4 shrink-0" />
+            <AndroidIcon className="size-4 shrink-0" />
+            <span>{d.download.heroCtaPrimary}</span>
+            <svg aria-hidden viewBox="0 0 24 24" className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0-5-5m5 5-5 5" />
+            </svg>
           </a>
 
-          <a
-            href={appLinks.android}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2.5 rounded-xl bg-surface-muted px-3.5 py-2.5 text-left ring-1 ring-border transition hover:bg-background hover:ring-foreground/20"
-          >
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-background text-foreground shadow-xs">
-              <AndroidIcon />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold leading-tight text-foreground">Google Play</span>
-                <span className="text-[10px] font-medium text-brand">Татах</span>
-              </div>
-              <p className="truncate text-[10px] text-muted">Android 7.0+</p>
-            </div>
-          </a>
+          <div className="mt-3 flex items-center justify-center gap-3 text-xs text-muted">
+            <a
+              href={appLinks.ios}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition underline underline-offset-2"
+            >
+              App Store (iOS 13+)
+            </a>
+            <span aria-hidden>·</span>
+            <a
+              href={appLinks.android}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition underline underline-offset-2"
+            >
+              Google Play (Android 7.0+)
+            </a>
+          </div>
         </div>
       </section>
 
@@ -153,7 +149,7 @@ function Hero({ d, stats }: { d: Dictionary; stats: { stations: number; connecto
 
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <a
-            href="#get"
+            href="/app"
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-7 text-sm font-semibold text-background transition hover:opacity-85 sm:w-auto"
           >
             {t.heroCtaPrimary}
@@ -292,17 +288,17 @@ function Guide({ guide }: { guide: Dictionary['download']['guide'] }) {
   );
 }
 
-function AppleIcon() {
+function AppleIcon({ className = 'size-4' }: { className?: string } = {}) {
   return (
-    <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden>
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
       <path d="M16.365 1.43c0 1.14-.47 2.26-1.24 3.08-.83.88-2.19 1.56-3.33 1.47-.14-1.1.44-2.27 1.2-3.04.84-.87 2.3-1.52 3.37-1.51zM20.5 17.2c-.55 1.26-.81 1.82-1.52 2.94-.99 1.56-2.38 3.5-4.11 3.52-1.54.01-1.93-1-4.02-.99-2.09.01-2.52 1.01-4.06.99-1.73-.02-3.05-1.77-4.04-3.33-2.76-4.43-3.05-9.55-1.34-12.27 1.21-1.93 3.12-3.06 4.92-3.06 1.83 0 2.98 1.01 4.49 1.01 1.47 0 2.36-1.01 4.48-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.83.69 8.82z" />
     </svg>
   );
 }
 
-function AndroidIcon() {
+function AndroidIcon({ className = 'size-4' }: { className?: string } = {}) {
   return (
-    <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden>
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
       <path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.14-.52.38.38 0 0 0-.52.14l-1.86 3.22a11.4 11.4 0 0 0-8.84 0L6.22 5.92a.38.38 0 0 0-.52-.14.38.38 0 0 0-.14.52L7.4 9.48A10.2 10.2 0 0 0 2 18.1h20a10.2 10.2 0 0 0-4.4-8.62zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z" />
     </svg>
   );

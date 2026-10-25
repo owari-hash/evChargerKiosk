@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       <body className="glass-scope flex min-h-screen flex-col">
         <I18nProvider locale={locale}>
           <SiteHeader user={user} />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 min-w-0 max-w-full">{children}</main>
           <SiteFooter />
           {/* Everything below that keeps per-driver state is keyed by the user
               id, so signing out or switching drivers starts it afresh. */}
