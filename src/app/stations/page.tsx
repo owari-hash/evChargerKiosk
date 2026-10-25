@@ -39,11 +39,19 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
   const parsed = stationQuerySchema.safeParse(firstValues(searchParams));
   const query = parsed.success ? parsed.data : stationQuerySchema.parse({});
   const connectorType = normalizeConnectorType(query.connectorType);
+  // Old links may still say available/busy; both are "active" now.
+  const status: StationStatusFilter =
+    query.status === 'available' || query.status === 'busy' ? 'online' : query.status;
 
   let result: StationResult = { stations: [], demo: false };
   let loadError: string | undefined;
   try {
-    result = await listStations({ ...query, connectorType: connectorType || undefined });
+    result = await listStations({
+      ...query,
+      // The API has no "online"; the finder filters that itself.
+      status: status === 'online' ? 'all' : status,
+      connectorType: connectorType || undefined,
+    });
   } catch (err) {
     console.error('[stations] initial load failed', err);
     loadError = d.errors.networkUnreachable;
@@ -51,7 +59,7 @@ export default async function StationsPage(props: PageProps<'/stations'>) {
 
   const initialFilters: StationFilters = {
     search: query.search ?? '',
-    status: query.status as StationStatusFilter,
+    status,
     connectorType,
     minPowerKw: query.minPowerKw ?? 0,
     origin:

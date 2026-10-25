@@ -117,7 +117,8 @@ export const verifyPhoneSchema = z.object({
 
 export const stationQuerySchema = z.object({
   search: z.string().trim().max(120).optional(),
-  status: z.enum(['all', 'available', 'busy', 'offline']).default('all'),
+  // `online` is the finder's own (free or busy); the API is never sent it.
+  status: z.enum(['all', 'online', 'available', 'busy', 'offline']).default('all'),
   connectorType: z.string().trim().max(20).optional(),
   minPowerKw: z.coerce.number().min(0).max(1000).optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),

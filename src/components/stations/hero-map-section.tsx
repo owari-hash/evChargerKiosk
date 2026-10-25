@@ -222,9 +222,15 @@ const CHIP_SHADOW = 'shadow-[0_10px_34px_-14px_rgb(2_6_23/0.55)]';
 export interface HeroMapSectionProps {
   stations: MapStation[];
   className?: string;
+  /** From `?station=` — a station card's location pin opens the map on it. */
+  initialSelectedId?: string | null;
 }
 
-export function HeroMapSection({ stations: initialStations, className }: HeroMapSectionProps) {
+export function HeroMapSection({
+  stations: initialStations,
+  className,
+  initialSelectedId = null,
+}: HeroMapSectionProps) {
   const { d, locale } = useI18n();
   const intl = intlLocale(locale);
   const t = d.home.map;
@@ -235,7 +241,7 @@ export function HeroMapSection({ stations: initialStations, className }: HeroMap
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
   const [flyoutLeft, setFlyoutLeft] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [listOpen, setListOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   // The phone's sheet starts collapsed because it is a summary bar over the

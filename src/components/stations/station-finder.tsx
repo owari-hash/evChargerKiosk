@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Button, Input, SelectMenu } from '@/components/ui';
-import { AvailabilityDot } from './availability-dot';
 import { format, useI18n } from '@/components/i18n-provider';
 import { CONNECTOR_TYPES, type Station } from '@/lib/types';
 import { cn, formatPowerKw, intlLocale } from '@/lib/utils';
@@ -13,7 +12,8 @@ import type { StationMapProps } from './station-map';
 
 const DEBOUNCE_MS = 300;
 
-export type StationStatusFilter = 'all' | 'available' | 'busy' | 'offline';
+/** Active = online (free or busy); inactive = offline. */
+export type StationStatusFilter = 'all' | 'online' | 'offline';
 
 export interface StationFilters {
   search: string;
@@ -32,7 +32,7 @@ export const EMPTY_FILTERS: StationFilters = {
 };
 
 /** Status filter values; the labels come from the availability dictionary. */
-const STATUS_OPTIONS: StationStatusFilter[] = ['all', 'available', 'busy', 'offline'];
+const STATUS_OPTIONS: StationStatusFilter[] = ['all', 'online', 'offline'];
 
 /** Power thresholds in kW; the label is built from the localised unit. */
 const POWER_OPTIONS = [0, 22, 50, 100, 150];
@@ -145,7 +145,13 @@ export function StationFinder({
       setLoading(true);
       setError(null);
 
-      fetch(`/app-api/stations${query ? `?${query}` : ''}`, { signal: controller.signal })
+      // The API has no "online" status; that one is filtered on this page.
+      const apiQuery = new URLSearchParams(query);
+      if (apiQuery.get('status') === 'online') apiQuery.delete('status');
+      const qs = apiQuery.toString();
+      fetch(`/app-api/stations${qs ? `?${qs}` : ''}`, {
+        signal: controller.signal,
+      })
         .then(async (res) => {
           const payload = (await res.json().catch(() => ({}))) as StationsResponse;
           if (!res.ok) throw new Error(payload.error ?? d.errors.stationsFailed);
@@ -188,7 +194,10 @@ export function StationFinder({
         setLocating(false);
         setFilters((current) => ({
           ...current,
-          origin: { lat: position.coords.latitude, lng: position.coords.longitude },
+          origin: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          },
         }));
       },
       (err) => {
@@ -199,9 +208,14 @@ export function StationFinder({
     );
   }
 
+  const visible =
+    filters.status === 'online'
+      ? stations.filter((station) => station.availability !== 'offline')
+      : stations;
+
   const countLabel = loading
     ? d.stations.updating
-    : format(d.stations.countStations, { count: stations.length }) +
+    : format(d.stations.countStations, { count: visible.length }) +
       (filters.origin ? d.stations.nearestFirst : '');
 
   return (
@@ -211,111 +225,199 @@ export function StationFinder({
         onSubmit={(event: FormEvent<HTMLFormElement>) => event.preventDefault()}
         className="space-y-3 rounded-2xl bg-surface p-3 ring-1 ring-border shadow-[var(--shadow-card)] sm:p-4"
       >
-        {/* Search, with "near me" beside it. */}
-        <div className="flex gap-2">
-          <label htmlFor="station-search" className="sr-only">
-            {d.stations.searchLabel}
-          </label>
-          <div className="relative min-w-0 flex-1">
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path strokeLinecap="round" d="m20 20-3.5-3.5" />
-            </svg>
-            <Input
-              id="station-search"
-              type="search"
-              value={filters.search}
-              placeholder={d.stations.searchPlaceholder}
-              autoComplete="off"
-              className="h-11 pl-10"
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, search: event.target.value }))
-              }
-            />
-          </div>
-          <Button
-            type="button"
-            variant={filters.origin ? 'primary' : 'secondary'}
-            onClick={locate}
-            loading={locating}
-            className="h-11 shrink-0 gap-1.5 px-3.5"
-          >
-            {!locating && (
-              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
+        {/* One row on wide screens: search, status, plug, power, near me.
+            Narrower: search + near me, then status, then the two menus. */}
+        <div className="flex flex-col gap-2.5">
+          {/* Row 1: search, near me, list / map. */}
+          <div className="flex min-w-0 gap-2">
+            <label htmlFor="station-search" className="sr-only">
+              {d.stations.searchLabel}
+            </label>
+            <div className="relative min-w-0 flex-1">
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" d="m20 20-3.5-3.5" />
               </svg>
-            )}
-            <span className="hidden sm:inline">{d.stations.nearMe}</span>
-          </Button>
-        </div>
-
-        {/* Status as chips; plug type and power as compact menus. */}
-        <div className="flex min-w-0 flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-          <div
-            role="radiogroup"
-            aria-label={d.stations.statusLabel}
-            className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] sm:-mx-4 sm:px-4 lg:mx-0 lg:px-0"
-          >
-            {STATUS_OPTIONS.map((option) => {
-              const active = filters.status === option;
-              return (
+              <Input
+                id="station-search"
+                type="search"
+                value={filters.search}
+                placeholder={d.stations.searchPlaceholder}
+                autoComplete="off"
+                className="h-11 pl-10"
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    search: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <Button
+              type="button"
+              variant={filters.origin ? 'primary' : 'secondary'}
+              onClick={locate}
+              loading={locating}
+              aria-label={d.stations.nearMe}
+              title={d.stations.nearMe}
+              className="h-11 shrink-0 gap-1.5 px-3.5"
+            >
+              {!locating && (
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="size-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m12 21 8-18-18 8 7 3 3 7Z"
+                  />
+                </svg>
+              )}
+              <span className="hidden sm:inline">{d.stations.nearMe}</span>
+            </Button>
+            <div
+              role="group"
+              aria-label={d.stations.resultView}
+              className="inline-flex h-11 shrink-0 rounded-xl bg-surface-muted p-1 ring-1 ring-border"
+            >
+              {(['list', 'map'] as const).map((option) => (
                 <button
                   key={option}
                   type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setFilters((current) => ({ ...current, status: option }))}
+                  aria-pressed={view === option}
+                  title={option === 'list' ? d.stations.list : d.stations.map}
+                  onClick={() => changeView(option)}
                   className={cn(
-                    'inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm font-medium transition',
-                    active
-                      ? 'bg-foreground text-background'
-                      : 'bg-surface-muted text-foreground ring-1 ring-border hover:ring-brand/40',
+                    'inline-flex h-full items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition',
+                    view === option
+                      ? 'bg-surface text-foreground shadow-[var(--shadow-card)]'
+                      : 'text-muted hover:text-foreground',
                   )}
                 >
-                  {option !== 'all' && <AvailabilityDot availability={option} className="size-2" />}
-                  {option === 'all' ? d.stations.anyStatus : d.status.availability[option]}
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="size-4"
+                  >
+                    {option === 'list' ? (
+                      <path
+                        strokeLinecap="round"
+                        d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"
+                      />
+                    ) : (
+                      <path
+                        strokeLinejoin="round"
+                        d="m9 4-6 2v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"
+                      />
+                    )}
+                  </svg>
+                  <span className="hidden sm:inline">
+                    {option === 'list' ? d.stations.list : d.stations.map}
+                  </span>
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 lg:w-[26rem] lg:shrink-0">
-            <SelectMenu
-              id="station-connector"
-              label={d.stations.connectorLabel}
-              value={filters.connectorType}
-              className="[&>button]:h-10"
-              onChange={(value) =>
-                setFilters((current) => ({ ...current, connectorType: value }))
-              }
-              options={[
-                { value: '', label: d.stations.anyConnector },
-                ...CONNECTOR_TYPES.map((type) => ({ value: type, label: type })),
-              ]}
-            />
-            <SelectMenu
-              id="station-power"
-              label={d.stations.minPowerLabel}
-              value={String(filters.minPowerKw)}
-              className="[&>button]:h-10"
-              onChange={(value) =>
-                setFilters((current) => ({ ...current, minPowerKw: Number(value) }))
-              }
-              options={POWER_OPTIONS.map((option) => ({
-                value: String(option),
-                label:
-                  option === 0
-                    ? d.stations.anyPower
-                    : format(d.stations.powerOrMore, { power: formatPowerKw(option, intl) }),
-              }))}
-            />
+          {/* Row 2: status, plug type, power. */}
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+            <div
+              role="radiogroup"
+              aria-label={d.stations.statusLabel}
+              className="grid h-11 shrink-0 grid-cols-3 gap-1 rounded-xl bg-surface-muted p-1 ring-1 ring-border sm:min-w-[22rem]"
+            >
+              {STATUS_OPTIONS.map((option) => {
+                const active = filters.status === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setFilters((current) => ({ ...current, status: option }))}
+                    className={cn(
+                      'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition',
+                      active
+                        ? 'bg-surface text-foreground shadow-[var(--shadow-card)]'
+                        : 'text-muted hover:text-foreground',
+                    )}
+                  >
+                    {option !== 'all' && (
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'size-2 rounded-full',
+                          option === 'online' ? 'bg-emerald-500' : 'bg-red-500',
+                        )}
+                      />
+                    )}
+                    {option === 'all'
+                      ? d.stations.anyStatus
+                      : option === 'online'
+                        ? d.headerStatus.online
+                        : d.headerStatus.offline}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid flex-1 grid-cols-2 gap-2">
+              <SelectMenu
+                id="station-connector"
+                label={d.stations.connectorLabel}
+                value={filters.connectorType}
+                className="[&>button]:h-11"
+                onChange={(value) =>
+                  setFilters((current) => ({
+                    ...current,
+                    connectorType: value,
+                  }))
+                }
+                options={[
+                  { value: '', label: d.stations.anyConnector },
+                  ...CONNECTOR_TYPES.map((type) => ({
+                    value: type,
+                    label: type,
+                  })),
+                ]}
+              />
+              <SelectMenu
+                id="station-power"
+                label={d.stations.minPowerLabel}
+                value={String(filters.minPowerKw)}
+                className="[&>button]:h-11"
+                onChange={(value) =>
+                  setFilters((current) => ({
+                    ...current,
+                    minPowerKw: Number(value),
+                  }))
+                }
+                options={POWER_OPTIONS.map((option) => ({
+                  value: String(option),
+                  label:
+                    option === 0
+                      ? d.stations.anyPower
+                      : format(d.stations.powerOrMore, {
+                          power: formatPowerKw(option, intl),
+                        }),
+                }))}
+              />
+            </div>
           </div>
         </div>
 
@@ -357,58 +459,34 @@ export function StationFinder({
           role="alert"
           className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 ring-1 ring-danger/25"
         >
-          <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-danger/15 text-danger">
+          <span
+            aria-hidden
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-danger/15 text-danger"
+          >
             !
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-danger">{d.errors.stationsFailed}</p>
             <p className="mt-0.5 text-xs text-muted">{error}</p>
           </div>
-          <Button type="button" size="sm" variant="secondary" onClick={() => window.location.reload()}>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => window.location.reload()}
+          >
             {d.common.retry}
           </Button>
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-muted" aria-live="polite">
-          {countLabel}
-        </p>
-
-        <div
-          role="group"
-          aria-label={d.stations.resultView}
-          className="inline-flex shrink-0 rounded-xl bg-surface-muted p-1 ring-1 ring-border"
-        >
-          {(['list', 'map'] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={view === option}
-              onClick={() => changeView(option)}
-              className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition',
-                view === option
-                  ? 'bg-surface text-foreground shadow-[var(--shadow-card)]'
-                  : 'text-muted hover:text-foreground',
-              )}
-            >
-              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
-                {option === 'list' ? (
-                  <path strokeLinecap="round" d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
-                ) : (
-                  <path strokeLinejoin="round" d="m9 4-6 2v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
-                )}
-              </svg>
-              {option === 'list' ? d.stations.list : d.stations.map}
-            </button>
-          ))}
-        </div>
-      </div>
+      <p className="text-sm font-medium text-muted" aria-live="polite">
+        {countLabel}
+      </p>
 
       {loading ? (
         <ResultsSkeleton view={view} />
-      ) : stations.length === 0 ? (
+      ) : visible.length === 0 ? (
         <EmptyState
           hasFilters={hasFilters}
           onClear={() => {
@@ -419,22 +497,18 @@ export function StationFinder({
       ) : view === 'map' ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] min-w-0 max-w-full overflow-hidden">
           <div className="h-[60vh] sm:h-[70vh] min-w-0 max-w-full overflow-hidden rounded-2xl">
-            <StationMapPanel
-              stations={stations}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
+            <StationMapPanel stations={visible} selectedId={selectedId} onSelect={setSelectedId} />
           </div>
           <StationList
-            stations={stations}
+            stations={visible}
             selectedId={selectedId}
             onHighlight={setSelectedId}
-            className="grid-cols-1 gap-3 lg:max-h-[70vh] lg:snap-y lg:snap-proximity lg:overflow-y-auto lg:scroll-pt-1 lg:pr-1 min-w-0 max-w-full"
+            className="auto-rows-max grid-cols-1 gap-3 lg:max-h-[70vh] lg:snap-y lg:snap-proximity lg:overflow-y-auto lg:scroll-pt-1 lg:pr-1 min-w-0 max-w-full"
           />
         </div>
       ) : (
         <StationList
-          stations={stations}
+          stations={visible}
           selectedId={selectedId}
           onHighlight={setSelectedId}
           className="grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3 min-w-0 max-w-full"
@@ -464,11 +538,7 @@ function StationList({ stations, selectedId, onHighlight, className }: StationLi
           onMouseEnter={() => onHighlight(station.id)}
           onFocus={() => onHighlight(station.id)}
         >
-          <StationCard
-            station={station}
-            selected={station.id === selectedId}
-            locale={locale}
-          />
+          <StationCard station={station} selected={station.id === selectedId} locale={locale} />
         </li>
       ))}
     </ul>
@@ -477,10 +547,15 @@ function StationList({ stations, selectedId, onHighlight, className }: StationLi
 
 function ResultsSkeleton({ view }: { view: 'list' | 'map' }) {
   if (view === 'map') {
-    return <div className="h-[60vh] animate-pulse rounded-2xl bg-surface-muted sm:h-[70vh] min-w-0 max-w-full" />;
+    return (
+      <div className="h-[60vh] animate-pulse rounded-2xl bg-surface-muted sm:h-[70vh] min-w-0 max-w-full" />
+    );
   }
   return (
-    <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3 min-w-0 max-w-full" aria-hidden>
+    <div
+      className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3 min-w-0 max-w-full"
+      aria-hidden
+    >
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
@@ -496,9 +571,21 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
 
   return (
     <div className="rounded-2xl bg-surface px-6 py-12 text-center ring-1 ring-border shadow-[var(--shadow-card)]">
-      <span aria-hidden className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-surface-muted text-muted">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-6">
-          <path strokeLinejoin="round" d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M15 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3M9 8l-2 4h4l-2 4" />
+      <span
+        aria-hidden
+        className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-surface-muted text-muted"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          className="size-6"
+        >
+          <path
+            strokeLinejoin="round"
+            d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M15 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3M9 8l-2 4h4l-2 4"
+          />
         </svg>
       </span>
       <p className="text-base font-semibold text-foreground">{d.stations.noMatchTitle}</p>

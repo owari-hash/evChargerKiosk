@@ -235,7 +235,8 @@ export function availabilityTone(a: StationAvailability): string {
     case 'busy':
       return 'bg-amber-500';
     case 'offline':
-      return 'bg-slate-400';
+      // Red, like the app and the header badge: a station that is down is a problem.
+      return 'bg-red-500';
     default:
       return 'bg-slate-300';
   }

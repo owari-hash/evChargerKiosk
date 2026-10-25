@@ -5,8 +5,15 @@ import { ButtonLink } from '@/components/ui';
 import { getCurrentUser, listStations, type StationResult } from '@/lib/driver-api';
 import { getTranslations } from '@/lib/i18n';
 
-export default async function HomePage() {
-  const [user, { d }] = await Promise.all([getCurrentUser(), getTranslations()]);
+export default async function HomePage(props: PageProps<'/'>) {
+  const [user, { d }, searchParams] = await Promise.all([
+    getCurrentUser(),
+    getTranslations(),
+    props.searchParams,
+  ]);
+  // `?station=<id>` opens the map on that station (the pin on a station card).
+  const focusStation =
+    typeof searchParams.station === 'string' && searchParams.station ? searchParams.station : null;
 
   const features = [
     {
@@ -71,6 +78,7 @@ export default async function HomePage() {
         <h1 className="sr-only">{d.home.title}</h1>
         <HeroMapSection
           stations={mapStations}
+          initialSelectedId={focusStation}
           className="h-[calc(100svh-4rem)] min-h-[520px]"
         />
 
