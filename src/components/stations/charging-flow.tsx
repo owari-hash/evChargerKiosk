@@ -1183,7 +1183,28 @@ function LiveReadout({
       ? Math.round(session.energyKwh * tariffPerKwh)
       : undefined;
 
+  // Only stations that report battery % get an estimate.
+  const toFull = session.minutesToFull;
+  const toFullText =
+    toFull == null
+      ? undefined
+      : toFull <= 1
+        ? t.toFullDone
+        : toFull < 60
+          ? format(t.toFullMinutes, { minutes: toFull })
+          : format(t.toFullHours, { hours: Math.floor(toFull / 60), minutes: toFull % 60 });
+
   return (
+    <div className="space-y-2.5">
+      {toFullText && (
+        <p className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-sm font-semibold text-brand ring-1 ring-brand/25">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" d="M12 7v5l3 2" />
+          </svg>
+          {toFullText}
+        </p>
+      )}
     <dl className="grid grid-cols-2 gap-2.5 sm:gap-3 rounded-2xl bg-surface-muted/60 p-3 sm:p-4 ring-1 ring-border sm:grid-cols-3">
       <Metric label={t.liveEnergy} value={formatKwh(session.energyKwh, intl)} strong />
       <Metric label={t.livePower} value={formatPower(session.lastPowerW, intl)} strong />
@@ -1197,6 +1218,7 @@ function LiveReadout({
         value={estimate != null ? `≈ ${formatMoney(estimate, intl)}` : formatMoney(session.cost, intl)}
       />
     </dl>
+    </div>
   );
 }
 
