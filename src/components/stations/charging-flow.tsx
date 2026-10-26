@@ -143,8 +143,13 @@ export function ChargingFlow({
    * scan instead.
    */
   const qrMode = initialConnectorId !== undefined;
-  /** In QR mode, nothing is offered until the first live read says who has the gun. */
-  const [synced, setSynced] = useState(!qrMode);
+  /**
+   * Nothing is offered until the first live read: in QR mode it says who has
+   * the gun, and for a signed-in driver whether their own charge (started
+   * from the app, say) is already running here — the start screen used to
+   * show for a few seconds before the charge appeared.
+   */
+  const [synced, setSynced] = useState(!qrMode && !signedIn);
   /** Whether to (re)claim the scanned gun on the next refresh; set each render. */
   const holdRef = useRef(false);
 
@@ -285,9 +290,17 @@ export function ChargingFlow({
 
   const shouldHold =
     qrMode && authed && (step === 'connector' || step === 'plug' || step === 'start');
+  /**
+   * A charge has run on this page. The hold is only for "scanned, not started
+   * yet": once the driver's charge is over and the summary dismissed (or 15
+   * minutes old) the flow is back on the start step, and re-claiming the gun
+   * from there kept it «in use» for the next driver until this tab closed.
+   */
+  const chargedHereRef = useRef(false);
   useEffect(() => {
-    holdRef.current = shouldHold;
-  }, [shouldHold]);
+    if (active) chargedHereRef.current = true;
+    holdRef.current = shouldHold && !chargedHereRef.current;
+  }, [shouldHold, active]);
 
   /**
    * Someone else has the gun this driver scanned. Shown before sign-in too:
@@ -381,7 +394,7 @@ export function ChargingFlow({
   // The server-rendered connector list cannot say who holds a gun; ask now
   // rather than after the first poll interval.
   useEffect(() => {
-    if (!qrMode) return;
+    if (!qrMode && !signedIn) return;
     const timer = setTimeout(() => void refresh(), 0);
     return () => clearTimeout(timer);
     // Only on arrival; the interval below keeps it fresh afterwards.
@@ -587,7 +600,7 @@ export function ChargingFlow({
             </ActionBlock>
           )}
 
-          {qrMode && !synced && step !== 'signin' && step !== 'tag' && (
+          {!synced && step !== 'signin' && step !== 'tag' && (
             <StatusLine title={t.checkingConnector} pending />
           )}
 
@@ -613,7 +626,7 @@ export function ChargingFlow({
             </div>
           )}
 
-          {!qrMode && step === 'connector' && (
+          {!qrMode && synced && step === 'connector' && (
             <div>
               <h2 className="text-base font-semibold text-foreground">{t.stepConnector}</h2>
               <p className="mt-1 text-sm text-muted">
