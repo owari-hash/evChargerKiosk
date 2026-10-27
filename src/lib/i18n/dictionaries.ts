@@ -1209,7 +1209,7 @@ export const mn: Dictionary = {
       Available: 'Сул байна',
       Preparing: 'Бэлтгэж байна',
       Charging: 'Цэнэглэж байна',
-      SuspendedEV: 'Машин түр зогсоосон',
+      SuspendedEV: 'Зогссон',
       SuspendedEVSE: 'Станц түр зогсоосон',
       Finishing: 'Дуусгаж байна',
       Reserved: 'Захиалагдсан',
