@@ -121,6 +121,15 @@ export interface ChargingSession {
   minutesToFull?: number;
   stopReason?: string;
   ebarimt?: EBarimtData;
+  /** The receipt chosen when Charge was pressed; issued automatically at the end. */
+  ebarimtRequest?: EbarimtChoice;
+}
+
+/** Personal or company e-barimt, chosen before the charge starts. */
+export interface EbarimtChoice {
+  type: 'B2C_RECEIPT' | 'B2B_RECEIPT';
+  customerTin?: string;
+  customerName?: string;
 }
 
 export interface PublicUser {

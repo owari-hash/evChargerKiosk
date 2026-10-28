@@ -53,7 +53,9 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
   const [type, setType] = useState<'B2C_RECEIPT' | 'B2B_RECEIPT'>(
     initialType ?? session.ebarimt?.type ?? 'B2C_RECEIPT',
   );
-  const [customerTin, setCustomerTin] = useState(session.ebarimt?.customerTin ?? '');
+  const [customerTin, setCustomerTin] = useState(
+    session.ebarimt?.customerTin ?? session.ebarimtRequest?.customerTin ?? '',
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ebarimt, setEbarimt] = useState<EBarimtData | undefined>(session.ebarimt);
@@ -77,7 +79,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
   useEffect(() => {
     setEbarimt(session.ebarimt);
     setType(initialType ?? session.ebarimt?.type ?? 'B2C_RECEIPT');
-    setCustomerTin(session.ebarimt?.customerTin ?? '');
+    setCustomerTin(session.ebarimt?.customerTin ?? session.ebarimtRequest?.customerTin ?? '');
     setError(null);
   }, [session, initialType]);
 

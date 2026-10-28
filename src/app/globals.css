@@ -283,6 +283,30 @@ html {
   animation: step-glow 1.8s ease-in-out infinite;
 }
 
+/* One-off pulse on the charging card when the driver reaches a new step. */
+@keyframes step-flash {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 70%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--brand) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.step-flash {
+  animation: step-flash 0.8s ease-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-flash,
+  .step-glow {
+    animation: none;
+  }
+}
+
 .pin-cell {
   transition:
     background-color 180ms ease,

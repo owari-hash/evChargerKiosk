@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
-import { Alert, Badge, Button, ButtonLink, Card, Modal } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, Input, Modal } from '@/components/ui';
 import { EbarimtModal } from '@/components/account/ebarimt-modal';
 import { GuestAuthFlow } from './guest-auth-flow';
 import { QuickPayModal } from './quick-pay-modal';
@@ -15,6 +15,7 @@ import {
 } from '@/lib/session-events';
 import type {
   ChargingSession,
+  EbarimtChoice,
   StationAvailability,
   StationConnector,
   TariffZone,
@@ -421,7 +422,7 @@ export function ChargingFlow({
     setError(null);
   }
 
-  async function start() {
+  async function start(ebarimt?: EbarimtChoice) {
     if (!chosen) return;
     if (!isInternal && requireBalanceToStart && walletBalance !== null && walletBalance < minStartBalance) {
       setShowQuickPay(true);
@@ -434,7 +435,7 @@ export function ChargingFlow({
       const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ connectorId: chosen.connectorId }),
+        body: JSON.stringify({ connectorId: chosen.connectorId, ebarimt }),
       });
       const payload = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
       if (!res.ok) {
@@ -478,8 +479,8 @@ export function ChargingFlow({
     setConfirming('start');
   }
 
-  /** The driver said yes in the confirm dialog. */
-  async function confirmYes() {
+  /** The driver said yes in the confirm dialog (with their e-barimt choice on start). */
+  async function confirmYes(ebarimt?: EbarimtChoice) {
     const action = confirming;
     setConfirming(null);
     if (action === 'stop') {
@@ -488,7 +489,7 @@ export function ChargingFlow({
     }
     // Mark as plugged so resolveStep moves to 'start', then fire the request.
     setPlugged(true);
-    await start();
+    await start(ebarimt);
   }
 
   /** Clears the finished session so the driver can charge again. */
@@ -554,6 +555,27 @@ export function ChargingFlow({
   }
 
   const visibleStep = VISIBLE_STEP[step];
+
+  /**
+   * New drivers missed the next step because it changed quietly below the
+   * fold. On each step change the card scrolls into view and flashes once.
+   */
+  const stepCardRef = useRef<HTMLDivElement>(null);
+  const lastStepRef = useRef<number | null>(null);
+  const [flash, setFlash] = useState(false);
+  useEffect(() => {
+    if (!synced) return;
+    const previous = lastStepRef.current;
+    lastStepRef.current = visibleStep;
+    if (previous === null || previous === visibleStep) return;
+    stepCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setFlash(true);
+    const timer = setTimeout(() => setFlash(false), 1600);
+    return () => clearTimeout(timer);
+  }, [visibleStep, synced]);
+
+  /** A step the driver has to act on right now, not one that runs by itself. */
+  const actionStep = step === 'signin' || step === 'connector' || step === 'plug';
   const offline = live.availability === 'offline' && !active;
   const steps = [t.stepSignIn, t.stepConnector, t.stepPlug, t.stepCharge];
   const chosenLabel = chosen ? connectorSummary(chosen, d, intl) : '';
@@ -568,7 +590,14 @@ export function ChargingFlow({
     <div className="space-y-4">
       <Stepper steps={steps} current={visibleStep} finished={step === 'done'} label={t.title} />
 
-      <Card className="p-4 sm:p-5">
+      <div ref={stepCardRef} className="scroll-mt-20">
+      <Card
+        className={cn(
+          'p-4 sm:p-5 transition-shadow',
+          actionStep && !scannedBusy && 'ring-2 ring-brand/50',
+          flash && 'step-flash',
+        )}
+      >
         <div className="space-y-4">
           {offline && (
             <Alert tone="warning" title={d.status.availability.offline} />
@@ -578,6 +607,10 @@ export function ChargingFlow({
             <Alert tone="info" title={t.localOnlyTitle}>
               {t.localOnlyBody}
             </Alert>
+          )}
+
+          {step === 'signin' && !scannedBusy && (
+            <StepHeading n={1} total={steps.length} title={t.stepSignIn} body={t.signInBody} />
           )}
 
           {step === 'signin' && !scannedBusy && (
@@ -628,10 +661,12 @@ export function ChargingFlow({
 
           {!qrMode && synced && step === 'connector' && (
             <div>
-              <h2 className="text-base font-semibold text-foreground">{t.stepConnector}</h2>
-              <p className="mt-1 text-sm text-muted">
-                {free.length === 0 && !offline ? t.connectorBusy : t.connectorBody}
-              </p>
+              <StepHeading
+                n={2}
+                total={steps.length}
+                title={t.stepConnector}
+                body={free.length === 0 && !offline ? t.connectorBusy : t.connectorBody}
+              />
               {scannedUnavailable && free.length > 0 && (
                 <p className="mt-2 text-sm font-medium text-warning">{t.scannedUnavailable}</p>
               )}
@@ -648,19 +683,29 @@ export function ChargingFlow({
           )}
 
           {step === 'plug' && synced && (
-            <ActionBlock
-              title={t.stepPlug}
-              body={chosenLabel ? `${chosenLabel} — ${t.plugBody}` : t.plugBody}
-            >
-              <Button type="button" onClick={confirmPlugged}>
+            <div className="space-y-4">
+              <StepHeading n={3} total={steps.length} title={t.stepPlug} body={chosenLabel || undefined} />
+              <PlugGuide items={[t.plugStep1, t.plugStep2, t.plugStep3]} />
+              <Button
+                type="button"
+                size="lg"
+                className="step-glow w-full text-base font-bold"
+                onClick={confirmPlugged}
+                disabled={offline}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden>
+                  <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+                </svg>
                 {t.plugConfirm}
               </Button>
               {!qrMode && (
-                <Button type="button" variant="ghost" onClick={chooseAnother}>
-                  {t.changeConnector}
-                </Button>
+                <div className="flex justify-center">
+                  <Button type="button" variant="ghost" size="sm" onClick={chooseAnother}>
+                    {t.changeConnector}
+                  </Button>
+                </div>
               )}
-            </ActionBlock>
+            </div>
           )}
 
           {step === 'start' && synced && (
@@ -780,6 +825,7 @@ export function ChargingFlow({
             <div className="space-y-4">
               <StatusLine title={t.doneTitle} body={t.doneBody} />
               <SessionSummary session={session} intl={intl} />
+              <AutoEbarimtStatus session={session} />
               {Boolean(session.ebarimt && (session.ebarimt.receiptId || session.ebarimt.lottery)) && (
                 <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
                   <span className="font-semibold text-brand-strong">✓ {t.ebarimtIssued}</span>
@@ -808,7 +854,9 @@ export function ChargingFlow({
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    setEbarimtModalInitialType(session.ebarimt?.type ?? 'B2C_RECEIPT');
+                    setEbarimtModalInitialType(
+                      session.ebarimt?.type ?? session.ebarimtRequest?.type ?? 'B2C_RECEIPT',
+                    );
                     setShowEbarimtModal(true);
                   }}
                 >
@@ -833,6 +881,7 @@ export function ChargingFlow({
 
         </div>
       </Card>
+      </div>
 
       {step !== 'connector' && !scannedBusy && (
         <Card className="p-4 sm:p-5">
@@ -864,18 +913,24 @@ export function ChargingFlow({
         />
       )}
 
-      {pendingConfirm && (
+      {pendingConfirm === 'stop' && (
         <ConfirmDialog
-          tone={pendingConfirm === 'stop' ? 'danger' : 'primary'}
-          title={pendingConfirm === 'stop' ? t.confirmStopTitle : t.confirmStartTitle}
-          body={
-            pendingConfirm === 'stop'
-              ? t.confirmStopBody
-              : format(t.confirmStartBody, { connector: chosenLabel })
-          }
-          yesLabel={pendingConfirm === 'stop' ? t.confirmStopYes : t.confirmStartYes}
-          noLabel={pendingConfirm === 'stop' ? t.confirmKeep : t.confirmCancel}
+          tone="danger"
+          title={t.confirmStopTitle}
+          body={t.confirmStopBody}
+          yesLabel={t.confirmStopYes}
+          noLabel={t.confirmKeep}
           onYes={() => void confirmYes()}
+          onNo={() => setConfirming(null)}
+        />
+      )}
+
+      {pendingConfirm === 'start' && (
+        <StartDialog
+          body={format(t.confirmStartBody, { connector: chosenLabel })}
+          // Internal users charge free, so there is nothing to receipt.
+          askEbarimt={!isInternal}
+          onYes={(choice) => void confirmYes(choice)}
           onNo={() => setConfirming(null)}
         />
       )}
@@ -956,67 +1011,318 @@ function Stepper({
   finished: boolean;
   label: string;
 }) {
+  // Every step is labelled on phones too: new drivers scanning a sticker
+  // need to see the whole path, not only a thin progress bar.
   return (
-    <div className="space-y-1.5 sm:space-y-0">
-      <ol aria-label={label} className="grid grid-cols-4 gap-1 sm:gap-1.5">
-        {steps.map((title, index) => {
-          const state =
-            finished || index < current ? 'done' : index === current ? 'current' : 'todo';
-          return (
-            <li
-              key={title}
-              aria-current={state === 'current' ? 'step' : undefined}
-              className="min-w-0"
-            >
-              <div
+    <ol
+      aria-label={label}
+      className="grid grid-cols-4 rounded-2xl bg-surface p-3 ring-1 ring-border shadow-[var(--shadow-card)]"
+    >
+      {steps.map((title, index) => {
+        const state =
+          finished || index < current ? 'done' : index === current ? 'current' : 'todo';
+        return (
+          <li
+            key={title}
+            aria-current={state === 'current' ? 'step' : undefined}
+            className="relative flex min-w-0 flex-col items-center text-center"
+          >
+            {/* Line to the next step, drawn behind the circles. */}
+            {index < steps.length - 1 && (
+              <span
+                aria-hidden
                 className={cn(
-                  'h-1.5 rounded-full',
-                  state === 'todo'
-                    ? 'bg-surface-muted ring-1 ring-border'
-                    : state === 'current'
-                      ? 'step-glow bg-brand'
-                      : 'bg-brand',
+                  'absolute left-1/2 top-[18px] h-1 w-full -translate-y-1/2 rounded-full',
+                  finished || index < current ? 'bg-brand' : 'bg-surface-muted ring-1 ring-border',
                 )}
               />
-              <p
-                className={cn(
-                  'mt-1.5 hidden sm:flex items-start gap-1 sm:mt-2 sm:gap-1.5 sm:text-xs md:text-sm sm:leading-4',
-                  state === 'todo' ? 'text-muted' : 'font-semibold text-foreground',
-                )}
-              >
-                <span
-                  aria-hidden
-                  className={cn(
-                    'grid size-3.5 shrink-0 place-items-center rounded-full text-[9px] font-bold sm:size-5 sm:text-[11px]',
-                    state === 'todo'
-                      ? 'bg-surface-muted text-muted ring-1 ring-border'
-                      : state === 'current'
-                        ? 'step-glow bg-brand text-brand-contrast'
-                        : 'bg-brand text-brand-contrast',
-                  )}
-                >
-                  {state === 'done' ? '✓' : index + 1}
-                </span>
-                <span className="min-w-0 break-words leading-tight">{title}</span>
-              </p>
-            </li>
-          );
-        })}
-      </ol>
-      {/* Mobile step indicator under the 4 progress bars */}
-      <div className="flex items-center justify-between text-xs sm:hidden pt-0.5">
-        <div className="flex items-center gap-1.5 font-semibold text-foreground min-w-0">
-          <span className="grid size-4 shrink-0 place-items-center rounded-full bg-brand text-[10px] font-bold text-brand-contrast">
-            {finished ? '✓' : current + 1}
-          </span>
-          <span className="truncate">{finished ? steps[steps.length - 1] : steps[current]}</span>
-        </div>
-        <span className="text-[11px] text-muted shrink-0 ml-2 tabular-nums">
-          {finished ? `${steps.length}/${steps.length}` : `${current + 1}/${steps.length}`}
-        </span>
+            )}
+            <span
+              aria-hidden
+              className={cn(
+                'relative grid size-9 place-items-center rounded-full text-sm font-bold transition-transform',
+                state === 'todo'
+                  ? 'bg-surface-muted text-muted ring-1 ring-border'
+                  : state === 'current'
+                    ? 'step-glow scale-110 bg-brand text-brand-contrast ring-4 ring-brand/25'
+                    : 'bg-brand text-brand-contrast',
+              )}
+            >
+              {state === 'done' ? '✓' : index + 1}
+            </span>
+            <span
+              className={cn(
+                'mt-2 line-clamp-2 px-0.5 text-[11px] leading-tight sm:text-xs',
+                state === 'current'
+                  ? 'font-bold text-brand-strong'
+                  : state === 'done'
+                    ? 'font-semibold text-foreground'
+                    : 'text-muted',
+              )}
+            >
+              {title}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** "Step 2 of 4 · do this now" — the one thing the driver should do next. */
+function StepHeading({
+  n,
+  total,
+  title,
+  body,
+}: {
+  n: number;
+  total: number;
+  title: string;
+  body?: string;
+}) {
+  const { d } = useI18n();
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        aria-hidden
+        className="step-glow grid size-11 shrink-0 place-items-center rounded-full bg-brand text-lg font-extrabold text-brand-contrast"
+      >
+        {n}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-brand-strong">
+          {format(d.flow.stepOf, { n, total })} · {d.flow.nextStepHint}
+        </p>
+        <h2 className="text-lg font-bold leading-tight text-foreground">{title}</h2>
+        {body && <p className="mt-1 text-sm leading-6 text-muted">{body}</p>}
       </div>
     </div>
   );
+}
+
+/** Picture plus numbered how-to for plugging in, so nobody presses Charge first. */
+function PlugGuide({ items }: { items: string[] }) {
+  return (
+    <div className="flex items-center gap-4 rounded-2xl bg-brand-soft/60 p-4 ring-1 ring-brand/25">
+      <div aria-hidden className="relative grid size-16 shrink-0 place-items-center rounded-2xl bg-surface text-brand ring-1 ring-brand/30">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 2v5M15 2v5" />
+          <path d="M6 7h12v3a6 6 0 0 1-12 0V7Z" />
+          <path d="M12 16v6" />
+        </svg>
+        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 animate-bounce text-lg text-brand">↓</span>
+      </div>
+      <ol className="min-w-0 space-y-1.5">
+        {items.map((item, i) => (
+          <li key={item} className="flex gap-2 text-sm leading-5 text-foreground">
+            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand text-[11px] font-bold text-brand-contrast">
+              {i + 1}
+            </span>
+            <span className="min-w-0">{item}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+const EBARIMT_CHOICE_KEY = 'ebarimt_choice';
+
+function readSavedChoice(): EbarimtChoice | null {
+  try {
+    const raw = localStorage.getItem(EBARIMT_CHOICE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as EbarimtChoice) : null;
+    return parsed?.type === 'B2B_RECEIPT' || parsed?.type === 'B2C_RECEIPT' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveChoice(choice: EbarimtChoice) {
+  try {
+    localStorage.setItem(EBARIMT_CHOICE_KEY, JSON.stringify(choice));
+  } catch {}
+}
+
+interface OrgCheck {
+  valid?: boolean;
+  name?: string;
+  tin?: string;
+  error?: string;
+}
+
+/**
+ * "Start charging?" — and which e-barimt the driver wants: personal or a
+ * company. The choice goes with the start request and the receipt is issued
+ * automatically, for the billed amount, when the charge ends.
+ */
+function StartDialog({
+  body,
+  askEbarimt,
+  onYes,
+  onNo,
+}: {
+  body: string;
+  askEbarimt: boolean;
+  onYes: (choice?: EbarimtChoice) => void;
+  onNo: () => void;
+}) {
+  const { d } = useI18n();
+  const t = d.flow;
+  const [saved] = useState(readSavedChoice);
+  const [type, setType] = useState<EbarimtChoice['type']>(saved?.type ?? 'B2C_RECEIPT');
+  const [tin, setTin] = useState(saved?.type === 'B2B_RECEIPT' ? (saved.customerTin ?? '') : '');
+  /** The last lookup, tagged with the number it was for. */
+  const [lookup, setLookup] = useState<{ query: string; result: OrgCheck } | null>(null);
+  const clean = tin.trim();
+  const wantLookup = askEbarimt && type === 'B2B_RECEIPT' && clean.length >= 5;
+  const org = wantLookup && lookup?.query === clean ? lookup.result : null;
+  const checking = wantLookup && !org;
+
+  // Live lookup of the company, so the driver sees its name before starting.
+  useEffect(() => {
+    if (!wantLookup) return;
+    let alive = true;
+    const timer = setTimeout(async () => {
+      let result: OrgCheck;
+      try {
+        const res = await fetch(`/app-api/sessions/ebarimt/check-org/${encodeURIComponent(clean)}`);
+        const data = (await res.json().catch(() => null)) as { result?: OrgCheck; error?: string } | null;
+        result = res.ok && data?.result ? data.result : { valid: false, error: data?.error };
+      } catch {
+        result = { valid: false };
+      }
+      if (alive) setLookup({ query: clean, result });
+    }, 350);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [wantLookup, clean]);
+
+  const orgOk = type === 'B2C_RECEIPT' || (clean.length >= 5 && !checking && Boolean(org?.valid));
+
+  function confirm() {
+    if (!askEbarimt) return onYes(undefined);
+    if (!orgOk) return;
+    const choice: EbarimtChoice =
+      type === 'B2B_RECEIPT'
+        ? { type, customerTin: org?.tin || clean, customerName: org?.name }
+        : { type };
+    saveChoice(choice);
+    onYes(choice);
+  }
+
+  const option = (value: EbarimtChoice['type'], icon: string, label: string) => (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={type === value}
+      onClick={() => setType(value)}
+      className={cn(
+        'flex h-14 items-center justify-center gap-2 rounded-xl text-sm font-bold ring-1 transition',
+        type === value
+          ? 'bg-brand-soft text-brand-strong ring-2 ring-brand'
+          : 'bg-surface-muted/50 text-foreground ring-border hover:ring-brand/40',
+      )}
+    >
+      <span aria-hidden className="text-lg">{icon}</span>
+      {label}
+    </button>
+  );
+
+  return (
+    <Modal onClose={onNo} maxWidth="sm">
+      <div className="px-6 pt-6 pb-4 text-center">
+        <span aria-hidden className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-brand">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="size-7">
+            <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+          </svg>
+        </span>
+        <h3 className="mt-4 text-lg font-bold text-foreground">{t.confirmStartTitle}</h3>
+        <p className="mt-1.5 text-sm leading-6 text-muted">{body}</p>
+      </div>
+
+      {askEbarimt && (
+        <div className="space-y-3 border-t border-border px-6 py-4">
+          <p className="text-sm font-semibold text-foreground">{t.ebarimtTitle}</p>
+          <div role="radiogroup" aria-label={t.ebarimtTitle} className="grid grid-cols-2 gap-2">
+            {option('B2C_RECEIPT', '👤', t.ebarimtPersonal)}
+            {option('B2B_RECEIPT', '🏢', t.ebarimtOrg)}
+          </div>
+          {type === 'B2B_RECEIPT' && (
+            <div className="space-y-1.5">
+              <label htmlFor="start-ebarimt-tin" className="block text-xs font-medium text-muted">
+                {t.ebarimtOrgLabel}
+              </label>
+              <Input
+                id="start-ebarimt-tin"
+                inputMode="numeric"
+                autoComplete="off"
+                value={tin}
+                placeholder={t.ebarimtOrgPlaceholder}
+                onChange={(e) => setTin(e.target.value.replace(/\s/g, ''))}
+              />
+              {checking ? (
+                <p className="text-xs text-muted">{t.ebarimtOrgChecking}</p>
+              ) : org?.valid ? (
+                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  ✓ {org.name || org.tin || clean}
+                </p>
+              ) : org ? (
+                <p className="text-xs font-medium text-danger">{org.error || t.ebarimtOrgInvalid}</p>
+              ) : null}
+            </div>
+          )}
+          <p className="text-xs leading-5 text-muted">{t.ebarimtAutoNote}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 border-t border-border px-6 py-4">
+        <Button type="button" variant="danger" size="lg" onClick={onNo}>
+          {t.confirmCancel}
+        </Button>
+        <Button type="button" size="lg" onClick={confirm} disabled={!orgOk} autoFocus>
+          {t.confirmStartYes}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * After the charge: the receipt chosen at start is being issued in the
+ * background. Shown until it lands; after two minutes without it, the
+ * driver is told to get it by hand.
+ */
+function AutoEbarimtStatus({ session }: { session: ChargingSession }) {
+  const { d } = useI18n();
+  const t = d.flow;
+  const request = session.ebarimtRequest;
+  const issued = Boolean(session.ebarimt?.receiptId || session.ebarimt?.lottery);
+
+  // Flips once two minutes have passed since the charge ended.
+  const [late, setLate] = useState(false);
+  const stoppedAt = session.stopTimestamp;
+  useEffect(() => {
+    if (!stoppedAt) return;
+    const remaining = new Date(stoppedAt).getTime() + 2 * 60 * 1000 - Date.now();
+    const timer = setTimeout(() => setLate(true), Math.max(0, remaining));
+    return () => clearTimeout(timer);
+  }, [stoppedAt]);
+
+  if (!request || issued || !(session.cost && session.cost > 0)) return null;
+
+  if (late || session.ebarimt?.status === 'FAILED') {
+    return <p className="text-sm font-medium text-warning">{t.ebarimtFailed}</p>;
+  }
+
+  const who =
+    request.type === 'B2B_RECEIPT'
+      ? `🏢 ${t.ebarimtOrg} · ${request.customerName || request.customerTin || ''}`
+      : `👤 ${t.ebarimtPersonal}`;
+  return <StatusLine title={t.ebarimtPending} body={who} pending />;
 }
 
 function ActionBlock({
