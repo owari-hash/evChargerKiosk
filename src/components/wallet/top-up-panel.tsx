@@ -991,12 +991,7 @@ function TokiIcon() {
 
 function QrIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <path strokeLinecap="round" d="M14 14h3v3M21 14v.01M14 21h7v-4" />
-    </svg>
+    <Image src="/qpay-icon.svg" alt="QPay" aria-hidden width={20} height={20} className="size-5 object-contain" />
   );
 }
 
