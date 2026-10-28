@@ -1605,6 +1605,15 @@ function ConnectorPicker({
                   {faultCode && ` · ${faultCode}`}
                 </span>
               )}
+              {live && c.minutesToFull != null && (
+                <span className="mt-0.5 flex items-center gap-1 text-xs font-bold text-brand">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="size-3.5 shrink-0" aria-hidden>
+                    <circle cx="12" cy="12" r="9" />
+                    <path strokeLinecap="round" d="M12 7v5l3 2" />
+                  </svg>
+                  {toFullLabel(c.minutesToFull, d.flow)}
+                </span>
+              )}
             </span>
             {/* Someone scanned this gun and is about to start: the station
                 still reports it Available, but it is not free. */}
@@ -1679,14 +1688,7 @@ function LiveReadout({
 
   // Only stations that report battery % get an estimate.
   const toFull = session.minutesToFull;
-  const toFullText =
-    toFull == null
-      ? undefined
-      : toFull <= 1
-        ? t.toFullDone
-        : toFull < 60
-          ? format(t.toFullMinutes, { minutes: toFull })
-          : format(t.toFullHours, { hours: Math.floor(toFull / 60), minutes: toFull % 60 });
+  const toFullText = toFull == null ? undefined : toFullLabel(toFull, t);
 
   return (
     <div className="space-y-2.5">
@@ -1714,6 +1716,13 @@ function LiveReadout({
     </dl>
     </div>
   );
+}
+
+/** "≈ 35 мин дүүрэхэд", "≈ 1 ц 20 мин дүүрэхэд" — the app's wording. */
+function toFullLabel(minutes: number, t: ReturnType<typeof useI18n>['d']['flow']): string {
+  if (minutes <= 1) return t.toFullDone;
+  if (minutes < 60) return format(t.toFullMinutes, { minutes });
+  return format(t.toFullHours, { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
 }
 
 function clock(minute: number): string {

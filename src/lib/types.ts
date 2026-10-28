@@ -34,6 +34,8 @@ export interface StationConnector {
   inUseByOther?: boolean;
   lastPowerW?: number;
   lastSocPercent?: number;
+  /** Car charging here that reports its battery: estimated minutes until full. */
+  minutesToFull?: number;
   statusTimestamp?: string;
 }
 
