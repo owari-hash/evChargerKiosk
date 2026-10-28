@@ -700,7 +700,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                   </svg>
                   <div className="space-y-0.5">
                     {ebarimtStatus.type === 'ORGANIZATION' && (
-                      <p className="font-semibold text-foreground">🏢 {ebarimtStatus.name}</p>
+                      <p className="text-foreground">{ebarimtStatus.name}</p>
                     )}
                     <p>{ebarimtStatus.message}</p>
                   </div>

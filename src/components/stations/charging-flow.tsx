@@ -859,14 +859,14 @@ export function ChargingFlow({
               <AutoEbarimtStatus session={session} />
               {Boolean(session.ebarimt && (session.ebarimt.receiptId || session.ebarimt.lottery)) && (
                 <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
-                  <span className="font-semibold text-brand-strong">✓ {t.ebarimtIssued}</span>
+                  <span className="text-brand-strong">{t.ebarimtIssued}</span>
                   {session.ebarimt?.type === 'B2B_RECEIPT' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      🏢 Байгууллага ({session.ebarimt.customerTin})
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">
+                      Байгууллага ({session.ebarimt.customerTin})
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted border border-border px-2.5 py-0.5 text-xs font-medium text-muted">
-                      👤 Хувь хүн
+                      Хувь хүн
                     </span>
                   )}
                   {session.ebarimt?.lottery && (
@@ -1009,7 +1009,7 @@ function useIdleNudge(key: string | null): boolean {
   return key !== null && firedFor === key;
 }
 
-/** A bouncing "👇 do this" bubble, scrolled into view when it appears. */
+/** A bouncing "do this" bubble with a down arrow, scrolled into view when it appears. */
 function NudgeHint({ text }: { text: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1017,11 +1017,19 @@ function NudgeHint({ text }: { text: string }) {
   }, []);
   return (
     <div ref={ref} role="status" className="flex justify-center">
-      <div className="nudge-bounce inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-contrast shadow-lg">
-        <span aria-hidden className="text-lg leading-none">👇</span>
+      <div className="nudge-bounce inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-medium text-brand-contrast shadow-lg">
+        <ArrowDown />
         {text}
       </div>
     </div>
+  );
+}
+
+function ArrowDown() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="size-4 shrink-0" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0-6-6m6 6 6-6" />
+    </svg>
   );
 }
 
@@ -1298,20 +1306,19 @@ function StartDialog({
     onYes(choice);
   }
 
-  const option = (value: EbarimtChoice['type'], icon: string, label: string) => (
+  const option = (value: EbarimtChoice['type'], label: string) => (
     <button
       type="button"
       role="radio"
       aria-checked={type === value}
       onClick={() => setType(value)}
       className={cn(
-        'flex h-14 items-center justify-center gap-2 rounded-xl text-sm font-bold ring-1 transition',
+        'flex h-12 items-center justify-center rounded-xl text-sm ring-1 transition',
         type === value
           ? 'bg-brand-soft text-brand-strong ring-2 ring-brand'
           : 'bg-surface-muted/50 text-foreground ring-border hover:ring-brand/40',
       )}
     >
-      <span aria-hidden className="text-lg">{icon}</span>
       {label}
     </button>
   );
@@ -1332,8 +1339,8 @@ function StartDialog({
         <div className="space-y-3 border-t border-border px-6 py-4">
           <p className="text-sm font-semibold text-foreground">{t.ebarimtTitle}</p>
           <div role="radiogroup" aria-label={t.ebarimtTitle} className="grid grid-cols-2 gap-2">
-            {option('B2C_RECEIPT', '👤', t.ebarimtPersonal)}
-            {option('B2B_RECEIPT', '🏢', t.ebarimtOrg)}
+            {option('B2C_RECEIPT', t.ebarimtPersonal)}
+            {option('B2B_RECEIPT', t.ebarimtOrg)}
           </div>
           {type === 'B2B_RECEIPT' && (
             <div className="space-y-1.5">
@@ -1365,8 +1372,8 @@ function StartDialog({
 
       {nudgeYes && (
         <div className="flex justify-end px-6 pt-3">
-          <span className="nudge-bounce inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-brand-contrast shadow-lg">
-            <span aria-hidden>👇</span>
+          <span className="nudge-bounce inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-medium text-brand-contrast shadow-lg">
+            <ArrowDown />
             {t.nudgeStartYes}
           </span>
         </div>
@@ -1419,8 +1426,8 @@ function AutoEbarimtStatus({ session }: { session: ChargingSession }) {
 
   const who =
     request.type === 'B2B_RECEIPT'
-      ? `🏢 ${t.ebarimtOrg} · ${request.customerName || request.customerTin || ''}`
-      : `👤 ${t.ebarimtPersonal}`;
+      ? `${t.ebarimtOrg} · ${request.customerName || request.customerTin || ''}`
+      : t.ebarimtPersonal;
   return <StatusLine title={t.ebarimtPending} body={who} pending />;
 }
 

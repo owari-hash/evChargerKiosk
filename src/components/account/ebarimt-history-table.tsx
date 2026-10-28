@@ -148,7 +148,7 @@ export function EbarimtHistoryTable({
                             </span>
                           ) : (
                             <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
-                              🏢 Байгууллага
+                              Байгууллага
                             </span>
                           )}
                           {r.sessionObj.ebarimt?.status === 'REFUNDED' && (

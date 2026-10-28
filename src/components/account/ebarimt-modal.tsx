@@ -40,6 +40,16 @@ function ScanIcon({ className = 'size-4' }: { className?: string }) {
   );
 }
 
+/** One line of the charge summary: label left, amount right. */
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 px-4 py-2.5">
+      <dt className="text-muted">{label}</dt>
+      <dd className="tabular-nums text-foreground">{value}</dd>
+    </div>
+  );
+}
+
 interface OrgCheckResult {
   valid?: boolean;
   name?: string;
@@ -224,33 +234,28 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
       />
 
       <div className="space-y-4 px-5 sm:px-6 py-5">
-        {/* Charging Summary Box */}
-        <div className="rounded-2xl bg-surface-muted/70 border border-border/60 p-3.5 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-muted">Хэрэглэсэн эрчим хүч:</span>
-            <span className="font-semibold text-foreground font-mono">{formatKwh(session.energyKwh, 'mn')}</span>
-          </div>
-          {session.feeAmount != null && session.feeAmount > 0 && (
-            <>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-muted">{d.account.sessions.energyCost}:</span>
-                <span className="font-semibold text-foreground font-mono">
-                  {formatMoney(session.energyCost, 'mn')}
-                </span>
-              </div>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-muted">
-                  {format(d.account.sessions.serviceFee, { percent: session.feePercent ?? '—' })}:
-                </span>
-                <span className="font-semibold text-foreground font-mono">
-                  {formatMoney(session.feeAmount, 'mn')}
-                </span>
-              </div>
-            </>
-          )}
-          <div className="mt-2.5 pt-2.5 flex items-center justify-between border-t border-border/60">
-            <span className="font-medium text-foreground">Нийт төлбөр:</span>
-            <span className="text-base font-bold text-brand-strong font-mono">{formatMoney(session.cost ?? 0, 'mn')}</span>
+        {/* Charging summary, laid out like a receipt */}
+        <div className="overflow-hidden rounded-2xl border border-border">
+          <dl className="divide-y divide-border/60 text-sm">
+            <SummaryRow label="Цэнэглэсэн хэмжээ" value={formatKwh(session.energyKwh, 'mn')} />
+            {session.feeAmount != null && session.feeAmount > 0 && (
+              <>
+                <SummaryRow
+                  label="Эрчим хүчний төлбөр"
+                  value={formatMoney(session.energyCost, 'mn')}
+                />
+                <SummaryRow
+                  label={format(d.account.sessions.serviceFee, { percent: session.feePercent ?? '—' })}
+                  value={formatMoney(session.feeAmount, 'mn')}
+                />
+              </>
+            )}
+          </dl>
+          <div className="flex items-baseline justify-between gap-4 border-t border-border bg-surface-muted/50 px-4 py-3.5">
+            <span className="text-sm text-muted">Нийт төлбөр</span>
+            <span className="text-xl font-semibold tracking-tight tabular-nums text-foreground">
+              {formatMoney(session.cost ?? 0, 'mn')}
+            </span>
           </div>
         </div>
 
@@ -264,9 +269,9 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
             {/* Locked Status Badge */}
             <div className="flex items-center justify-between rounded-xl bg-surface-muted/60 border border-border/50 px-3.5 py-2.5 text-xs">
               <span className="text-muted">Баримтын төлөв:</span>
-              <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
-                {isB2B ? '🏢 Байгууллага (B2B)' : '👤 Хувь хүн (B2C)'}
-                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold">Олгогдсон</span>
+              <span className="inline-flex items-center gap-1.5 text-foreground">
+                {isB2B ? 'Байгууллага' : 'Хувь хүн'}
+                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Олгогдсон</span>
               </span>
             </div>
 
@@ -386,21 +391,20 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
              ========================================================================= */
           <div className="space-y-4">
             {/* Tab Selection: Хувь хүн (B2C) vs Байгууллага (B2B) */}
-            <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface-muted p-1 text-xs font-semibold">
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-muted p-1 text-sm">
               <button
                 type="button"
                 onClick={() => {
                   setType('B2C_RECEIPT');
                   setError(null);
                 }}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                className={`rounded-lg py-2 transition ${
                   type === 'B2C_RECEIPT'
                     ? 'bg-surface text-foreground shadow-sm'
                     : 'text-muted hover:text-foreground'
                 }`}
               >
-                <span>👤</span>
-                <span>Хувь хүн (B2C)</span>
+                Хувь хүн
               </button>
               <button
                 type="button"
@@ -408,14 +412,13 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
                   setType('B2B_RECEIPT');
                   setError(null);
                 }}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                className={`rounded-lg py-2 transition ${
                   type === 'B2B_RECEIPT'
                     ? 'bg-surface text-foreground shadow-sm'
                     : 'text-muted hover:text-foreground'
                 }`}
               >
-                <span>🏢</span>
-                <span>Байгууллага (B2B)</span>
+                Байгууллага
               </button>
             </div>
 
@@ -437,7 +440,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
                     loading={loading}
                     className="flex-1"
                   >
-                    👤 Хувь хүнээр авах
+                    Хувь хүнээр авах
                   </Button>
                 </div>
               </div>
@@ -468,17 +471,15 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
                 )}
 
                 {orgData?.valid && (
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        🏢 {orgData.name}
-                      </span>
-                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                        ✓ Баталгаажсан
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 truncate text-foreground">{orgData.name}</span>
+                      <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-400">
+                        Баталгаажсан
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted text-[11px]">
-                      <span>ТТД: <strong className="text-foreground font-mono">{orgData.tin}</strong></span>
+                    <div className="flex items-center gap-2 text-muted text-xs">
+                      <span>ТТД: <span className="tabular-nums text-foreground">{orgData.tin}</span></span>
                       <span>·</span>
                       <span>{orgData.vatPayer ? 'НӨАТ төлөгч' : 'НӨАТ төлөгч биш'}</span>
                     </div>
@@ -486,9 +487,8 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
                 )}
 
                 {orgData && !orgData.valid && !orgChecking && (
-                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>{orgData.error || 'Байгууллагын регистрийн дугаар хүчингүй байна'}</span>
+                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 text-xs text-rose-600 dark:text-rose-400">
+                    {orgData.error || 'Байгууллагын регистрийн дугаар хүчингүй байна'}
                   </div>
                 )}
 
@@ -504,7 +504,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
                     disabled={!orgData?.valid && customerTin.trim().length < 5}
                     className="flex-1"
                   >
-                    🏢 Байгууллагаар авах
+                    Байгууллагаар авах
                   </Button>
                 </div>
               </div>
