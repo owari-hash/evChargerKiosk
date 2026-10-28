@@ -64,9 +64,16 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
 
   const [selected, setSelected] = useState<number | null>(null);
   const [custom, setCustom] = useState('');
-  const [tokiMode, setTokiMode] = useState<'qr' | 'phone'>('qr');
+  const [tokiMode, setTokiMode] = useState<'app' | 'qr' | 'phone'>('app');
   const [tokiPhone, setTokiPhone] = useState('');
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    // Default to QR on desktop/kiosk, app deeplink on mobile
+    if (typeof window !== 'undefined' && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      setTokiMode('qr');
+    }
+  }, []);
   // Back from the bank's card page: start in whatever state the payment is in.
   // A still-open payment lands on the "checking" card and is polled from there.
   const returnedOpen =
@@ -136,7 +143,7 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
       const payload: Record<string, unknown> = { amount, method: kind };
       if (kind === 'card' && savedEnabled) payload.saveCard = saveCard;
       if (kind === 'toki') {
-        payload.tokiMethod = tokiMode === 'phone' ? 'PHONE' : 'QR';
+        payload.tokiMethod = tokiMode === 'phone' ? 'PHONE' : tokiMode === 'app' ? 'DEEPLINK' : 'QR';
         if (tokiMode === 'phone') {
           const cleanPhone = tokiPhone.trim();
           if (!cleanPhone) {
@@ -174,6 +181,13 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         setRedirecting(true);
         window.location.assign(data.invoice.paymentUrl);
         return;
+      }
+
+      if (kind === 'toki' && tokiMode === 'app') {
+        const link = data.invoice.tokiDeeplink || data.invoice.deeplinks?.[0]?.link;
+        if (link) {
+          window.location.assign(link);
+        }
       }
 
       setInvoice(data.invoice);
@@ -420,8 +434,13 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
     );
   }
 
-  // ---- Awaiting a Toki Phone Push ------------------------------------------
-  if (invoice && invoice.provider === 'TOKI' && invoice.tokiPhoneNo) {
+  // ---- Awaiting a Toki payment (Deeplink or Phone Push) ---------------------
+  if (
+    invoice &&
+    invoice.provider === 'TOKI' &&
+    (!invoice.qrImage || invoice.tokiPhoneNo || invoice.tokiDeeplink || tokiMode === 'app')
+  ) {
+    const deeplink = invoice.tokiDeeplink || invoice.deeplinks?.[0]?.link;
     return (
       <Panel title={t.tokiTitle}>
         <div className="space-y-4 text-center">
@@ -429,18 +448,27 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
           <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-surface-muted ring-1 ring-border">
             <Image src="/toki.png" alt="Toki" width={48} height={48} className="size-12 object-contain" />
           </div>
-          <p className="text-sm font-semibold text-foreground">
-            Таны Toki апп руу ({invoice.tokiPhoneNo}) нэхэмжлэх илгээлээ.
-          </p>
-          <WaitingLine text={t.tokiBody} />
-          {invoice.deeplinks?.[0]?.link && (
-            <a
-              href={invoice.deeplinks[0].link}
-              className="inline-flex items-center text-sm font-semibold text-brand hover:underline"
-            >
-              Toki апп нээх
-            </a>
+          {invoice.tokiPhoneNo ? (
+            <p className="text-sm font-semibold text-foreground">
+              Таны Toki апп руу ({invoice.tokiPhoneNo}) нэхэмжлэх илгээлээ.
+            </p>
+          ) : (
+            <p className="text-sm font-semibold text-foreground">
+              Toki апп дээр төлбөрөө баталгаажуулна уу.
+            </p>
           )}
+          {deeplink && (
+            <div className="pt-1">
+              <a
+                href={deeplink}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast shadow-sm transition hover:bg-brand-strong"
+              >
+                <TokiIcon />
+                Toki апп нээх
+              </a>
+            </div>
+          )}
+          <WaitingLine text={t.tokiBody} />
           <InvoiceActions
             checking={checking}
             checkLabel={checking ? ti.checking : ti.checkNow}
@@ -477,6 +505,18 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
           )}
 
           <p className="text-center text-sm text-muted">{ti.instruction}</p>
+
+          {isToki && (invoice.tokiDeeplink || invoice.deeplinks?.[0]?.link) && (
+            <div className="pt-1">
+              <a
+                href={invoice.tokiDeeplink || invoice.deeplinks?.[0]?.link}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast shadow-sm transition hover:bg-brand-strong"
+              >
+                <TokiIcon />
+                Toki апп-аар төлөх
+              </a>
+            </div>
+          )}
 
           {invoice.deeplinks && invoice.deeplinks.length > 0 && (
             <ul className="grid grid-cols-3 min-[360px]:grid-cols-4 gap-2 sm:grid-cols-6">
@@ -554,7 +594,9 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
           : method.kind === 'toki'
             ? tokiMode === 'phone'
               ? `Toki апп руу илгээх · ${money(amount)}`
-              : format(t.ctaToki, { amount: money(amount) })
+              : tokiMode === 'app'
+                ? `Toki апп-аар төлөх · ${money(amount)}`
+                : format(t.ctaToki, { amount: money(amount) })
             : format(t.ctaQr, { amount: money(amount) });
   const ctaBusyLabel = redirecting
     ? t.redirecting
@@ -786,10 +828,20 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
               </label>
             )}
 
-            {/* Toki mode selection: QR or direct Phone Push */}
+            {/* Toki mode selection: Toki App (deeplink), QR, or direct Phone Push */}
             {method.kind === 'toki' && (
               <div className="mt-3 space-y-2.5">
-                <div className="inline-flex rounded-lg bg-surface-muted p-1 text-xs font-semibold">
+                <div className="inline-flex flex-wrap rounded-lg bg-surface-muted p-1 text-xs font-semibold gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setTokiMode('app')}
+                    className={cn(
+                      'rounded-md px-3 py-1.5 transition cursor-pointer',
+                      tokiMode === 'app' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground',
+                    )}
+                  >
+                    Toki апп
+                  </button>
                   <button
                     type="button"
                     onClick={() => setTokiMode('qr')}
@@ -808,7 +860,7 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
                       tokiMode === 'phone' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground',
                     )}
                   >
-                    Утасны дугаараар нэхэмжлэх
+                    Утасны дугаар
                   </button>
                 </div>
                 {tokiMode === 'phone' && (
@@ -1001,11 +1053,22 @@ function InvoiceActions({
   onCancel: () => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5">
-      <Button size="lg" className="w-full justify-center" loading={checking} onClick={onCheck}>
+    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+      <Button
+        size="md"
+        className="h-11 sm:h-12 w-full justify-center px-2 text-xs min-[380px]:text-sm sm:text-base font-semibold truncate"
+        loading={checking}
+        onClick={onCheck}
+        title={checkLabel}
+      >
         {checkLabel}
       </Button>
-      <Button size="lg" variant="danger" className="w-full justify-center" onClick={onCancel}>
+      <Button
+        size="md"
+        variant="danger"
+        className="h-11 sm:h-12 w-full justify-center px-2 text-xs min-[380px]:text-sm sm:text-base font-semibold"
+        onClick={onCancel}
+      >
         {cancelLabel}
       </Button>
     </div>
