@@ -300,9 +300,25 @@ html {
   animation: step-flash 0.8s ease-out 2;
 }
 
+/* Idle hint: a gentle bounce pointing at what to do next. */
+@keyframes nudge-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.nudge-bounce {
+  animation: nudge-bounce 0.9s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .step-flash,
-  .step-glow {
+  .step-glow,
+  .nudge-bounce {
     animation: none;
   }
 }

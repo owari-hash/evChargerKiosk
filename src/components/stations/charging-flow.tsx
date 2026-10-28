@@ -574,6 +574,23 @@ export function ChargingFlow({
     return () => clearTimeout(timer);
   }, [visibleStep, synced]);
 
+  /**
+   * A driver who has not touched anything for 10 seconds on a step is
+   * usually stuck. Point at what to do next and light up the next step.
+   * Steps 1–3 are pointed here; step 4's «Тийм, эхлүүлье» inside StartDialog.
+   */
+  const nudgeStep =
+    !synced || (live.availability === 'offline' && !active) || pendingConfirm || scannedBusy
+      ? null
+      : step === 'signin'
+        ? 'signin'
+        : step === 'connector' && !qrMode
+          ? 'connector'
+          : step === 'plug'
+            ? 'plug'
+            : null;
+  const showNudge = useIdleNudge(nudgeStep);
+
   /** A step the driver has to act on right now, not one that runs by itself. */
   const actionStep = step === 'signin' || step === 'connector' || step === 'plug';
   const offline = live.availability === 'offline' && !active;
@@ -588,7 +605,13 @@ export function ChargingFlow({
 
   return (
     <div className="space-y-4">
-      <Stepper steps={steps} current={visibleStep} finished={step === 'done'} label={t.title} />
+      <Stepper
+        steps={steps}
+        current={visibleStep}
+        finished={step === 'done'}
+        label={t.title}
+        pointTo={showNudge ? visibleStep + 1 : undefined}
+      />
 
       <div ref={stepCardRef} className="scroll-mt-20">
       <Card
@@ -612,6 +635,8 @@ export function ChargingFlow({
           {step === 'signin' && !scannedBusy && (
             <StepHeading n={1} total={steps.length} title={t.stepSignIn} body={t.signInBody} />
           )}
+
+          {showNudge && step === 'signin' && <NudgeHint text={t.nudgeSignIn} />}
 
           {step === 'signin' && !scannedBusy && (
             <GuestAuthFlow
@@ -670,6 +695,11 @@ export function ChargingFlow({
               {scannedUnavailable && free.length > 0 && (
                 <p className="mt-2 text-sm font-medium text-warning">{t.scannedUnavailable}</p>
               )}
+              {showNudge && (
+                <div className="mt-4">
+                  <NudgeHint text={t.nudgeConnector} />
+                </div>
+              )}
               <ConnectorPicker
                 className="mt-4"
                 connectors={ordered}
@@ -686,10 +716,11 @@ export function ChargingFlow({
             <div className="space-y-4">
               <StepHeading n={3} total={steps.length} title={t.stepPlug} body={chosenLabel || undefined} />
               <PlugGuide items={[t.plugStep1, t.plugStep2, t.plugStep3]} />
+              {showNudge && <NudgeHint text={t.nudgeCharge} />}
               <Button
                 type="button"
                 size="lg"
-                className="step-glow w-full text-base font-bold"
+                className={cn('step-glow w-full text-base font-bold', showNudge && 'ring-4 ring-brand/40')}
                 onClick={confirmPlugged}
                 disabled={offline}
               >
@@ -949,6 +980,51 @@ export function ChargingFlow({
   );
 }
 
+/** How long a driver may sit still on a step before being pointed onward. */
+const NUDGE_MS = 10_000;
+
+/**
+ * True once nothing was tapped or typed for 10 seconds while on step `key`.
+ * Any tap or keypress hides it and starts the count again; changing step
+ * (or passing null) resets it.
+ */
+function useIdleNudge(key: string | null): boolean {
+  const [firedFor, setFiredFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!key) return;
+    let timer = setTimeout(() => setFiredFor(key), NUDGE_MS);
+    const rearm = () => {
+      clearTimeout(timer);
+      setFiredFor(null);
+      timer = setTimeout(() => setFiredFor(key), NUDGE_MS);
+    };
+    window.addEventListener('pointerdown', rearm);
+    window.addEventListener('keydown', rearm);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('pointerdown', rearm);
+      window.removeEventListener('keydown', rearm);
+    };
+  }, [key]);
+  return key !== null && firedFor === key;
+}
+
+/** A bouncing "👇 do this" bubble, scrolled into view when it appears. */
+function NudgeHint({ text }: { text: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+  return (
+    <div ref={ref} role="status" className="flex justify-center">
+      <div className="nudge-bounce inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-contrast shadow-lg">
+        <span aria-hidden className="text-lg leading-none">👇</span>
+        {text}
+      </div>
+    </div>
+  );
+}
+
 /** An empty connector list is a hiccup in the feed, not a station without guns. */
 function mergeLive(prev: LiveState, next: LiveState): LiveState {
   return { ...next, connectors: next.connectors?.length ? next.connectors : prev.connectors };
@@ -1005,11 +1081,14 @@ function Stepper({
   current,
   finished,
   label,
+  pointTo,
 }: {
   steps: string[];
   current: number;
   finished: boolean;
   label: string;
+  /** The next step, bouncing, when the driver has been idle. */
+  pointTo?: number;
 }) {
   // Every step is labelled on phones too: new drivers scanning a sticker
   // need to see the whole path, not only a thin progress bar.
@@ -1021,6 +1100,7 @@ function Stepper({
       {steps.map((title, index) => {
         const state =
           finished || index < current ? 'done' : index === current ? 'current' : 'todo';
+        const pointed = state === 'todo' && index === pointTo;
         return (
           <li
             key={title}
@@ -1041,7 +1121,9 @@ function Stepper({
               aria-hidden
               className={cn(
                 'relative grid size-9 place-items-center rounded-full text-sm font-bold transition-transform',
-                state === 'todo'
+                pointed
+                  ? 'nudge-bounce bg-brand-soft text-brand-strong ring-2 ring-brand'
+                  : state === 'todo'
                   ? 'bg-surface-muted text-muted ring-1 ring-border'
                   : state === 'current'
                     ? 'step-glow scale-110 bg-brand text-brand-contrast ring-4 ring-brand/25'
@@ -1053,7 +1135,7 @@ function Stepper({
             <span
               className={cn(
                 'mt-2 line-clamp-2 px-0.5 text-[11px] leading-tight sm:text-xs',
-                state === 'current'
+                state === 'current' || pointed
                   ? 'font-bold text-brand-strong'
                   : state === 'done'
                     ? 'font-semibold text-foreground'
@@ -1202,6 +1284,8 @@ function StartDialog({
   }, [wantLookup, clean]);
 
   const orgOk = type === 'B2C_RECEIPT' || (clean.length >= 5 && !checking && Boolean(org?.valid));
+  // Step 4: idle in this dialog → point at «Тийм, эхлүүлье».
+  const nudgeYes = useIdleNudge(orgOk ? 'start-dialog' : null);
 
   function confirm() {
     if (!askEbarimt) return onYes(undefined);
@@ -1279,11 +1363,26 @@ function StartDialog({
         </div>
       )}
 
+      {nudgeYes && (
+        <div className="flex justify-end px-6 pt-3">
+          <span className="nudge-bounce inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-brand-contrast shadow-lg">
+            <span aria-hidden>👇</span>
+            {t.nudgeStartYes}
+          </span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2 border-t border-border px-6 py-4">
         <Button type="button" variant="danger" size="lg" onClick={onNo}>
           {t.confirmCancel}
         </Button>
-        <Button type="button" size="lg" onClick={confirm} disabled={!orgOk} autoFocus>
+        <Button
+          type="button"
+          size="lg"
+          onClick={confirm}
+          disabled={!orgOk}
+          autoFocus
+          className={cn(nudgeYes && 'step-glow ring-4 ring-brand/40')}
+        >
           {t.confirmStartYes}
         </Button>
       </div>
