@@ -35,7 +35,7 @@ interface TopUpPanelProps {
 type Invoice = TopUpInvoice & { qrImage?: string };
 
 /** How the driver pays: a saved card (by id), a new card, or a QPay QR. */
-type Method = { kind: 'saved'; card: SavedCard } | { kind: 'card' } | { kind: 'qpay' } | { kind: 'socialpay' };
+type Method = { kind: 'saved'; card: SavedCard } | { kind: 'card' } | { kind: 'qpay' } | { kind: 'socialpay' } | { kind: 'toki' };
 
 /** `•••• 7733` from the bank's masked `515023******7733`. */
 function cardLabel(card: SavedCard): string {
@@ -60,9 +60,12 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
   const cardEnabled = Boolean(config.cardTopUpEnabled);
   const savedEnabled = cardEnabled && Boolean(config.savedCardsEnabled);
   const socialEnabled = Boolean(config.socialPayEnabled);
+  const tokiEnabled = Boolean(config.tokiEnabled);
 
   const [selected, setSelected] = useState<number | null>(null);
   const [custom, setCustom] = useState('');
+  const [tokiMode, setTokiMode] = useState<'qr' | 'phone'>('qr');
+  const [tokiPhone, setTokiPhone] = useState('');
   const [creating, setCreating] = useState(false);
   // Back from the bank's card page: start in whatever state the payment is in.
   // A still-open payment lands on the "checking" card and is polled from there.
@@ -123,21 +126,32 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
     else void requestInvoice(method.kind);
   }
 
-  async function requestInvoice(kind: 'qpay' | 'card' | 'socialpay') {
+  async function requestInvoice(kind: 'qpay' | 'card' | 'socialpay' | 'toki') {
     setCreating(true);
     setError('');
     setFieldError('');
     setNotice('');
 
     try {
+      const payload: Record<string, unknown> = { amount, method: kind };
+      if (kind === 'card' && savedEnabled) payload.saveCard = saveCard;
+      if (kind === 'toki') {
+        payload.tokiMethod = tokiMode === 'phone' ? 'PHONE' : 'QR';
+        if (tokiMode === 'phone') {
+          const cleanPhone = tokiPhone.trim();
+          if (!cleanPhone) {
+            setError('Toki бүртгэлтэй утасны дугаараа оруулна уу');
+            setCreating(false);
+            return;
+          }
+          payload.tokiPhoneNo = cleanPhone;
+        }
+      }
+
       const res = await fetch('/app-api/wallet/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          kind === 'card' && savedEnabled
-            ? { amount, method: kind, saveCard }
-            : { amount, method: kind },
-        ),
+        body: JSON.stringify(payload),
       });
       const data = (await res.json().catch(() => ({}))) as {
         invoice?: Invoice;
@@ -406,10 +420,44 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
     );
   }
 
-  // ---- Awaiting a QPay payment ---------------------------------------------
-  if (invoice) {
+  // ---- Awaiting a Toki Phone Push ------------------------------------------
+  if (invoice && invoice.provider === 'TOKI' && invoice.tokiPhoneNo) {
     return (
-      <Panel title={ti.title}>
+      <Panel title={t.tokiTitle}>
+        <div className="space-y-4 text-center">
+          <AmountHeadline label={ti.amount} value={money(invoice.amount)} />
+          <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-surface-muted ring-1 ring-border">
+            <Image src="/toki.png" alt="Toki" width={48} height={48} className="size-12 object-contain" />
+          </div>
+          <p className="text-sm font-semibold text-foreground">
+            Таны Toki апп руу ({invoice.tokiPhoneNo}) нэхэмжлэх илгээлээ.
+          </p>
+          <WaitingLine text={t.tokiBody} />
+          {invoice.deeplinks?.[0]?.link && (
+            <a
+              href={invoice.deeplinks[0].link}
+              className="inline-flex items-center text-sm font-semibold text-brand hover:underline"
+            >
+              Toki апп нээх
+            </a>
+          )}
+          <InvoiceActions
+            checking={checking}
+            checkLabel={checking ? ti.checking : ti.checkNow}
+            cancelLabel={d.common.cancel}
+            onCheck={() => void check(invoice.id, true)}
+            onCancel={reset}
+          />
+        </div>
+      </Panel>
+    );
+  }
+
+  // ---- Awaiting a QPay / Toki QR payment -----------------------------------
+  if (invoice) {
+    const isToki = invoice.provider === 'TOKI';
+    return (
+      <Panel title={isToki ? 'Toki QR уншуулна уу' : ti.title}>
         <div className="space-y-4">
           <AmountHeadline label={ti.amount} value={money(invoice.amount)} />
 
@@ -489,8 +537,9 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
   }
 
   // ---- Choose amount and method --------------------------------------------
-  const methodOptions: { value: 'qpay' | 'card' | 'socialpay'; label: string; icon: ReactNode }[] = [
+  const methodOptions: { value: 'qpay' | 'card' | 'socialpay' | 'toki'; label: string; icon: ReactNode }[] = [
     ...(qrEnabled ? [{ value: 'qpay' as const, label: t.methodQr, icon: <QrIcon /> }] : []),
+    ...(tokiEnabled ? [{ value: 'toki' as const, label: t.methodToki, icon: <TokiIcon /> }] : []),
     ...(cardEnabled ? [{ value: 'card' as const, label: t.methodCard, icon: <CardIcon /> }] : []),
     ...(socialEnabled ? [{ value: 'socialpay' as const, label: t.methodSocial, icon: <SocialIcon /> }] : []),
   ];
@@ -502,7 +551,11 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         ? format(t.ctaCard, { amount: money(amount) })
         : method.kind === 'socialpay'
           ? format(t.ctaSocial, { amount: money(amount) })
-          : format(t.ctaQr, { amount: money(amount) });
+          : method.kind === 'toki'
+            ? tokiMode === 'phone'
+              ? `Toki апп руу илгээх · ${money(amount)}`
+              : format(t.ctaToki, { amount: money(amount) })
+            : format(t.ctaQr, { amount: money(amount) });
   const ctaBusyLabel = redirecting
     ? t.redirecting
     : payingCardId !== null
@@ -582,32 +635,82 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
           )}
         </fieldset>
 
-        {/* 2 — how to pay: QPay, a card, or SocialPay. */}
-        {(qrEnabled && cardEnabled) || (cardEnabled && savedCards.length > 0) || socialEnabled ? (
+        {/* 2 — how to pay: QPay, Toki, Card, or SocialPay */}
+        {methodOptions.length > 1 || (cardEnabled && savedCards.length > 0) ? (
           <fieldset>
             <Step n={2} label={t.stepMethod} />
 
             {methodOptions.length > 1 && (
-              <Segmented
-                label={t.stepMethod}
-                value={method.kind === 'saved' ? 'card' : method.kind}
-                disabled={busy}
-                onChange={(next) =>
-                  setMethod(
-                    next === 'card'
-                      ? savedCards[0]
-                        ? { kind: 'saved', card: savedCards[0] }
-                        : { kind: 'card' }
-                      : { kind: next },
-                  )
-                }
-                options={methodOptions}
-              />
+              <div
+                role="radiogroup"
+                aria-label={t.stepMethod}
+                className="mt-3 grid grid-cols-2 gap-2.5 sm:gap-3"
+              >
+                {methodOptions.map((o) => {
+                  const currentKind = method.kind === 'saved' ? 'card' : method.kind;
+                  const active = currentKind === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={busy}
+                      onClick={() =>
+                        setMethod(
+                          o.value === 'card'
+                            ? savedCards[0]
+                              ? { kind: 'saved', card: savedCards[0] }
+                              : { kind: 'card' }
+                            : { kind: o.value },
+                        )
+                      }
+                      className={cn(
+                        'group relative flex h-14 items-center gap-2.5 sm:gap-3 rounded-2xl border px-3 sm:px-3.5 text-left transition-all duration-150 cursor-pointer',
+                        'active:scale-[0.98] motion-reduce:active:scale-100',
+                        active
+                          ? 'border-brand bg-brand/10 text-foreground ring-2 ring-brand/30 shadow-sm'
+                          : 'border-border/80 bg-surface-muted/40 text-muted hover:border-brand/40 hover:bg-surface-muted hover:text-foreground',
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'grid size-8 shrink-0 place-items-center rounded-xl transition-colors',
+                          active
+                            ? 'bg-brand/15 text-brand'
+                            : 'bg-surface text-muted group-hover:text-foreground group-hover:bg-surface-muted',
+                        )}
+                      >
+                        {o.icon}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold tracking-tight text-foreground">
+                          {o.label}
+                        </span>
+                      </div>
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'size-4 shrink-0 rounded-full border flex items-center justify-center transition-colors',
+                          active ? 'border-brand bg-brand text-brand-contrast' : 'border-border bg-transparent',
+                        )}
+                      >
+                        {active && <span className="size-1.5 rounded-full bg-white" />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
 
             {method.kind !== 'card' && method.kind !== 'saved' && (
               <p className="mt-2.5 text-xs text-muted">
-                {method.kind === 'qpay' ? t.methodQrHint : t.methodSocialHint}
+                {method.kind === 'qpay'
+                  ? t.methodQrHint
+                  : method.kind === 'toki'
+                    ? t.methodTokiHint
+                    : t.methodSocialHint}
               </p>
             )}
 
@@ -681,6 +784,46 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
                 />
                 <span className="text-xs text-muted">{t.saveCard}</span>
               </label>
+            )}
+
+            {/* Toki mode selection: QR or direct Phone Push */}
+            {method.kind === 'toki' && (
+              <div className="mt-3 space-y-2.5">
+                <div className="inline-flex rounded-lg bg-surface-muted p-1 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setTokiMode('qr')}
+                    className={cn(
+                      'rounded-md px-3 py-1.5 transition cursor-pointer',
+                      tokiMode === 'qr' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground',
+                    )}
+                  >
+                    Toki QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTokiMode('phone')}
+                    className={cn(
+                      'rounded-md px-3 py-1.5 transition cursor-pointer',
+                      tokiMode === 'phone' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground',
+                    )}
+                  >
+                    Утасны дугаараар нэхэмжлэх
+                  </button>
+                </div>
+                {tokiMode === 'phone' && (
+                  <div className="max-w-xs space-y-1">
+                    <label className="block text-xs text-muted">Toki бүртгэлтэй утасны дугаар</label>
+                    <input
+                      type="tel"
+                      value={tokiPhone}
+                      onChange={(e) => setTokiPhone(e.target.value)}
+                      placeholder="99112233"
+                      className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </fieldset>
         ) : null}
@@ -772,61 +915,6 @@ function WaitingLine({ text }: { text: string }) {
   );
 }
 
-/** An iOS-style segmented control: one sliding pill over two or more options. */
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: T;
-  options: { value: T; label: string; icon?: ReactNode }[];
-  onChange: (next: T) => void;
-  disabled?: boolean;
-}) {
-  const index = Math.max(0, options.findIndex((o) => o.value === value));
-  return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className="glass-well relative mt-3 grid rounded-2xl p-1"
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-    >
-      <span
-        aria-hidden
-        className="absolute inset-y-1 left-1 rounded-xl bg-surface ring-1 ring-border/70 shadow-sm transition-transform duration-[400ms] ease-[cubic-bezier(0.34,1.3,0.64,1)] motion-reduce:transition-none"
-        style={{
-          width: `calc((100% - 0.5rem) / ${options.length})`,
-          transform: `translateX(${index * 100}%)`,
-        }}
-      />
-      {options.map((o) => {
-        const active = o.value === value;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            disabled={disabled}
-            onClick={() => onChange(o.value)}
-            className={cn(
-              'relative z-10 flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors',
-              active ? 'text-foreground' : 'text-muted hover:text-foreground',
-            )}
-          >
-            <span aria-hidden className={cn('transition-colors', active && 'text-brand')}>
-              {o.icon}
-            </span>
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function CardIcon() {
   return (
@@ -840,6 +928,12 @@ function CardIcon() {
 function SocialIcon() {
   return (
     <Image src="/social pay.png" alt="" aria-hidden width={20} height={20} className="size-5 rounded-[5px] object-contain" />
+  );
+}
+
+function TokiIcon() {
+  return (
+    <Image src="/toki.png" alt="" aria-hidden width={20} height={20} className="size-5 rounded-[5px] object-contain" />
   );
 }
 

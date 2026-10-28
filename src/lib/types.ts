@@ -226,6 +226,8 @@ export interface WalletConfig {
   savedCardsEnabled?: boolean;
   /** SocialPay through Golomt: pay in the SocialPay app. */
   socialPayEnabled?: boolean;
+  /** Toki Pay (QR, phone push, deeplink) */
+  tokiEnabled?: boolean;
 }
 
 /** A bank card saved for one-tap top-ups; the card number is masked by the bank. */
@@ -238,12 +240,14 @@ export interface SavedCard {
   createdAt: string;
 }
 
-/** The QPay invoice a top-up creates; carries everything needed to show a QR. */
+/** The payment invoice a top-up creates; carries everything needed to show a QR. */
 export interface TopUpInvoice {
   id: string;
-  provider?: 'QPAY' | 'QPAY_QUICKQR' | 'GOLOMT';
+  provider?: 'QPAY' | 'QPAY_QUICKQR' | 'GOLOMT' | 'TOKI';
   /** Golomt: paid by card on the bank page, or in the SocialPay app. */
   golomtChannel?: 'CARD' | 'SOCIALPAY';
+  tokiDeeplink?: string;
+  tokiPhoneNo?: string;
   purpose?: 'CHARGING' | 'WALLET_TOPUP';
   walletOwnerType?: WalletOwnerType;
   walletOwnerId?: string;
