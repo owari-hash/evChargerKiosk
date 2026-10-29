@@ -577,7 +577,7 @@ export const en = {
     changeConnector: 'Choose another connector',
     // --- what happens on its own after Start ---
     waitingTitle: 'Waiting for the station to respond…',
-    waitingBody: 'The station is locking the cable. This usually takes a few seconds.',
+    waitingBody: 'The station is locking the cable.',
     chargingTitle: 'Charging',
     chargingBody: 'You can leave this page — the session keeps running.',
     stoppingTitle: 'Stopping…',
@@ -1736,7 +1736,7 @@ export const mn: Dictionary = {
     changeConnector: 'Өөр хошуу сонгох',
     // --- what happens on its own after Start ---
     waitingTitle: 'Станц хариу өгөхийг хүлээж байна…',
-    waitingBody: 'Станц хошууг цоожилж байна. Ихэвчлэн хэдхэн секунд болно.',
+    waitingBody: 'Станц хошууг цоожилж байна.',
     chargingTitle: 'Цэнэглэж байна',
     chargingBody: 'Та энэ хуудсыг орхиж болно — цэнэглэлт үргэлжилнэ.',
     stoppingTitle: 'Зогсоож байна…',
