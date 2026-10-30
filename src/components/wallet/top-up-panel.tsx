@@ -577,9 +577,14 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
   }
 
   // ---- Choose amount and method --------------------------------------------
-  const methodOptions: { value: 'qpay' | 'card' | 'socialpay' | 'toki'; label: string; icon: ReactNode }[] = [
+  const methodOptions: {
+    value: 'qpay' | 'card' | 'socialpay' | 'toki';
+    label: string;
+    icon: ReactNode;
+    disabled?: boolean;
+  }[] = [
     ...(qrEnabled ? [{ value: 'qpay' as const, label: t.methodQr, icon: <QrIcon /> }] : []),
-    ...(tokiEnabled ? [{ value: 'toki' as const, label: t.methodToki, icon: <TokiIcon /> }] : []),
+    ...(tokiEnabled ? [{ value: 'toki' as const, label: t.methodToki, icon: <TokiIcon />, disabled: true }] : []),
     ...(cardEnabled ? [{ value: 'card' as const, label: t.methodCard, icon: <CardIcon /> }] : []),
     ...(socialEnabled ? [{ value: 'socialpay' as const, label: t.methodSocial, icon: <SocialIcon /> }] : []),
   ];
@@ -691,28 +696,34 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
                 {methodOptions.map((o) => {
                   const currentKind = method.kind === 'saved' ? 'card' : method.kind;
                   const active = currentKind === o.value;
+                  const isDisabled = busy || Boolean(o.disabled);
                   return (
                     <button
                       key={o.value}
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      disabled={busy}
-                      onClick={() =>
+                      aria-disabled={o.disabled}
+                      disabled={isDisabled}
+                      onClick={() => {
+                        if (o.disabled) return;
                         setMethod(
                           o.value === 'card'
                             ? savedCards[0]
                               ? { kind: 'saved', card: savedCards[0] }
                               : { kind: 'card' }
                             : { kind: o.value },
-                        )
-                      }
+                        );
+                      }}
                       className={cn(
-                        'group relative flex h-14 items-center gap-2.5 sm:gap-3 rounded-2xl border px-3 sm:px-3.5 text-left transition-all duration-150 cursor-pointer',
-                        'active:scale-[0.98] motion-reduce:active:scale-100',
+                        'group relative flex h-14 items-center gap-2.5 sm:gap-3 rounded-2xl border px-3 sm:px-3.5 text-left transition-all duration-150',
+                        o.disabled
+                          ? 'cursor-not-allowed opacity-50 border-border/60 bg-surface-muted/20 text-muted'
+                          : 'cursor-pointer active:scale-[0.98] motion-reduce:active:scale-100',
                         active
                           ? 'border-brand bg-brand/10 text-foreground ring-2 ring-brand/30 shadow-sm'
-                          : 'border-border/80 bg-surface-muted/40 text-muted hover:border-brand/40 hover:bg-surface-muted hover:text-foreground',
+                          : !o.disabled &&
+                              'border-border/80 bg-surface-muted/40 text-muted hover:border-brand/40 hover:bg-surface-muted hover:text-foreground',
                       )}
                     >
                       <span
