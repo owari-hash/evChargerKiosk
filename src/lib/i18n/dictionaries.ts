@@ -584,6 +584,9 @@ export const en = {
     stoppingBody: 'The station is finishing the session and releasing the cable.',
     doneTitle: 'Finished',
     doneBody: 'The cost has been taken from your wallet.',
+    plugErrorTitle: 'Charging did not start',
+    plugErrorBody:
+      'The station could not confirm the connection with your car. Unplug the gun, plug it in fully again and start charging.',
     // --- states and actions ---
     startNow: 'Start charging',
     starting: 'Asking the station…',
@@ -1743,6 +1746,9 @@ export const mn: Dictionary = {
     stoppingBody: 'Станц цэнэглэлтийг дуусгаж, хошууг суллаж байна.',
     doneTitle: 'Дууслаа',
     doneBody: 'Төлбөр хэтэвчнээс хасагдлаа.',
+    plugErrorTitle: 'Цэнэглэлт эхэлсэнгүй',
+    plugErrorBody:
+      'Станц таны машинтай холболтыг баталгаажуулж чадсангүй. Цэнэглэх буугаа салгаад, дахин бүрэн залгаад цэнэглэнэ үү.',
     // --- states and actions ---
     startNow: 'Цэнэглэлт эхлүүлэх',
     starting: 'Станцад хүсэлт илгээж байна…',

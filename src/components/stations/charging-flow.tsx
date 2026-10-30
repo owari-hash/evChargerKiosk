@@ -854,7 +854,13 @@ export function ChargingFlow({
 
           {step === 'done' && session && (
             <div className="space-y-4">
-              <StatusLine title={t.doneTitle} body={t.doneBody} />
+              {session.plugError ? (
+                <Alert tone="danger" title={t.plugErrorTitle}>
+                  {t.plugErrorBody}
+                </Alert>
+              ) : (
+                <StatusLine title={t.doneTitle} body={t.doneBody} />
+              )}
               <SessionSummary session={session} intl={intl} />
               <AutoEbarimtStatus session={session} />
               {Boolean(session.ebarimt && (session.ebarimt.receiptId || session.ebarimt.lottery)) && (
