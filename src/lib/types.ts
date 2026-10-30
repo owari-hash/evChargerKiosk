@@ -122,6 +122,8 @@ export interface ChargingSession {
   /** Running sessions: estimated minutes until the battery is full (stations that report battery % only). */
   minutesToFull?: number;
   stopReason?: string;
+  /** The station could not confirm the gun was connected; nothing was charged. */
+  plugError?: boolean;
   ebarimt?: EBarimtData;
   /** The receipt chosen when Charge was pressed; issued automatically at the end. */
   ebarimtRequest?: EbarimtChoice;
