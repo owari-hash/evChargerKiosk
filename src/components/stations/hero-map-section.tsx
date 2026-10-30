@@ -1701,7 +1701,7 @@ function Legend() {
 
   return (
     <ul className="mt-2 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-1 pt-2.5 text-[11px] text-muted">
-      {(['available', 'busy', 'offline'] as const).map((tone) => (
+      {(['available', 'offline'] as const).map((tone) => (
         <li key={tone} className="inline-flex items-center gap-1.5">
           <span
             aria-hidden
