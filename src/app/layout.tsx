@@ -23,12 +23,27 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 const PRODUCT_NAME = 'Eplug';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://eplug.mn'),
   title: {
     default: `${PRODUCT_NAME} — цахилгаан машины цэнэглэх сүлжээ`,
     template: `%s · ${PRODUCT_NAME}`,
   },
   description:
-    'Ойролцоох цэнэглэх станцуудыг хайж, холбогчийн сул байдлыг шууд харж, цэнэглэлтийн бүртгэлээ удирдаарай.',
+    'Монгол дахь цахилгаан машины хамгийн том цэнэглэх сүлжээ. Ойролцоох цэнэглэх станцуудын байршил, 120kW+ хурдан цэнэглэгчдийн сул байдлыг шууд харж, цэнэглэлтээ хялбар удирдаарай.',
+  keywords: [
+    'цахилгаан машин цэнэглэгч',
+    'EV charger Ulaanbaatar',
+    'eplug',
+    'цэнэглэх станц',
+    'хурдан цэнэглэгч',
+    'BYD цэнэглэгч',
+    'Tesla цэнэглэгч',
+    'Монгол цахилгаан машин',
+    'EV charging station Mongolia',
+  ],
+  alternates: {
+    canonical: 'https://eplug.mn',
+  },
   icons: {
     icon: [{ url: '/icon.png', type: 'image/png' }],
     apple: [{ url: '/apple-icon.png' }],

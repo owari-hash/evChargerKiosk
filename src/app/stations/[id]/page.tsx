@@ -32,7 +32,17 @@ const loadStation = cache(async (id: string): Promise<StationPageLoad> => {
 export async function generateMetadata(props: PageProps<'/stations/[id]'>): Promise<Metadata> {
   const { id } = await props.params;
   const [{ station }, { d }] = await Promise.all([loadStation(id), getTranslations()]);
-  return { title: station?.name ?? d.stations.chargePoint };
+  const title = station?.name ?? d.stations.chargePoint;
+  const description = station
+    ? `${station.name} - ${station.address || 'Улаанбаатар'}. Хүчин чадал: ${station.maxPowerKw ? `${station.maxPowerKw} кВт` : 'хурдан цэнэглэгч'}. Үнэ: ${station.tariffPerKwh ?? 0}₮/кВт.ц.`
+    : 'Цахилгаан машин цэнэглэх станцын дэлгэрэнгүй мэдээлэл, холбогчийн бэлэн байдал.';
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `https://eplug.mn/stations/${id}`,
+    },
+  };
 }
 
 export default async function StationPage(props: PageProps<'/stations/[id]'>) {
@@ -77,8 +87,46 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
       : format(d.stations.perKwh, { price: `${baseTariff}₮` }),
   ].filter(Boolean);
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'EVChargingStation',
+    name: station.name,
+    description: station.description || `${station.name} - цахилгаан машин цэнэглэх станц`,
+    ...(station.address
+      ? {
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: station.address,
+            addressLocality: 'Улаанбаатар',
+            addressCountry: 'MN',
+          },
+        }
+      : {}),
+    ...(station.latitude && station.longitude
+      ? {
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: station.latitude,
+            longitude: station.longitude,
+          },
+        }
+      : {}),
+    ...(station.tariffPerKwh
+      ? {
+          priceRange: `${station.tariffPerKwh} MNT / kWh`,
+          paymentAccepted: 'QPay, Bank Card, Eplug Wallet',
+        }
+      : {}),
+    ...(station.maxPowerKw ? { maximumPowerOutput: `${station.maxPowerKw} kW` } : {}),
+    status: station.isOnline ? 'https://schema.org/OnlineOnly' : 'https://schema.org/OfflinePermanently',
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
