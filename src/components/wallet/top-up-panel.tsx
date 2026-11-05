@@ -1,5 +1,6 @@
 'use client';
 
+import { showTopUpResult } from '@/lib/topup-result-store';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
@@ -203,7 +204,8 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
    * is never shown twice) and this panel goes straight back to "top up", with
    * the balance and history refreshed behind it.
    */
-  const settled = useCallback((paid: Invoice) => {
+  const settled = useCallback((paid: Invoice, balance?: number | null) => {
+    showTopUpResult({ kind: 'success', amount: paid.paidAmount || paid.amount, balance });
     if (paid.walletEntryId) {
       announceWalletEntry(
         { id: paid.walletEntryId, type: 'TOPUP', amount: paid.paidAmount || paid.amount, description: paid.description },
@@ -222,9 +224,22 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
   }, [locale, returned, router]);
 
   // Back from the bank's page already paid: just toast and tidy the URL.
+  // Back from the bank's page with a failed or expired card payment.
+  useEffect(() => {
+    if (!returned || returned.paid || returnedOpen) return;
+    showTopUpResult({
+      kind: 'fail',
+      reason:
+        returned.invoice.status === 'EXPIRED' ? ti.expired : (returned.invoice.declineReason ?? t.cardFailed),
+    });
+    // Once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!returned?.paid) return;
     const paid = returned.invoice;
+    showTopUpResult({ kind: 'success', amount: paid.paidAmount || paid.amount, balance: returned.balance });
     if (paid.walletEntryId) {
       announceWalletEntry(
         { id: paid.walletEntryId, type: 'TOPUP', amount: paid.paidAmount || paid.amount, description: paid.description },
@@ -258,7 +273,7 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         }
 
         if (data.paid) {
-          settled(data.invoice);
+          settled(data.invoice, data.wallet?.balance);
           return true;
         }
 
@@ -270,16 +285,19 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
             : data.invoice!,
         );
         if (data.invoice.status === 'EXPIRED') {
+          showTopUpResult({ kind: 'fail', reason: ti.expired });
           setError(ti.expired);
           setInvoice(null);
           return true;
         }
         if (data.invoice.status === 'CANCELED') {
+          showTopUpResult({ kind: 'fail', reason: ti.canceled });
           setError(ti.canceled);
           setInvoice(null);
           return true;
         }
         if (data.invoice.status === 'FAILED') {
+          showTopUpResult({ kind: 'fail', reason: data.invoice.declineReason ?? t.cardFailed });
           setError(data.invoice.declineReason ?? t.cardFailed);
           setInvoice(null);
           return true;
@@ -348,14 +366,16 @@ export function TopUpPanel({ config, returned, cards = [] }: TopUpPanelProps) {
         error?: string;
       };
       if (!res.ok || !data.invoice) {
+        showTopUpResult({ kind: 'fail', reason: data.error ?? t.cardFailed });
         setError(data.error ?? t.cardFailed);
         return;
       }
       if (data.paid) {
-        settled(data.invoice);
+        settled(data.invoice, data.wallet?.balance);
         return;
       }
       if (data.invoice.status === 'FAILED') {
+        showTopUpResult({ kind: 'fail', reason: data.invoice.declineReason ?? t.cardFailed });
         setError(data.invoice.declineReason ?? t.cardFailed);
         return;
       }

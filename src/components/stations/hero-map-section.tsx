@@ -3,7 +3,9 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -26,6 +28,13 @@ import {
   intlLocale,
 } from '@/lib/utils';
 import type { HeroMapApi, ViewBounds } from './hero-map';
+import { fetchDrivingRoute, trafficDelayMinutes, type DrivingRoute } from '@/lib/route';
+
+/**
+ * Starts a route to a station on our own map. Provided by HeroMapSection so
+ * the «Чиглэл» buttons deep in the sheet can reach it without prop drilling.
+ */
+const RouteContext = createContext<(station: MapStation) => void>(() => {});
 import { toMapStations, type MapStation, type StationFreshness } from './map-station';
 
 /**
@@ -254,6 +263,80 @@ export function HeroMapSection({
   const [notice, setNotice] = useState<string | null>(null);
   const [fitNonce, setFitNonce] = useState(0);
   const [view, setView] = useState<ViewBounds | null>(null);
+
+  // Directions on our own map, with traffic when the backend has Google.
+  const [route, setRoute] = useState<DrivingRoute | null>(null);
+  const [routeTo, setRouteTo] = useState<MapStation | null>(null);
+  /** Epoch ms the driver would arrive, fixed when the route came back. */
+  const [arrivesAt, setArrivesAt] = useState<number | null>(null);
+  const [routeState, setRouteState] = useState<'idle' | 'loading' | 'failed'>('idle');
+  const routeAbort = useRef<AbortController | null>(null);
+
+  const endRoute = useCallback(() => {
+    routeAbort.current?.abort();
+    setRoute(null);
+    setRouteTo(null);
+    setRouteState('idle');
+  }, []);
+
+  const startRoute = useCallback(
+    (station: MapStation) => {
+      routeAbort.current?.abort();
+      const abort = new AbortController();
+      routeAbort.current = abort;
+      setRouteTo(station);
+      setRoute(null);
+      setRouteState('loading');
+      // The sheet would cover the line; the trip card names the station.
+      setSelectedId(null);
+
+      const go = (from: { lat: number; lng: number }) => {
+        fetchDrivingRoute(from, { lat: station.lat, lng: station.lng }, abort.signal).then(
+          (r) => {
+            if (abort.signal.aborted) return;
+            setRoute(r);
+            setArrivesAt(Date.now() + r.durationSeconds * 1000);
+            setRouteState('idle');
+          },
+          () => {
+            if (!abort.signal.aborted) setRouteState('failed');
+          },
+        );
+      };
+
+      if (origin) {
+        go(origin);
+        return;
+      }
+      if (typeof navigator === 'undefined' || !navigator.geolocation) {
+        setRouteState('failed');
+        setGeoError('geoUnsupported');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const here = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setOrigin(here);
+          go(here);
+        },
+        (err) => {
+          setRouteState('failed');
+          setGeoError(geolocationMessage(err));
+        },
+        GEO_OPTIONS,
+      );
+    },
+    [origin],
+  );
+
+  useEffect(() => () => routeAbort.current?.abort(), []);
+
+  // A location hint is read once; it shouldn't sit on the map for good.
+  useEffect(() => {
+    if (!geoError) return;
+    const timer = setTimeout(() => setGeoError(null), 10_000);
+    return () => clearTimeout(timer);
+  }, [geoError]);
 
   const [favoriteIds, saveFavorites] = useStoredList(FAVORITES_KEY);
   const [storedPorts, saveCarPorts] = useStoredList(CAR_PORTS_KEY);
@@ -603,8 +686,10 @@ export function HeroMapSection({
   }
 
   return (
+    <RouteContext.Provider value={startRoute}>
     <div ref={sectionRef} className={cn('relative isolate w-full', className)}>
       <LazyHeroMap
+        route={route}
         stations={visible}
         selectedId={activeId}
         onSelect={select}
@@ -1067,12 +1152,33 @@ export function HeroMapSection({
         </div>
 
         {geoError && (
-          <p
+          <div
             role="alert"
-            className="pointer-events-auto w-fit shrink-0 self-center rounded-full bg-surface px-4 py-2 text-xs text-danger shadow-sm ring-1 ring-border"
+            className="pointer-events-auto flex w-full max-w-md shrink-0 items-start gap-2 self-center rounded-2xl bg-surface px-4 py-3 text-sm leading-snug text-foreground shadow-sm ring-1 ring-border"
           >
-            {d.stations[geoError]}
-          </p>
+            <span aria-hidden className="mt-0.5 text-danger">●</span>
+            <p className="flex-1">{d.stations[geoError]}</p>
+            <button
+              type="button"
+              onClick={() => setGeoError(null)}
+              aria-label={d.common.close}
+              className="-mr-1 rounded-full px-2 text-muted hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {routeTo && (
+          <TripCard
+            station={routeTo}
+            route={route}
+            arrivesAt={arrivesAt}
+            state={routeState}
+            intl={intl}
+            onEnd={endRoute}
+            onRetry={() => startRoute(routeTo)}
+          />
         )}
 
         {notice && (
@@ -1177,6 +1283,131 @@ export function HeroMapSection({
             </button>
           </div>
         </div>
+      </div>
+    </div>
+    </RouteContext.Provider>
+  );
+}
+
+/**
+ * The trip on our own map: where to, arrival time, minutes and kilometres,
+ * how much the traffic adds, and Google Maps as an optional hand-off.
+ */
+function TripCard({
+  station,
+  route,
+  arrivesAt,
+  state,
+  intl,
+  onEnd,
+  onRetry,
+}: {
+  station: MapStation;
+  route: DrivingRoute | null;
+  arrivesAt: number | null;
+  state: 'idle' | 'loading' | 'failed';
+  intl: string;
+  onEnd: () => void;
+  onRetry: () => void;
+}) {
+  const { d } = useI18n();
+  const t = d.home.map;
+  const delay = route ? trafficDelayMinutes(route) : 0;
+  const arrival = arrivesAt
+    ? new Date(arrivesAt).toLocaleTimeString(intl, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : '—';
+
+  return (
+    <div
+      role="status"
+      className="ev-trip-card pointer-events-auto w-full max-w-md shrink-0 self-center overflow-hidden rounded-3xl bg-surface/80 p-3 shadow-xl ring-1 ring-border backdrop-blur-xl"
+    >
+      <div className="flex items-start gap-3 px-1">
+        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-contrast shadow-[0_0_16px_rgba(16,185,129,0.55)]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
+          </svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-foreground">{station.name}</p>
+          <p className="truncate text-xs text-muted">
+            {state === 'loading'
+              ? t.routeLoading
+              : state === 'failed'
+                ? t.routeFailed
+                : delay > 0
+                  ? null
+                  : route && route.traffic.length === 0
+                    ? t.routeNoTraffic
+                    : station.address}
+          </p>
+          {state === 'idle' && delay > 0 && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+              <span className="size-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+              {format(t.routeTrafficDelay, { min: delay })}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onEnd}
+          aria-label={t.routeEnd}
+          title={t.routeEnd}
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-muted text-muted ring-1 ring-border transition hover:text-foreground"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
+            <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+
+      {state === 'loading' && (
+        <div className="mx-1 mt-3 h-1 overflow-hidden rounded-full bg-surface-muted">
+          <div className="ev-route-progress h-full w-1/3 rounded-full bg-brand" />
+        </div>
+      )}
+
+      {state === 'idle' && route && (
+        <div className="mt-3 grid grid-cols-3 divide-x divide-border rounded-2xl bg-surface-muted/70 py-2.5 text-center ring-1 ring-border">
+          <div>
+            <p className="text-base font-bold tabular-nums text-foreground">{arrival}</p>
+            <p className="text-[11px] text-muted">{t.routeArrival}</p>
+          </div>
+          <div>
+            <p className="text-base font-bold tabular-nums text-foreground">
+              {Math.max(1, Math.round(route.durationSeconds / 60))}
+            </p>
+            <p className="text-[11px] text-muted">{t.routeMinutes}</p>
+          </div>
+          <div>
+            <p className="text-base font-bold tabular-nums text-foreground">
+              {(route.distanceMeters / 1000).toFixed(1)}
+            </p>
+            <p className="text-[11px] text-muted">{t.routeKm}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-2.5 flex items-center justify-between gap-2 px-1">
+        {state === 'failed' ? (
+          <button type="button" onClick={onRetry} className="text-xs font-semibold text-brand hover:underline">
+            {d.common.retry}
+          </button>
+        ) : (
+          <span />
+        )}
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs font-medium text-muted underline-offset-2 hover:text-foreground hover:underline"
+        >
+          {t.routeOpenGoogle} ↗
+        </a>
       </div>
     </div>
   );
@@ -1405,6 +1636,7 @@ function Sheet({
   locale,
   className,
 }: SheetProps) {
+  const startRoute = useContext(RouteContext);
   const { d } = useI18n();
   const t = d.home.map;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1500,10 +1732,9 @@ function Sheet({
                   {selected.address || d.stations.addressMissing}
                 </p>
               </div>
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => startRoute(selected)}
                 className="inline-flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20 active:scale-95"
                 aria-label={t.directions}
                 title={t.directions}
@@ -1511,7 +1742,7 @@ function Sheet({
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
                 </svg>
-              </a>
+              </button>
               <button
                 type="button"
                 onClick={() => onToggleFavorite(selected.id)}
@@ -1740,8 +1971,13 @@ function StationRows({ id, stations, favorites, onSelect, emptyLabel, intl }: St
       id={id}
       className="-mr-1 space-y-1.5 overflow-y-auto pr-1 sm:min-h-0 sm:flex-auto"
     >
-      {shown.map((station) => (
-        <li key={station.id}>
+      {shown.map((station, i) => (
+        <li
+          key={station.id}
+          className="station-row-in"
+          // Only the first few stagger; a long list shouldn't wait to appear.
+          style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+        >
           <button
             type="button"
             data-station={station.id}
@@ -1778,6 +2014,7 @@ function StationRows({ id, stations, favorites, onSelect, emptyLabel, intl }: St
               })}
               {station.maxPowerKw ? ` · ${formatPowerKw(station.maxPowerKw, intl)}` : ''}
             </p>
+            {station.charging && <ChargingStrip charging={station.charging} />}
           </button>
         </li>
       ))}
@@ -1805,6 +2042,7 @@ function StationDetail({
   intl: string;
   locale: string;
 }) {
+  const startRoute = useContext(RouteContext);
   const { d } = useI18n();
   const t = d.home.map;
 
@@ -1882,10 +2120,9 @@ function StationDetail({
         >
           {d.stations.viewStation}
         </Link>
-        <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
+          onClick={() => startRoute(station)}
           className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand/10 ring-1 ring-brand/30 text-brand transition hover:bg-brand/20 active:scale-95"
           aria-label={t.directions}
           title={t.directions}
@@ -1893,7 +2130,41 @@ function StationDetail({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" d="m12 21 8-18-18 8 7 3 3 7Z" />
           </svg>
-        </a>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** "Charging now" line on a list card: count, time left, and a live bar. */
+function ChargingStrip({ charging }: { charging: NonNullable<MapStation['charging']> }) {
+  const { locale } = useI18n();
+  const mn = locale !== 'en';
+  const label = mn ? `${charging.count} цэнэглэж байна` : `${charging.count} charging`;
+  const left =
+    charging.soonestMin !== undefined
+      ? mn
+        ? `~${charging.soonestMin} мин үлдсэн`
+        : `~${charging.soonestMin} min left`
+      : null;
+  const pct = Math.max(6, Math.min(100, charging.socPercent ?? 50));
+
+  return (
+    <div className="mt-2 pl-4">
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <span className="inline-flex items-center gap-1 font-semibold text-brand">
+          <svg viewBox="0 0 24 24" className="size-3" fill="currentColor" aria-hidden>
+            <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+          </svg>
+          {label}
+        </span>
+        {left && <span className="font-semibold tabular-nums text-foreground">{left}</span>}
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-border/60">
+        <div
+          className="station-charge-bar h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

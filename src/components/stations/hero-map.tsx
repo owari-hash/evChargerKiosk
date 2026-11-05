@@ -5,18 +5,20 @@ import {
   divIcon,
   latLngBounds,
   layerGroup,
+  polyline as createPolyline,
   marker as createMarker,
   type DivIcon,
   type LatLngExpression,
   type LayerGroup,
   type Marker,
 } from 'leaflet';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { useI18n } from '@/components/i18n-provider';
 import { publicEnv } from '@/lib/env';
 import type { StationAvailability } from '@/lib/types';
 import type { MapStation } from './map-station';
+import { fetchTrafficTiles, type DrivingRoute, type TrafficSpeed } from '@/lib/route';
 
 /** Map actions the surrounding chrome drives, so the controls can live in the
  *  page's own button rail rather than in Leaflet's. */
@@ -45,6 +47,8 @@ export interface HeroMapProps {
   fitNonce: number;
   /** Hands the zoom controls to the caller once the map exists. */
   onReady?: (api: HeroMapApi) => void;
+  /** A driving route to draw, coloured by traffic when it has any. */
+  route?: DrivingRoute | null;
   className?: string;
 }
 
@@ -68,6 +72,8 @@ const SELECTED_ZOOM = 16;
  * the bottom (the station sheet), so panning can keep a pin clear of them.
  */
 const CHROME_TOP_PX = 118;
+const ULAANBAATAR: [number, number] = [47.9185, 106.9177];
+const UB_ZOOM = 12;
 const CHROME_BOTTOM_PX = 300;
 
 const PIN_COLOR: Record<StationAvailability, string> = {
@@ -529,6 +535,10 @@ function FitToStations({
   const signature = stations.map((s) => s.id).join('|');
   const pausedRef = useRef(paused);
   const stationsRef = useRef(stations);
+  // The first view is Ulaanbaatar, where almost every station is; framing the
+  // whole country shrinks the city to a dot. Filters and "fit" still frame all.
+  const firstFit = useRef(true);
+  const lastNonce = useRef(fitNonce);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -540,13 +550,32 @@ function FitToStations({
     // A station the visitor just picked owns the view; refitting would fight it.
     if (pausedRef.current) return;
 
+    if (firstFit.current) {
+      firstFit.current = false;
+      lastNonce.current = fitNonce;
+      map.setView(ULAANBAATAR, UB_ZOOM, { animate: false });
+      return;
+    }
+
     const coords = stationsRef.current.map((s) => [s.lat, s.lng] as [number, number]);
+    // A list refresh or a filter that still leaves stations on screen keeps the
+    // driver's view; only "fit" or a result set entirely off screen moves it.
+    const asked = lastNonce.current !== fitNonce;
+    lastNonce.current = fitNonce;
+    if (!asked) {
+      const view = map.getBounds();
+      if (coords.some((c) => view.contains(c))) return;
+    }
     if (coords.length === 1) {
       map.setView(coords[0]!, Math.max(map.getZoom(), 14), { animate: true });
       return;
     }
+    // Keep stations clear of the search bar on top and, from `sm` up, of the
+    // 320px station list docked on the right.
+    const wide = map.getSize().x >= 640;
     map.flyToBounds(latLngBounds(coords), {
-      padding: [70, 70],
+      paddingTopLeft: [48, CHROME_TOP_PX],
+      paddingBottomRight: [wide ? 360 : 48, wide ? 60 : CHROME_BOTTOM_PX / 2],
       maxZoom: MAX_FIT_ZOOM,
       duration: 0.6,
     });
@@ -621,6 +650,87 @@ function SteppedWheelZoom() {
   return null;
 }
 
+const TRAFFIC_COLOR: Record<TrafficSpeed, string> = {
+  NORMAL: '#10b981',
+  SLOW: '#f59e0b',
+  TRAFFIC_JAM: '#ef4444',
+};
+
+/**
+ * The route on our own map: a soft glow under the line, then each stretch in
+ * emerald (moving), orange (slow) or red (jammed), like Google Maps. Fits the
+ * view to the whole trip when a new route arrives.
+ */
+function RouteLayer({ route }: { route: DrivingRoute | null | undefined }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!route || route.points.length < 2) return;
+    const group = layerGroup().addTo(map);
+    const all = route.points;
+
+    createPolyline(all, { color: '#34d399', weight: 16, opacity: 0.22, interactive: false }).addTo(group);
+    // White casing so the colours read on any tile.
+    createPolyline(all, { color: '#ffffff', weight: 9, opacity: 0.9, interactive: false }).addTo(group);
+
+    const spans = route.traffic.length
+      ? route.traffic
+      : [{ start: 0, end: all.length - 1, speed: 'NORMAL' as const }];
+    for (const span of spans) {
+      createPolyline(all.slice(span.start, span.end + 1), {
+        color: TRAFFIC_COLOR[span.speed],
+        weight: span.speed === 'NORMAL' ? 6 : 7,
+        opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false,
+        className: 'ev-route-line',
+      }).addTo(group);
+    }
+
+    map.flyToBounds(latLngBounds(all), {
+      paddingTopLeft: [40, CHROME_TOP_PX + 20],
+      paddingBottomRight: [40, CHROME_BOTTOM_PX],
+      duration: 0.8,
+      maxZoom: 16,
+    });
+    return () => {
+      group.remove();
+    };
+  }, [route, map]);
+
+  return null;
+}
+
+/** The site theme, which `theme-toggle` keeps on <html data-theme>. */
+function useSiteTheme(): 'light' | 'dark' {
+  return useSyncExternalStore(
+    (onChange) => {
+      const observer = new MutationObserver(onChange);
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      return () => observer.disconnect();
+    },
+    () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
+    () => 'light',
+  );
+}
+
+/** Google road tiles with live traffic for the theme, when the backend has a key. */
+function useTrafficTiles(theme: 'light' | 'dark'): string | null {
+  const [tiles, setTiles] = useState<Partial<Record<'light' | 'dark', string | null>>>({});
+  useEffect(() => {
+    if (theme in tiles) return;
+    let live = true;
+    void fetchTrafficTiles(theme).then((url) => {
+      if (live) setTiles((prev) => ({ ...prev, [theme]: url }));
+    });
+    return () => {
+      live = false;
+    };
+  }, [theme, tiles]);
+  return tiles[theme] ?? null;
+}
+
 function MapApi({ onReady }: { onReady?: (api: HeroMapApi) => void }) {
   const map = useMap();
 
@@ -663,9 +773,12 @@ export function HeroMap({
   origin,
   fitNonce,
   onReady,
+  route,
   className,
 }: HeroMapProps) {
   const { d } = useI18n();
+  const theme = useSiteTheme();
+  const trafficTiles = useTrafficTiles(theme);
   const selected = stations.find((s) => s.id === selectedId);
   const center: [number, number] = [publicEnv.defaultCenter.lat, publicEnv.defaultCenter.lng];
 
@@ -682,8 +795,11 @@ export function HeroMap({
       aria-label={d.stations.mapAria}
     >
       <TileLayer
-        url={publicEnv.mapTileUrl}
-        attribution={publicEnv.mapAttribution}
+        // Google tiles carry live traffic (and are styled for the theme);
+        // the configured tiles are the fallback.
+        key={trafficTiles ?? 'default'}
+        url={trafficTiles ?? publicEnv.mapTileUrl}
+        attribution={trafficTiles ? '&copy; Google' : publicEnv.mapAttribution}
         maxZoom={19}
         // Tiles are only swapped once a gesture settles, and a ring of tiles is
         // kept around the viewport so panning reveals cached tiles, not gaps.
@@ -706,6 +822,7 @@ export function HeroMap({
       {/* The user's marker flies to them first; when locating also picked the
           nearest station, that selection's fly runs after and wins. */}
       <UserMarker origin={origin} />
+      <RouteLayer route={route} />
       <FollowSelection station={selected} />
     </MapContainer>
   );

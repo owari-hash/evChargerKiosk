@@ -13,7 +13,12 @@
 
 import { scopedKey } from '@/lib/user-scope';
 
-export type NotificationKind = 'wallet' | 'announcement' | 'session-started' | 'session-finished';
+export type NotificationKind =
+  | 'wallet'
+  | 'announcement'
+  | 'session-started'
+  | 'session-finished'
+  | 'station-free';
 
 export interface NotificationItem {
   id: string;

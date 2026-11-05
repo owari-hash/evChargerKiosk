@@ -7,6 +7,7 @@ import { AssistantWidget } from '@/components/assistant-widget';
 import { WalletWatcher } from '@/components/wallet-watcher';
 import { SessionWatcher } from '@/components/session-watcher';
 import { ToastHost } from '@/components/toast-host';
+import { TopUpResultOverlay } from '@/components/wallet/topup-result-overlay';
 import { UserScope } from '@/components/user-scope';
 import { AnnouncementModal } from '@/components/announcement-modal';
 import { AnalyticsTracker } from '@/components/analytics-tracker';
@@ -94,6 +95,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
           <AnalyticsTracker />
           <GoogleAnalytics />
           <ToastHost />
+          <TopUpResultOverlay />
         </I18nProvider>
       </body>
     </html>

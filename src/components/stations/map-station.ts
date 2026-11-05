@@ -29,6 +29,25 @@ export interface MapStation {
   speed: StationSpeed;
   freshness: StationFreshness;
   distanceKm?: number;
+  /** Plugs charging right now, and the soonest one expected to finish. */
+  charging?: { count: number; soonestMin?: number; socPercent?: number };
+}
+
+const CHARGING = new Set(['Charging', 'SuspendedEV', 'SuspendedEVSE']);
+
+function chargingOf(station: Station): MapStation['charging'] {
+  const busy = (station.connectors ?? []).filter((c) => CHARGING.has(c.status));
+  if (busy.length === 0) return undefined;
+  let soonest: (typeof busy)[number] | undefined;
+  for (const c of busy) {
+    if (typeof c.minutesToFull !== 'number' || c.minutesToFull <= 0) continue;
+    if (!soonest || c.minutesToFull < (soonest.minutesToFull ?? Infinity)) soonest = c;
+  }
+  return {
+    count: busy.length,
+    soonestMin: soonest?.minutesToFull !== undefined ? Math.ceil(soonest.minutesToFull) : undefined,
+    socPercent: (soonest ?? busy[0])?.lastSocPercent,
+  };
 }
 
 const DC_TYPES: ReadonlySet<ConnectorType> = new Set(['CCS2', 'CHAdeMO', 'GBT']);
@@ -78,6 +97,7 @@ export function toMapStation(station: Station, now = Date.now()): MapStation | n
     speed: speedOf(station),
     freshness: freshnessOf(station, now),
     distanceKm: station.distanceKm,
+    charging: chargingOf(station),
   };
 }
 

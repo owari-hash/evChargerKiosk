@@ -1,5 +1,6 @@
 'use client';
 
+import { showTopUpResult } from '@/lib/topup-result-store';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Modal, ModalHeader } from '@/components/ui';
@@ -95,6 +96,7 @@ export function QuickPayModal({
         setPaid(true);
         setPolling(false);
         const bal = data.wallet?.balance ?? activeAmount;
+        showTopUpResult({ kind: 'success', amount: activeAmount, balance: data.wallet?.balance });
         setTimeout(() => {
           onSuccess(bal);
         }, 1200);

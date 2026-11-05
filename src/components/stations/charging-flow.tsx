@@ -1,5 +1,6 @@
 'use client';
 
+import { NotifyWhenFree } from '@/components/stations/notify-when-free';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, useI18n } from '@/components/i18n-provider';
@@ -678,7 +679,17 @@ export function ChargingFlow({
                 {otherFree.length > 0 && !offline ? (
                   <ConnectorPicker className="mt-2" connectors={otherFree} free={otherFree} />
                 ) : (
-                  <p className="mt-1 text-sm text-muted">{t.noneFreeToScan}</p>
+                  <>
+                    <p className="mt-1 text-sm text-muted">{t.noneFreeToScan}</p>
+                    {!offline && (
+                      <NotifyWhenFree
+                        className="mt-3"
+                        stationId={stationId}
+                        connectors={live.connectors}
+                        signedIn={signedIn}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -692,6 +703,14 @@ export function ChargingFlow({
                 title={t.stepConnector}
                 body={free.length === 0 && !offline ? t.connectorBusy : t.connectorBody}
               />
+              {free.length === 0 && !offline && (
+                <NotifyWhenFree
+                  className="mt-4"
+                  stationId={stationId}
+                  connectors={live.connectors}
+                  signedIn={signedIn}
+                />
+              )}
               {scannedUnavailable && free.length > 0 && (
                 <p className="mt-2 text-sm font-medium text-warning">{t.scannedUnavailable}</p>
               )}
@@ -1582,11 +1601,24 @@ function ConnectorPicker({
             <span
               aria-hidden
               className={cn(
-                'grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl text-sm font-semibold',
-                selected ? 'bg-brand text-brand-contrast' : 'bg-surface-muted text-foreground',
+                'relative grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl text-sm font-semibold',
+                selected
+                  ? 'bg-brand text-brand-contrast'
+                  : live && c.status === 'Charging'
+                    ? 'step-glow bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/40'
+                    : 'bg-surface-muted text-foreground',
               )}
             >
               {connectorLetter(c.connectorId)}
+              {live && c.status === 'Charging' && (
+                <svg
+                  viewBox="0 0 24 24"
+                  className="charge-bolt absolute -right-1 -top-1 size-4 rounded-full bg-emerald-500 p-0.5 text-white"
+                  fill="currentColor"
+                >
+                  <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+                </svg>
+              )}
             </span>
             <span className="min-w-0 flex-1">
               {c.connectorId === scannedId && (
@@ -1627,6 +1659,14 @@ function ConnectorPicker({
                   {toFullLabel(c.minutesToFull, d.flow)}
                 </span>
               )}
+              {live && c.status === 'Charging' && (
+                <span className="mt-1.5 block h-1.5 w-full max-w-56 overflow-hidden rounded-full bg-border/60">
+                  <span
+                    className="station-charge-bar block h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-[width] duration-700"
+                    style={{ width: `${Math.max(6, Math.min(100, c.lastSocPercent ?? 50))}%` }}
+                  />
+                </span>
+              )}
             </span>
             {/* Someone scanned this gun and is about to start: the station
                 still reports it Available, but it is not free. */}
@@ -1665,7 +1705,10 @@ function ConnectorPicker({
                   rowClass,
                   selectable
                     ? 'cursor-pointer hover:bg-brand-soft hover:ring-brand/40 focus-visible:outline-2 focus-visible:outline-brand'
-                    : 'cursor-not-allowed opacity-60',
+                    : // A gun that's charging stays bright so its live bar reads.
+                      live && c.status === 'Charging'
+                      ? 'cursor-not-allowed ring-emerald-500/30'
+                      : 'cursor-not-allowed opacity-60',
                 )}
               >
                 {content}

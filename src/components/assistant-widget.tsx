@@ -34,6 +34,9 @@ function getDefaultDock(): Dock {
   return { side: 'right', bottom: Math.round(h * 0.35) };
 }
 
+/** Must be identical on the server and during hydration, so it can't read the window. */
+const SERVER_DOCK = JSON.stringify({ side: 'right', bottom: 245 } satisfies Dock);
+
 const dockListeners = new Set<() => void>();
 
 /** The stored dock as a string, so the snapshot is stable between reads. */
@@ -112,7 +115,7 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
 
   // The launcher can be dragged out of the way of page content (it sat on the
   // footer links on phones) and snaps to the nearer side edge when let go.
-  const dock = parseDock(useSyncExternalStore(subscribeDock, readDock, () => JSON.stringify(getDefaultDock())));
+  const dock = parseDock(useSyncExternalStore(subscribeDock, readDock, () => SERVER_DOCK));
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const pressRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 
