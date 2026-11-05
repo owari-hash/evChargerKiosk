@@ -72,8 +72,6 @@ const SELECTED_ZOOM = 16;
  * the bottom (the station sheet), so panning can keep a pin clear of them.
  */
 const CHROME_TOP_PX = 118;
-const ULAANBAATAR: [number, number] = [47.9185, 106.9177];
-const UB_ZOOM = 12;
 const CHROME_BOTTOM_PX = 300;
 
 const PIN_COLOR: Record<StationAvailability, string> = {
@@ -535,8 +533,6 @@ function FitToStations({
   const signature = stations.map((s) => s.id).join('|');
   const pausedRef = useRef(paused);
   const stationsRef = useRef(stations);
-  // The first view is Ulaanbaatar, where almost every station is; framing the
-  // whole country shrinks the city to a dot. Filters and "fit" still frame all.
   const firstFit = useRef(true);
   const lastNonce = useRef(fitNonce);
 
@@ -550,17 +546,12 @@ function FitToStations({
     // A station the visitor just picked owns the view; refitting would fight it.
     if (pausedRef.current) return;
 
-    if (firstFit.current) {
-      firstFit.current = false;
-      lastNonce.current = fitNonce;
-      map.setView(ULAANBAATAR, UB_ZOOM, { animate: false });
-      return;
-    }
-
     const coords = stationsRef.current.map((s) => [s.lat, s.lng] as [number, number]);
     // A list refresh or a filter that still leaves stations on screen keeps the
     // driver's view; only "fit" or a result set entirely off screen moves it.
-    const asked = lastNonce.current !== fitNonce;
+    // The first load always frames every station.
+    const asked = firstFit.current || lastNonce.current !== fitNonce;
+    firstFit.current = false;
     lastNonce.current = fitNonce;
     if (!asked) {
       const view = map.getBounds();
