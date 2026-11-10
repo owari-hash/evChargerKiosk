@@ -1253,3 +1253,31 @@ html {
 @keyframes partners-teaser {
   from { opacity: 0; transform: translateY(100%); filter: blur(4px); }
 }
+
+/* Teaser card: a light runs around the border. */
+@property --partners-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+.partners-border {
+  background:
+    conic-gradient(
+      from var(--partners-angle),
+      color-mix(in srgb, var(--brand) 15%, transparent) 0deg,
+      var(--brand) 60deg,
+      color-mix(in srgb, var(--brand-strong) 60%, #22d3ee) 100deg,
+      color-mix(in srgb, var(--brand) 15%, transparent) 160deg 360deg
+    );
+  animation: partners-spin 4s linear infinite;
+}
+@keyframes partners-spin { to { --partners-angle: 360deg; } }
+.partners-word {
+  background-image: linear-gradient(90deg, var(--foreground), var(--brand) 70%);
+  line-height: inherit;
+}
+.partners-icon { animation: partners-icon 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+@keyframes partners-icon { from { opacity: 0; transform: scale(0.4) rotate(-30deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .partners-border, .partners-icon { animation: none !important; }
+}

@@ -1,6 +1,25 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+/** How long each teaser item stays up. */
+const TEASER_MS = 2800;
+
+/**
+ * One icon per teaser item, in the order the page passes them: customer data,
+ * wallet, transactions, charging, stations & pricing.
+ */
+const TEASER_ICONS = [
+  // person
+  'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21a8 8 0 0 1 16 0',
+  // wallet
+  'M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm13 5h.01',
+  // two-way arrows
+  'M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7',
+  // lightning bolt
+  'M13 2 4 14h7l-1 8 9-12h-7l1-8Z',
+  // map pin
+  'M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12Zm0-9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
+];
 
 interface Node {
   x: number;
@@ -41,9 +60,9 @@ export function PartnersStage({ title, subtitle, teaserLead, teaserItems }: {
   const [teaser, setTeaser] = useState(0);
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const id = window.setInterval(() => setTeaser((i) => (i + 1) % teaserItems.length), 2400);
-    return () => window.clearInterval(id);
-  }, [teaserItems.length]);
+    const id = window.setTimeout(() => setTeaser((i) => (i + 1) % teaserItems.length), TEASER_MS);
+    return () => window.clearTimeout(id);
+  }, [teaser, teaserItems.length]);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -428,16 +447,37 @@ export function PartnersStage({ title, subtitle, teaserLead, teaserItems }: {
         <div aria-hidden className="partners-line mx-auto mt-8 h-px w-40 bg-gradient-to-r from-transparent via-brand/70 to-transparent [animation-delay:1900ms]" />
 
         {/* Teaser: cycles through what partners will get. */}
-        <div className="partners-fade mt-8 flex flex-col items-center gap-2 [animation-delay:2400ms] sm:flex-row sm:justify-center sm:gap-3">
-          <span className="text-sm text-muted sm:text-base">{teaserLead}</span>
-          <span className="relative grid h-7 min-w-[13rem] place-items-center overflow-hidden rounded-full bg-surface/60 px-4 ring-1 ring-brand/25 backdrop-blur-sm sm:h-8">
-            <span
-              key={teaser}
-              className="partners-teaser whitespace-nowrap text-sm font-medium text-brand sm:text-base"
-            >
-              {teaserItems[teaser]}
-            </span>
-          </span>
+        <div className="partners-fade mt-10 flex flex-col items-center [animation-delay:2400ms]">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">{teaserLead.replace(/:$/, '')}</span>
+
+          {/* Glass card with a light that runs around its border */}
+          <div className="partners-border relative mt-3 rounded-2xl p-px shadow-[0_20px_60px_-20px] shadow-brand/40">
+            <div className="flex h-14 min-w-[17rem] items-center gap-3 rounded-[15px] bg-background/75 px-5 backdrop-blur-xl sm:h-16 sm:min-w-[21rem] sm:px-6">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/12 text-brand ring-1 ring-brand/25">
+                <svg
+                  key={teaser}
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="partners-icon size-[18px]"
+                >
+                  <path d={TEASER_ICONS[teaser % TEASER_ICONS.length]} />
+                </svg>
+              </span>
+              <span className="relative h-7 flex-1 overflow-hidden text-left sm:h-8">
+                <span
+                  key={teaser}
+                  className="partners-teaser partners-word absolute inset-0 truncate bg-clip-text text-xl font-semibold tracking-tight text-transparent sm:text-2xl"
+                >
+                  {teaserItems[teaser]}
+                </span>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
