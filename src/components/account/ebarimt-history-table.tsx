@@ -143,11 +143,11 @@ export function EbarimtHistoryTable({
                       {r.isIssued ? (
                         <>
                           {r.lottery ? (
-                            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/20">
                               {format(t.lotteryLabel, { id: r.lottery })}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/20">
                               Байгууллага
                             </span>
                           )}

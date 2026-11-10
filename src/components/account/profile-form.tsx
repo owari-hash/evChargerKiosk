@@ -3,6 +3,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal } from '@/components/ui';
 import { ChangePinForm } from '@/components/account/change-pin-form';
+import { SignOutOthers } from '@/components/account/sign-out-others';
 import { format, useI18n } from '@/components/i18n-provider';
 import type { PublicUser } from '@/lib/types';
 import { useToastMessage } from '@/lib/use-toast-message';
@@ -596,6 +597,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 </svg>
               </button>
             </div>
+
+            <SignOutOthers />
           </div>
 
           <div className="border-t border-border pt-4">

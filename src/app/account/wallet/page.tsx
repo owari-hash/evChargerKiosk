@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { TopUpPanel } from '@/components/wallet/top-up-panel';
@@ -65,6 +66,12 @@ export default async function WalletPage({
             <TopUpPanel config={config} returned={returned} cards={cards} />
             <WalletHistory entries={entries} d={d} locale={locale} />
           </div>
+          <p className="text-sm text-muted">
+            <Link href="/payments" className="font-medium text-brand underline-offset-4 hover:underline">
+              {d.footer.payments}
+            </Link>
+            {locale === 'en' ? ' — methods, fees, receipts and refunds' : ' — төлбөрийн арга, шимтгэл, баримт, буцаалт'}
+          </p>
         </>
       )}
     </>

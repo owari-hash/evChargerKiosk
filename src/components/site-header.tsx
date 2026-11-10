@@ -27,7 +27,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
     { href: '/', label: d.nav.home },
     // "Үнэ тариф" opens the station list: every card carries its price.
     { href: '/stations', label: d.nav.pricing },
-    { href: '/help', label: d.nav.help },
+    { href: '/partners', label: d.nav.partners },
     { href: '/contact', label: d.nav.contact },
     { href: '/download', label: d.nav.download },
   ];
@@ -95,6 +95,24 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               other header toggles, rendered before every theme toggle so it
               leads the mobile icon row too. */}
           <StationStatusBadge />
+
+          {/* Help lives here as an icon; its nav slot went to "Хамтран ажиллах". */}
+          <Link
+            href="/help"
+            aria-label={d.nav.help}
+            title={d.nav.help}
+            aria-current={pathname.startsWith('/help') ? 'page' : undefined}
+            className={cn(
+              'grid size-8 sm:size-9 shrink-0 place-items-center rounded-lg sm:rounded-xl ring-1 ring-border transition hover:bg-surface-muted hover:text-foreground',
+              pathname.startsWith('/help') ? 'bg-surface-muted text-foreground' : 'text-muted',
+            )}
+          >
+            <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4.5">
+              <circle cx="12" cy="12" r="9" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6" />
+              <path strokeLinecap="round" d="M12 17h.01" />
+            </svg>
+          </Link>
 
           <Link
             href="/download"

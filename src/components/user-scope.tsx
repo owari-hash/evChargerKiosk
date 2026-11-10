@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { setFavoritesOwner } from '@/lib/favorites-store';
 import { setNotificationsOwner } from '@/lib/notifications-store';
 import { clearToasts } from '@/lib/toast-store';
 import { dropLegacyKeys } from '@/lib/user-scope';
@@ -18,6 +19,7 @@ export function UserScope({ userId }: { userId: string | null }) {
 
   useEffect(() => {
     setNotificationsOwner(userId);
+    setFavoritesOwner(userId);
     return () => clearToasts();
   }, [userId]);
 

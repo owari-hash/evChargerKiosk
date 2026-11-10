@@ -130,7 +130,7 @@ export function QuickPayModal({
       <div className="p-4 sm:p-5">
         {paid ? (
           <div className="py-8 text-center space-y-3">
-            <div className="mx-auto grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-600 text-2xl font-bold dark:bg-emerald-950 dark:text-emerald-400">
+            <div className="mx-auto grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-700 text-2xl font-bold dark:bg-emerald-950 dark:text-emerald-400">
               ✓
             </div>
             <h3 className="text-lg font-bold text-foreground">Төлбөр амжилттай баталгаажлаа!</h3>

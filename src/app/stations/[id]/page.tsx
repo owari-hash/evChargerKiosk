@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { ChargingFlow } from '@/components/stations/charging-flow';
+import { FavoriteButton } from '@/components/stations/favorite-button';
 import { Alert, ButtonLink } from '@/components/ui';
 import { getCurrentUser, getStation } from '@/lib/driver-api';
 import { format, getTranslations } from '@/lib/i18n';
@@ -143,6 +144,7 @@ export default async function StationPage(props: PageProps<'/stations/[id]'>) {
               {station.name}
             </h1>
           </div>
+          <FavoriteButton stationId={station.id} stationName={station.name} />
           {directions && (
             <a
               href={directions}

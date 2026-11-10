@@ -78,8 +78,15 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       </head>
       <body className="glass-scope flex min-h-screen flex-col">
         <I18nProvider locale={locale}>
+          {/* First tab stop: lets keyboard and screen-reader users skip the header. */}
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-xl focus:bg-brand focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-brand-contrast focus:shadow-lg"
+          >
+            {locale === 'en' ? 'Skip to content' : 'Үндсэн агуулга руу шилжих'}
+          </a>
           <SiteHeader user={user} />
-          <main className="flex-1 min-w-0 max-w-full">{children}</main>
+          <main id="main" tabIndex={-1} className="flex-1 min-w-0 max-w-full outline-none">{children}</main>
           <SiteFooter />
           {/* Everything below that keeps per-driver state is keyed by the user
               id, so signing out or switching drivers starts it afresh. */}

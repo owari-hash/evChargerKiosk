@@ -8,6 +8,7 @@ import { format, useI18n } from '@/components/i18n-provider';
 import { CONNECTOR_TYPES, type Station } from '@/lib/types';
 import { cn, formatPowerKw, intlLocale } from '@/lib/utils';
 import { StationCard } from './station-card';
+import { useFavorites } from '@/lib/favorites-store';
 import type { StationMapProps } from './station-map';
 
 const DEBOUNCE_MS = 300;
@@ -111,6 +112,8 @@ export function StationFinder({
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<GeoErrorKey | 'geoUnsupported' | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { owner, ids } = useFavorites();
+  const [favOnly, setFavOnly] = useState(false);
 
   const view = searchParams.get('view') === 'map' ? 'map' : 'list';
   const query = useMemo(() => buildQuery(filters), [filters]);
@@ -208,10 +211,11 @@ export function StationFinder({
     );
   }
 
-  const visible =
+  const byStatus =
     filters.status === 'online'
       ? stations.filter((station) => station.availability !== 'offline')
       : stations;
+  const visible = favOnly && owner ? byStatus.filter((station) => ids.has(station.id)) : byStatus;
 
   const countLabel = loading
     ? d.stations.updating
@@ -418,6 +422,26 @@ export function StationFinder({
                 }))}
               />
             </div>
+
+            {owner && (
+              <button
+                type="button"
+                aria-pressed={favOnly}
+                onClick={() => setFavOnly((v) => !v)}
+                className={cn(
+                  'inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-medium ring-1 transition',
+                  favOnly
+                    ? 'bg-rose-500/10 text-rose-700 ring-rose-500/40 dark:text-rose-300'
+                    : 'bg-surface-muted text-muted ring-border hover:text-foreground',
+                )}
+              >
+                <svg aria-hidden viewBox="0 0 24 24" fill={favOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" className="size-4">
+                  <path strokeLinejoin="round" d="M12 20s-7.5-4.6-9.2-9.3C1.6 7.4 3.8 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.4 0 5.6 3.4 4.4 6.7C19.5 15.4 12 20 12 20Z" />
+                </svg>
+                {locale === 'en' ? 'Favourites' : 'Дуртай'}
+                {ids.size > 0 && <span className="tabular-nums opacity-70">{ids.size}</span>}
+              </button>
+            )}
           </div>
         </div>
 

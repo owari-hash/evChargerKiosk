@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Station } from '@/lib/types';
+import { FavoriteButton } from './favorite-button';
 import type { Locale } from '@/lib/i18n/config';
 import { format, getDictionary } from '@/lib/i18n/dictionaries';
 import { cn, directionsUrl, formatPowerKw, formatTariff, intlLocale } from '@/lib/utils';
@@ -43,6 +44,8 @@ export function StationCard({ station, selected = false, className, locale }: St
     >
       <div className="flex min-w-0 items-center justify-between gap-3">
         <h3 className="truncate text-[15px] font-semibold leading-snug text-foreground">{station.name}</h3>
+        <div className="flex shrink-0 items-center gap-1.5">
+        <FavoriteButton stationId={station.id} stationName={station.name} size="sm" />
         {directions && (
           // A button, not a link: the whole card is already a link.
           <button
@@ -63,6 +66,7 @@ export function StationCard({ station, selected = false, className, locale }: St
             </svg>
           </button>
         )}
+        </div>
       </div>
 
       <div className="mt-3 flex min-w-0 items-center justify-between gap-2">
@@ -71,8 +75,8 @@ export function StationCard({ station, selected = false, className, locale }: St
             className={cn(
               'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
               online
-                ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400'
-                : 'bg-red-500/10 text-red-600 dark:text-red-400',
+                ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400'
+                : 'bg-red-500/10 text-red-700 dark:text-red-400',
             )}
           >
             <span aria-hidden className={cn('size-1.5 rounded-full', online ? 'bg-emerald-500' : 'bg-red-500')} />
@@ -93,6 +97,18 @@ export function StationCard({ station, selected = false, className, locale }: St
           </div>
         )}
       </div>
+
+      {station.waitMinutes != null && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+          <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="size-3.5 shrink-0">
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" d="M12 7v5l3 2" />
+          </svg>
+          {locale === 'en'
+            ? `All plugs busy · free in ~${station.waitMinutes} min`
+            : `Бүх хошуу завгүй · ~${station.waitMinutes} мин-д сул гарна`}
+        </p>
+      )}
 
       <dl className="mt-auto grid grid-cols-2 gap-2 pt-4">
         <div className="min-w-0 rounded-xl bg-surface-muted/60 px-3 py-2">

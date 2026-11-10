@@ -271,7 +271,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
               <span className="text-muted">Баримтын төлөв:</span>
               <span className="inline-flex items-center gap-1.5 text-foreground">
                 {isB2B ? 'Байгууллага' : 'Хувь хүн'}
-                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Олгогдсон</span>
+                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">Олгогдсон</span>
               </span>
             </div>
 
@@ -474,7 +474,7 @@ export function EbarimtModal({ session, initialType, onClose, onSuccess }: Ebari
                   <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm space-y-1">
                     <div className="flex items-center justify-between gap-3">
                       <span className="min-w-0 truncate text-foreground">{orgData.name}</span>
-                      <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-400">
+                      <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-400">
                         Баталгаажсан
                       </span>
                     </div>

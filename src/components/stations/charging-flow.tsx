@@ -79,6 +79,134 @@ const AUTOMATIC: ReadonlySet<FlowStep> = new Set(['preparing', 'charging', 'stop
 /** Connector states that carry a running session's live readings. */
 const LIVE_STATUSES = new Set(['Charging', 'SuspendedEV', 'SuspendedEVSE', 'Finishing']);
 
+type FailedAction = 'start' | 'plug' | 'stop' | 'unlock' | 'wallet';
+
+const PROBLEM_COPY = {
+  mn: {
+    title: {
+      start: 'Цэнэглэлт эхэлсэнгүй',
+      plug: 'Кабель холбогдоогүй байна',
+      stop: 'Цэнэглэлт зогссонгүй',
+      unlock: 'Хошуу суллагдсангүй',
+      wallet: 'Хэтэвчний үлдэгдэл хүрэлцэхгүй',
+    },
+    reason: 'Шалтгаан',
+    notCharged: 'Цэнэглэлт эхлээгүй тул таны хэтэвчнээс мөнгө хасагдаагүй.',
+    steps: {
+      start: ['Кабель машин болон станцад бүрэн орсон эсэхийг шалгана уу.', 'Дахин оролдох эсвэл өөр хошуу сонгоно уу.'],
+      plug: ['Кабелиа машиндаа чанга оруулна уу.', 'Машин цэнэглэх горимд орсон эсэхийг шалгаад дахин дарна уу.'],
+      stop: ['Дахин оролдоно уу.', 'Эсвэл станц дээрх STOP товч, эсвэл машинаасаа цэнэглэлтийг зогсооно уу.'],
+      unlock: ['Дахин оролдоно уу.', 'Эсвэл станц дээрх товчийг дарж хошуугаа суллана уу.'],
+      wallet: ['Хэтэвчээ цэнэглээд дахин эхлүүлнэ үү.'],
+    },
+    retry: { start: 'Дахин оролдох', plug: 'Дахин шалгах', stop: 'Дахин зогсоох', unlock: 'Дахин суллах', wallet: 'Хэтэвч цэнэглэх' },
+    otherPlug: 'Өөр хошуу сонгох',
+    help: 'Тусламж авах',
+    dismiss: 'Хаах',
+  },
+  en: {
+    title: {
+      start: 'Charging did not start',
+      plug: 'The cable is not connected',
+      stop: 'Charging did not stop',
+      unlock: 'The plug was not released',
+      wallet: 'Not enough wallet balance',
+    },
+    reason: 'Reason',
+    notCharged: 'Charging never started, so nothing was taken from your wallet.',
+    steps: {
+      start: ['Check the cable is fully in the car and the charger.', 'Try again, or pick another plug.'],
+      plug: ['Push the cable firmly into the car.', 'Make sure the car is ready to charge, then check again.'],
+      stop: ['Try again.', 'Or press STOP on the charger, or stop charging from your car.'],
+      unlock: ['Try again.', 'Or press the button on the charger to release the plug.'],
+      wallet: ['Top up your wallet, then start again.'],
+    },
+    retry: { start: 'Try again', plug: 'Check again', stop: 'Stop again', unlock: 'Release again', wallet: 'Top up wallet' },
+    otherPlug: 'Pick another plug',
+    help: 'Get help',
+    dismiss: 'Close',
+  },
+};
+
+/**
+ * Stays on screen after a failed start / stop / unlock: what went wrong, what
+ * it cost (nothing, for a start that never happened) and what to do next.
+ */
+function ChargeProblem({
+  action,
+  reason,
+  busy,
+  onRetry,
+  onOtherPlug,
+  onDismiss,
+}: {
+  action: FailedAction;
+  reason: string;
+  busy: boolean;
+  onRetry: () => void;
+  onOtherPlug?: () => void;
+  onDismiss: () => void;
+}) {
+  const { locale } = useI18n();
+  const t = PROBLEM_COPY[locale === 'en' ? 'en' : 'mn'];
+  const showNoCharge = action === 'start' || action === 'plug' || action === 'wallet';
+
+  return (
+    <div role="alert" className="rounded-2xl bg-danger/5 p-4 ring-1 ring-danger/30">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-danger/10 text-danger">
+          <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+          </svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-foreground">{t.title[action]}</h3>
+          <p className="mt-1 text-sm text-muted">
+            <span className="font-medium text-foreground">{t.reason}: </span>
+            {reason}
+          </p>
+          {showNoCharge && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="size-3.5 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 5 5L20 7" />
+              </svg>
+              {t.notCharged}
+            </p>
+          )}
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-foreground/90">
+            {t.steps[action].map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label={t.dismiss}
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-surface-muted hover:text-foreground"
+        >
+          <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+            <path strokeLinecap="round" d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" onClick={onRetry} disabled={busy}>
+          {t.retry[action]}
+        </Button>
+        {onOtherPlug && (
+          <Button size="sm" variant="secondary" onClick={onOtherPlug} disabled={busy}>
+            {t.otherPlug}
+          </Button>
+        )}
+        <ButtonLink size="sm" variant="ghost" href="/contact">
+          {t.help}
+        </ButtonLink>
+      </div>
+    </div>
+  );
+}
+
 interface LiveState {
   availability: StationAvailability;
   connectors: StationConnector[];
@@ -183,7 +311,14 @@ export function ChargingFlow({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useToastMessage(error, 'error', d.start.couldNotStartTitle);
+  /** Which action the current error came from, so the problem panel can offer the right next step. */
+  const [failed, setFailed] = useState<FailedAction | null>(null);
+  // Errors with a problem panel stay on screen; anything else is a toast.
+  useToastMessage(failed ? null : error, 'error', d.start.couldNotStartTitle);
+  const fail = (action: FailedAction, message: string) => {
+    setFailed(action);
+    setError(message);
+  };
   const [staleFeed, setStaleFeed] = useState(false);
   const [showEbarimtModal, setShowEbarimtModal] = useState(false);
   const [ebarimtModalInitialType, setEbarimtModalInitialType] = useState<'B2C_RECEIPT' | 'B2B_RECEIPT'>('B2C_RECEIPT');
@@ -356,6 +491,7 @@ export function ChargingFlow({
     if (autoPromptedRef.current === preparingId) return;
     autoPromptedRef.current = preparingId;
     setError(null);
+    setFailed(null);
     setConfirming((current) => current ?? 'start');
   }, [preparingId]);
 
@@ -364,6 +500,7 @@ export function ChargingFlow({
     if (busy || active || awaitingStation) return;
     setConnectorId(String(id));
     setError(null);
+    setFailed(null);
     setConfirming('start');
   }
 
@@ -421,17 +558,19 @@ export function ChargingFlow({
     setConnectorId('');
     setPlugged(false);
     setError(null);
+    setFailed(null);
   }
 
   async function start(ebarimt?: EbarimtChoice) {
     if (!chosen) return;
     if (!isInternal && requireBalanceToStart && walletBalance !== null && walletBalance < minStartBalance) {
       setShowQuickPay(true);
-      setError(`Хэтэвчний үлдэгдэл хүрэлцэхгүй байна (хамгийн багадаа ${minStartBalance.toLocaleString('mn-MN')}₮). Цэнэглэхээсээ өмнө хэтэвчээ цэнэглэнэ үү.`);
+      fail('wallet', `Хэтэвчний үлдэгдэл хүрэлцэхгүй байна (хамгийн багадаа ${minStartBalance.toLocaleString('mn-MN')}₮). Цэнэглэхээсээ өмнө хэтэвчээ цэнэглэнэ үү.`);
       return;
     }
     setBusy(true);
     setError(null);
+    setFailed(null);
     try {
       const res = await fetch(`/app-api/stations/${encodeURIComponent(stationId)}/start`, {
         method: 'POST',
@@ -454,7 +593,7 @@ export function ChargingFlow({
       await refresh();
       [500, 1200, 2200, 3500].forEach((delay) => setTimeout(() => void refresh(), delay));
     } catch (err) {
-      setError(err instanceof Error ? err.message : d.start.requestFailed);
+      fail('start', err instanceof Error ? err.message : d.start.requestFailed);
     } finally {
       setBusy(false);
     }
@@ -473,10 +612,11 @@ export function ChargingFlow({
     const looksPlugged =
       chosen != null && chosen.status !== 'Available';
     if (!looksPlugged) {
-      setError(t.plugNotDetected);
+      fail('plug', t.plugNotDetected);
       return;
     }
     setError(null);
+    setFailed(null);
     setConfirming('start');
   }
 
@@ -505,6 +645,7 @@ export function ChargingFlow({
     setRequested(false);
     setConnectorId('');
     setError(null);
+    setFailed(null);
     void fetchWallet();
     void refresh();
   }
@@ -519,6 +660,7 @@ export function ChargingFlow({
     if (!transactionId) return;
     setBusy(true);
     setError(null);
+    setFailed(null);
     try {
       const res = await fetch(`/app-api/sessions/${transactionId}/unlock`, { method: 'POST' });
       const payload = (await res.json().catch(() => ({}))) as {
@@ -531,7 +673,7 @@ export function ChargingFlow({
       }
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.unlockFailed);
+      fail('unlock', err instanceof Error ? err.message : t.unlockFailed);
     } finally {
       setBusy(false);
     }
@@ -542,6 +684,7 @@ export function ChargingFlow({
     setRequested(false);
     setBusy(true);
     setError(null);
+    setFailed(null);
     try {
       const res = await fetch(`/app-api/sessions/${active.transactionId}/stop`, { method: 'POST' });
       const payload = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
@@ -549,7 +692,7 @@ export function ChargingFlow({
       requestSessionCheck();
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : d.start.requestFailed);
+      fail('stop', err instanceof Error ? err.message : d.start.requestFailed);
     } finally {
       setBusy(false);
     }
@@ -627,6 +770,26 @@ export function ChargingFlow({
             <Alert tone="warning" title={d.status.availability.offline} />
           )}
 
+          {error && failed && (
+            <ChargeProblem
+              action={failed}
+              reason={error}
+              busy={busy}
+              onRetry={() => {
+                if (failed === 'start') setConfirming('start');
+                else if (failed === 'plug') confirmPlugged();
+                else if (failed === 'stop') void stop();
+                else if (failed === 'unlock') void unlock();
+                else setShowQuickPay(true);
+              }}
+              onOtherPlug={failed === 'start' || failed === 'plug' ? chooseAnother : undefined}
+              onDismiss={() => {
+                setError(null);
+                setFailed(null);
+              }}
+            />
+          )}
+
           {!remoteStartEnabled && !active && !offline && (
             <Alert tone="info" title={t.localOnlyTitle}>
               {t.localOnlyBody}
@@ -646,6 +809,7 @@ export function ChargingFlow({
                 setAuthed(true);
                 setTagged(true);
                 setError(null);
+                setFailed(null);
                 void refresh();
               }}
             />
@@ -768,7 +932,7 @@ export function ChargingFlow({
                   )}
                 </div>
                 {isInternal ? (
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold shadow-xs">
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-700 dark:text-emerald-400 font-semibold shadow-xs">
                     <span>Дотоод хэрэглэгч · Үнэ төлбөргүй</span>
                   </div>
                 ) : walletBalance !== null && (
@@ -886,7 +1050,7 @@ export function ChargingFlow({
                 <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
                   <span className="text-brand-strong">{t.ebarimtIssued}</span>
                   {session.ebarimt?.type === 'B2B_RECEIPT' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs text-emerald-700 dark:text-emerald-400">
                       Байгууллага ({session.ebarimt.customerTin})
                     </span>
                   ) : (
@@ -998,6 +1162,7 @@ export function ChargingFlow({
           setWalletBalance(newBalance);
           setShowQuickPay(false);
           setError(null);
+          setFailed(null);
           void refresh();
         }}
       />
@@ -1383,7 +1548,7 @@ function StartDialog({
               {checking ? (
                 <p className="text-xs text-muted">{t.ebarimtOrgChecking}</p>
               ) : org?.valid ? (
-                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                   ✓ {org.name || org.tin || clean}
                 </p>
               ) : org ? (
@@ -1650,13 +1815,13 @@ function ConnectorPicker({
                   {faultCode && ` · ${faultCode}`}
                 </span>
               )}
-              {live && c.minutesToFull != null && (
+              {live && (c.minutesToFull ?? c.minutesLeft) != null && (
                 <span className="mt-0.5 flex items-center gap-1 text-xs font-bold text-brand">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="size-3.5 shrink-0" aria-hidden>
                     <circle cx="12" cy="12" r="9" />
                     <path strokeLinecap="round" d="M12 7v5l3 2" />
                   </svg>
-                  {toFullLabel(c.minutesToFull, d.flow)}
+                  {c.minutesToFull != null ? toFullLabel(c.minutesToFull, d.flow) : leftLabel(c.minutesLeft!, d.flow)}
                 </span>
               )}
               {live && c.status === 'Charging' && (
@@ -1779,6 +1944,12 @@ function toFullLabel(minutes: number, t: ReturnType<typeof useI18n>['d']['flow']
   if (minutes <= 1) return t.toFullDone;
   if (minutes < 60) return format(t.toFullMinutes, { minutes });
   return format(t.toFullHours, { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
+}
+
+/** "≈ 25 мин үлдсэн": the estimate from typical session length, not the battery. */
+function leftLabel(minutes: number, t: ReturnType<typeof useI18n>['d']['flow']): string {
+  if (minutes < 60) return format(t.leftMinutes, { minutes });
+  return format(t.leftHours, { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
 }
 
 function clock(minute: number): string {

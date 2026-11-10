@@ -38,14 +38,19 @@ const CHARGING = new Set(['Charging', 'SuspendedEV', 'SuspendedEVSE']);
 function chargingOf(station: Station): MapStation['charging'] {
   const busy = (station.connectors ?? []).filter((c) => CHARGING.has(c.status));
   if (busy.length === 0) return undefined;
+  // minutesLeft is the backend's best guess (battery reading, else typical
+  // session length here); minutesToFull is the older battery-only field.
+  const leftOf = (c: (typeof busy)[number]) => c.minutesLeft ?? c.minutesToFull;
   let soonest: (typeof busy)[number] | undefined;
   for (const c of busy) {
-    if (typeof c.minutesToFull !== 'number' || c.minutesToFull <= 0) continue;
-    if (!soonest || c.minutesToFull < (soonest.minutesToFull ?? Infinity)) soonest = c;
+    const left = leftOf(c);
+    if (typeof left !== 'number' || left <= 0) continue;
+    if (!soonest || left < (leftOf(soonest) ?? Infinity)) soonest = c;
   }
+  const soonestLeft = soonest ? leftOf(soonest) : undefined;
   return {
     count: busy.length,
-    soonestMin: soonest?.minutesToFull !== undefined ? Math.ceil(soonest.minutesToFull) : undefined,
+    soonestMin: soonestLeft !== undefined ? Math.ceil(soonestLeft) : undefined,
     socPercent: (soonest ?? busy[0])?.lastSocPercent,
   };
 }

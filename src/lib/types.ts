@@ -36,6 +36,8 @@ export interface StationConnector {
   lastSocPercent?: number;
   /** Car charging here that reports its battery: estimated minutes until full. */
   minutesToFull?: number;
+  /** Minutes until this session is likely done: battery estimate, else typical session length. */
+  minutesLeft?: number;
   statusTimestamp?: string;
 }
 
@@ -67,6 +69,8 @@ export interface Station {
   maxPowerKw?: number;
   connectorTypes: ConnectorType[];
   availability: StationAvailability;
+  /** Busy stations: estimated minutes until a plug frees up. */
+  waitMinutes?: number;
   /** Kilometres from the requested origin, when the query supplied one. */
   distanceKm?: number;
 }

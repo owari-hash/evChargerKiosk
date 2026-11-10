@@ -31,7 +31,7 @@ const COPY = {
 /** Soonest "minutes to full" across the plugs that are charging right now. */
 export function soonestFreeMinutes(connectors: StationConnector[]): number | null {
   const mins = connectors
-    .map((c) => c.minutesToFull)
+    .map((c) => c.minutesToFull ?? c.minutesLeft)
     .filter((m): m is number => typeof m === 'number' && m > 0);
   return mins.length ? Math.ceil(Math.min(...mins)) : null;
 }

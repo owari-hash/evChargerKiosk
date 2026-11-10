@@ -43,6 +43,7 @@ export const en = {
     stations: 'Find a charger',
     pricing: 'Pricing',
     help: 'Help',
+    partners: 'Partner with us',
     contact: 'Contact',
     download: 'Get the app',
   },
@@ -68,6 +69,7 @@ export const en = {
     rights: '© {year} Жиркто ХХК. All rights reserved.',
     terms: 'Terms',
     privacy: 'Privacy',
+    payments: 'Payment methods',
   },
 
   status: {
@@ -608,6 +610,8 @@ export const en = {
     toFullMinutes: '≈ {minutes} min to full',
     toFullHours: '≈ {hours} h {minutes} min to full',
     toFullDone: 'Finishing up',
+    leftMinutes: '≈ {minutes} min left',
+    leftHours: '≈ {hours} h {minutes} min left',
     liveCost: 'Cost so far',
     liveElapsed: 'Elapsed',
     connectorBusy: 'Every plug here is in use right now.',
@@ -1214,6 +1218,7 @@ export const mn: Dictionary = {
     stations: 'Цэнэглэх станц',
     pricing: 'Үнэ тариф',
     help: 'Тусламж',
+    partners: 'Хамтран ажиллах',
     contact: 'Холбоо барих',
     download: 'Апп татах',
   },
@@ -1239,6 +1244,7 @@ export const mn: Dictionary = {
     rights: '© {year} Жиркто ХХК. Бүх эрх хуулиар баталгаажсан.',
     terms: 'Үйлчилгээний нөхцөл',
     privacy: 'Нууцлалын бодлого',
+    payments: 'Төлбөрийн нөхцөл',
   },
 
   status: {
@@ -1780,6 +1786,8 @@ export const mn: Dictionary = {
     toFullMinutes: '≈ {minutes} мин дүүрэхэд',
     toFullHours: '≈ {hours} ц {minutes} мин дүүрэхэд',
     toFullDone: 'Дүүрч байна',
+    leftMinutes: '≈ {minutes} мин үлдсэн',
+    leftHours: '≈ {hours} ц {minutes} мин үлдсэн',
     liveCost: 'Одоогийн төлбөр',
     liveElapsed: 'Зарцуулсан хугацаа',
     connectorBusy: 'Бүх хошуу завгүй байна.',
