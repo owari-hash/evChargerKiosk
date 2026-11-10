@@ -12,7 +12,7 @@ const TEASER_ICONS = [
   // person
   'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21a8 8 0 0 1 16 0',
   // wallet
-  'M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm13 5h.01',
+  'M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M21 11h-5a2 2 0 0 0 0 4h5v-4Z',
   // two-way arrows
   'M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7',
   // lightning bolt
@@ -452,7 +452,7 @@ export function PartnersStage({ title, subtitle, teaserLead, teaserItems }: {
 
           {/* Glass card with a light that runs around its border */}
           <div className="partners-border relative mt-3 rounded-2xl p-px shadow-[0_20px_60px_-20px] shadow-brand/40">
-            <div className="flex h-14 min-w-[17rem] items-center gap-3 rounded-[15px] bg-background/75 px-5 backdrop-blur-xl sm:h-16 sm:min-w-[21rem] sm:px-6">
+            <div className="flex h-14 max-w-[calc(100vw-2rem)] items-center gap-3 rounded-[15px] bg-background/75 px-4 backdrop-blur-xl sm:h-16 sm:gap-4 sm:px-6">
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/12 text-brand ring-1 ring-brand/25">
                 <svg
                   key={teaser}
@@ -468,14 +468,21 @@ export function PartnersStage({ title, subtitle, teaserLead, teaserItems }: {
                   <path d={TEASER_ICONS[teaser % TEASER_ICONS.length]} />
                 </svg>
               </span>
-              <span className="relative h-7 flex-1 overflow-hidden text-left sm:h-8">
+              {/* The invisible longest item sets the width, so nothing is cut off
+                  and the card does not resize as the words change. */}
+              <span className="relative grid flex-1 overflow-hidden text-center text-lg font-semibold tracking-tight sm:text-2xl">
+                <span aria-hidden className="invisible col-start-1 row-start-1 whitespace-nowrap">
+                  {teaserItems.reduce((a, b) => (b.length > a.length ? b : a), '')}
+                </span>
                 <span
                   key={teaser}
-                  className="partners-teaser partners-word absolute inset-0 truncate bg-clip-text text-xl font-semibold tracking-tight text-transparent sm:text-2xl"
+                  className="partners-teaser partners-word col-start-1 row-start-1 whitespace-nowrap bg-clip-text text-transparent"
                 >
                   {teaserItems[teaser]}
                 </span>
               </span>
+              {/* Mirrors the icon so the word sits in the true centre of the card. */}
+              <span aria-hidden className="size-9 shrink-0" />
             </div>
           </div>
         </div>
