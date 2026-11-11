@@ -1,28 +1,17 @@
 import type { Metadata } from 'next';
-import { PartnersStage } from '@/components/partners/partners-stage';
+import { PartnerDocs } from '@/components/partners/partner-docs';
+import { DEFAULT_CONTACT_INFO, getContactInfo } from '@/lib/driver-api';
 import { publicEnv } from '@/lib/env';
-import { getTranslations } from '@/lib/i18n';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { d } = await getTranslations();
   const brand = publicEnv.brandName || 'Eplug';
-  return { title: `${d.nav.partners} — ${brand}` };
+  return {
+    title: `Partner API — ${brand}`,
+    description: 'Eplug Partner API: жолоочийн мэдээлэл, хэтэвчний үлдэгдэл, станцын төлөвийг синк хийх заавар.',
+  };
 }
 
 export default async function PartnersPage() {
-  const { d, locale } = await getTranslations();
-  const isEn = locale === 'en';
-
-  return (
-    <PartnersStage
-      title={d.nav.partners}
-      subtitle={isEn ? 'Coming soon' : 'Тун удахгүй'}
-      teaserLead={isEn ? 'Open APIs for partners:' : 'Түншүүдэд зориулсан нээлттэй API:'}
-      teaserItems={
-        isEn
-          ? ['Customer data', 'Wallet', 'Transactions', 'Charging sessions', 'Stations & pricing']
-          : ['Хэрэглэгчийн мэдээлэл', 'Хэтэвч', 'Гүйлгээ', 'Цэнэглэлт', 'Станц ба тариф']
-      }
-    />
-  );
+  const contact = await getContactInfo().catch(() => DEFAULT_CONTACT_INFO);
+  return <PartnerDocs contact={{ phone: contact.phone, email: contact.email }} />;
 }

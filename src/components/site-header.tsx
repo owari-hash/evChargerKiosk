@@ -65,7 +65,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
           <span className="text-sm tracking-tight max-[359px]:hidden sm:text-[15px]">Eplug</span>
         </Link>
 
-        <nav className="relative ml-2 hidden items-center gap-1 md:flex">
+        <nav className="relative ml-1 hidden shrink-0 items-center gap-0.5 md:flex lg:ml-2 lg:gap-1">
           {/* One highlight that slides to the current page. */}
           <span
             ref={indicatorRef}
@@ -80,7 +80,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               data-tour={item.href === '/' ? 'nav-map' : undefined}
               aria-current={isActive(item.href) ? 'page' : undefined}
               className={cn(
-                'relative rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200',
+                'relative whitespace-nowrap rounded-lg px-2 py-2 text-[13px] font-medium transition-colors duration-200 lg:px-3 lg:text-sm',
                 isActive(item.href) ? 'text-foreground' : 'text-muted hover:text-foreground',
               )}
             >
