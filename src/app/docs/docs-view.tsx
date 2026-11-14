@@ -135,7 +135,7 @@ export function DocsView() {
     : '';
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       {/* ===================================================================== */}
       {/* TOP SUB-HEADER: Mailchimp Developer Breadcrumbs & Actions             */}
       {/* ===================================================================== */}
@@ -149,10 +149,10 @@ export function DocsView() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5">
                 <path d="m15 18-6-6 6-6" />
               </svg>
-              <span>Түншүүд рүү буцах</span>
+              <span>Түншүүд</span>
             </Link>
             <span className="text-muted">/</span>
-            <span className="text-muted font-medium">Developer API</span>
+            <span className="text-muted font-medium">API DOC</span>
             <span className="text-muted">/</span>
             <span className="font-semibold text-foreground truncate max-w-[200px] sm:max-w-xs">
               {activeItem.title}
@@ -160,8 +160,8 @@ export function DocsView() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              v1.0 REST API
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              v1.0 REST
             </span>
 
             <a
@@ -174,7 +174,7 @@ export function DocsView() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5 text-brand">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
               </svg>
-              <span className="hidden min-[420px]:inline">OpenAPI Spec</span>
+              <span className="hidden min-[420px]:inline">OpenAPI татах</span>
             </a>
           </div>
         </div>
@@ -191,7 +191,7 @@ export function DocsView() {
                 : 'text-muted hover:text-foreground'
             }`}
           >
-            Баримтжуулалт (Docs)
+            Баримтжуулалт
           </button>
           <button
             onClick={() => setMobileTab('code')}
@@ -201,7 +201,7 @@ export function DocsView() {
                 : 'text-muted hover:text-foreground'
             }`}
           >
-            Код & Хариу (Code & Response)
+            Жишээ код ба хариу
           </button>
         </div>
       </div>
