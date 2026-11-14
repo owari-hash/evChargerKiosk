@@ -143,24 +143,17 @@ export function DocsView() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-md">
         <div className="mx-auto flex h-13 max-w-[1600px] items-center justify-between px-3 sm:px-6">
           <div className="flex items-center gap-3 overflow-hidden">
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  window.history.back();
-                } else {
-                  window.location.href = '/partners';
-                }
-              }}
+            {/* Back Button always returns to main partners page */}
+            <Link
+              href="/partners"
               className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs hover:bg-surface-muted hover:border-brand/40 transition active:scale-95"
-              title="Өмнөх хуудас руу буцах"
+              title="Түншүүд хуудас руу буцах"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7 7-7-7 7-7" />
               </svg>
               <span>Буцах</span>
-            </button>
+            </Link>
 
             <span className="h-4 w-px bg-border hidden sm:inline" />
 
@@ -292,7 +285,7 @@ export function DocsView() {
                     <span>API Sandbox</span>
                     <span className="size-1.5 rounded-full bg-brand animate-pulse" />
                   </div>
-                  <div className="text-[10px] text-muted">Шууд турших симулятор (No DB)</div>
+                  <div className="text-[10px] text-muted">Шууд турших симулятор</div>
                 </div>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5 text-brand transition group-hover:translate-x-0.5">

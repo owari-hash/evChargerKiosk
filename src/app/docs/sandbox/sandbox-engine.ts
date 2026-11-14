@@ -489,8 +489,8 @@ export function executeSimApi(
     }
   } else {
     status = 404;
-    data = { error: `Мэдэгдэхгүй эндпойнт: ${request.method} ${normalizedPath}` };
-    summary = `Unknown route ${request.method} ${normalizedPath}`;
+    data = { error: 'Not Found' };
+    summary = '404 Not Found';
   }
 
   const event: SimApiEvent = {
