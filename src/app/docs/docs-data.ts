@@ -1030,3 +1030,4 @@ print("Session kWh:", session["energyKwh"], "Duration:", session["durationMin"])
     ],
   },
 ];
+
