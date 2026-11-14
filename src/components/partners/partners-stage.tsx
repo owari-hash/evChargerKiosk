@@ -60,17 +60,10 @@ export function PartnersStage({
 }: {
   title: string;
   subtitle: string;
-  teaserLead: string;
-  teaserItems: string[];
+  teaserLead?: string;
+  teaserItems?: string[];
   children?: React.ReactNode;
 }) {
-  const [teaser, setTeaser] = useState(0);
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const id = window.setTimeout(() => setTeaser((i) => (i + 1) % teaserItems.length), TEASER_MS);
-    return () => window.clearTimeout(id);
-  }, [teaser, teaserItems.length]);
-
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -405,13 +398,10 @@ export function PartnersStage({
     };
   }, []);
 
-  const words = title.split(' ');
-  let letterIndex = 0;
-
   return (
     <div
       ref={wrapRef}
-      className="partners-stage relative isolate flex min-h-[calc(100svh-3.5rem)] cursor-crosshair select-none items-center justify-center overflow-hidden bg-background text-foreground sm:min-h-[calc(100svh-4rem)]"
+      className="partners-stage relative isolate flex flex-col items-center justify-center overflow-hidden bg-background text-foreground py-20 sm:py-28 border-b border-border"
     >
       {/* Deep aurora backdrop */}
       <div aria-hidden className="partners-aurora pointer-events-none absolute inset-0 -z-20" />
@@ -426,80 +416,25 @@ export function PartnersStage({
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,var(--background)_100%)]" />
       <div aria-hidden className="partners-grain pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay" />
 
-      <div className="pointer-events-none relative px-4 text-center">
-        <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-          {words.map((word, wi) => (
-            <span key={wi} className="inline-block whitespace-nowrap">
-              {Array.from(word).map((ch) => {
-                const i = letterIndex++;
-                return (
-                  <span
-                    key={i}
-                    className="partners-letter inline-block"
-                    style={{ animationDelay: `${700 + i * 45}ms` }}
-                  >
-                    {ch}
-                  </span>
-                );
-              })}
-              {wi < words.length - 1 && <span className="inline-block">&nbsp;</span>}
-            </span>
-          ))}
+      {/* Content wrapper with standard font, natural typography, and clickable buttons */}
+      <div className="relative z-10 px-4 text-center max-w-4xl mx-auto space-y-4">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3.5 py-1 text-xs font-semibold text-brand ring-1 ring-brand/20">
+          Eplug Түншлэлийн платформ
+        </span>
+
+        <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl font-sans">
+          {title}
         </h1>
 
-        <p className="partners-shimmer partners-fade mt-4 bg-clip-text text-2xl font-light tracking-[0.2em] text-transparent [animation-delay:1500ms] sm:text-4xl">
+        <p className="mx-auto max-w-2xl text-pretty text-base text-muted sm:text-lg leading-relaxed font-sans">
           {subtitle}
         </p>
 
-        <div aria-hidden className="partners-line mx-auto mt-8 h-px w-40 bg-gradient-to-r from-transparent via-brand/70 to-transparent [animation-delay:1900ms]" />
-
-        {/* Teaser: cycles through what partners will get. */}
-        <div className="partners-fade mt-10 flex flex-col items-center [animation-delay:2400ms]">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">{teaserLead.replace(/:$/, '')}</span>
-
-          {/* Glass card with a light that runs around its border */}
-          <div className="partners-border relative mt-3 rounded-2xl p-px shadow-[0_20px_60px_-20px] shadow-brand/40">
-            <div className="flex h-14 max-w-[calc(100vw-2rem)] items-center gap-3 rounded-[15px] bg-background/75 px-4 backdrop-blur-xl sm:h-16 sm:gap-4 sm:px-6">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/12 text-brand ring-1 ring-brand/25">
-                <svg
-                  key={teaser}
-                  aria-hidden
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="partners-icon size-[18px]"
-                >
-                  <path d={TEASER_ICONS[teaser % TEASER_ICONS.length]} />
-                </svg>
-              </span>
-              {/* The invisible longest item sets the width, so nothing is cut off
-                  and the card does not resize as the words change. */}
-              <span className="relative grid flex-1 overflow-hidden text-center text-lg font-semibold tracking-tight sm:text-2xl">
-                <span aria-hidden className="invisible col-start-1 row-start-1 whitespace-nowrap">
-                  {teaserItems.reduce((a, b) => (b.length > a.length ? b : a), '')}
-                </span>
-                <span
-                  key={teaser}
-                  className="partners-teaser partners-word col-start-1 row-start-1 whitespace-nowrap bg-clip-text text-transparent"
-                >
-                  {teaserItems[teaser]}
-                </span>
-              </span>
-              {/* Mirrors the icon so the word sits in the true centre of the card. */}
-              <span aria-hidden className="size-9 shrink-0" />
-            </div>
+        {children && (
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
+            {children}
           </div>
-
-          {/* Call to Actions / API Docs Button */}
-          {children && (
-            <div className="pointer-events-auto mt-8 flex flex-wrap items-center justify-center gap-3">
-              {children}
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

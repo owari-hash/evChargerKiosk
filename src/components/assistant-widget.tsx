@@ -106,8 +106,6 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
   const { d } = useI18n();
   const pathname = usePathname();
 
-  if (pathname?.startsWith('/docs')) return null;
-
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(storageKey));
   const [input, setInput] = useState('');
@@ -232,6 +230,8 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
       // Nothing to clean up if storage is unavailable.
     }
   }
+
+  if (pathname?.startsWith('/docs')) return null;
 
   return (
     <div

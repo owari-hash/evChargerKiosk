@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PartnersStage } from '@/components/partners/partners-stage';
 import { DEFAULT_CONTACT_INFO, getContactInfo } from '@/lib/driver-api';
 import { publicEnv } from '@/lib/env';
 import { getTranslations } from '@/lib/i18n';
@@ -24,55 +25,37 @@ export default async function PartnersPage() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       {/* ===================================================================== */}
-      {/* 1. HERO SECTION (Clean typography, no lagging canvas/letter animation)*/}
+      {/* 1. HERO SECTION WITH ANIMATED NETWORK CANVAS BACKGROUND               */}
       {/* ===================================================================== */}
-      <section className="relative overflow-hidden border-b border-border py-16 sm:py-24">
-        {/* Soft, clean background glow matching eplug brand */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 flex justify-center overflow-hidden"
+      <PartnersStage
+        title={
+          isEn
+            ? 'Open EV Charging Network & API'
+            : 'Цахилгаан машин цэнэглэх дэд бүтцийг системтэйгээ холбох нээлттэй API'
+        }
+        subtitle={
+          isEn
+            ? 'Connect your fleet, mobile application, or management software directly to Eplug chargers. Check live connector availability and remotely control charging sessions.'
+            : 'Өөрийн байгууллагын авто парк, мобайл аппликейшн болон киоск системийг Eplug цэнэглэгчтэй шууд холбож, станцын бэлэн байдлыг шалгах, цэнэглэлтийг удирдах боломжтой.'
+        }
+      >
+        <Link
+          href="/docs"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brand px-7 text-sm font-bold text-white shadow-md shadow-brand/25 transition hover:bg-brand-strong active:scale-[0.98]"
         >
-          <div className="h-[28rem] w-[50rem] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--brand)_18%,transparent),transparent_65%)] blur-3xl" />
-        </div>
+          <span>API DOC</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7 7 7-7 7" />
+          </svg>
+        </Link>
 
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3.5 py-1 text-xs font-semibold text-brand ring-1 ring-brand/20">
-            {isEn ? 'Eplug Partner Platform' : 'Eplug Түншлэлийн платформ'}
-          </span>
-
-          <h1 className="mt-4 text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-            {isEn
-              ? 'Open EV Charging Network & API'
-              : 'Цахилгаан машин цэнэглэх дэд бүтцийг системтэйгээ холбох нээлттэй API'}
-          </h1>
-
-          <p className="mx-auto mt-4 max-w-2xl text-pretty text-base text-muted sm:text-lg leading-relaxed">
-            {isEn
-              ? 'Connect your fleet, mobile application, or management software directly to Eplug chargers. Check live connector availability and remotely control charging sessions.'
-              : 'Өөрийн байгууллагын авто парк, мобайл аппликейшн болон киоск системийг Eplug цэнэглэгчтэй шууд холбож, станцын бэлэн байдлыг шалгах, цэнэглэлтийг удирдах боломжтой.'}
-          </p>
-
-          {/* Prominent API DOC CTA Button */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/docs"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brand px-7 text-sm font-bold text-white shadow-md shadow-brand/25 transition hover:bg-brand-strong active:scale-[0.98]"
-            >
-              <span>API DOC</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7 7 7-7 7" />
-              </svg>
-            </Link>
-
-            <a
-              href="#contact"
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-border bg-surface px-6 text-sm font-semibold text-foreground transition hover:bg-surface-muted active:scale-[0.98]"
-            >
-              {isEn ? 'Contact Us' : 'Холбоо барих'}
-            </a>
-          </div>
-        </div>
-      </section>
+        <a
+          href="#contact"
+          className="inline-flex h-12 items-center justify-center rounded-xl border border-border bg-surface px-6 text-sm font-semibold text-foreground transition hover:bg-surface-muted active:scale-[0.98]"
+        >
+          {isEn ? 'Contact Us' : 'Холбоо барих'}
+        </a>
+      </PartnersStage>
 
       {/* ===================================================================== */}
       {/* 2. CORE CAPABILITIES (3 Clean Cards)                                  */}

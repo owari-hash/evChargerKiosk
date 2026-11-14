@@ -23,10 +23,6 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  if (pathname?.startsWith('/docs')) {
-    return null;
-  }
-
   const nav = [
     { href: '/', label: d.nav.home },
     // "Үнэ тариф" opens the station list: every card carries its price.
@@ -49,6 +45,11 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
     setSigningOut(false);
     router.replace('/');
     router.refresh();
+  }
+
+  // Hide the consumer header on docs routes after all hooks have executed unconditionally
+  if (pathname?.startsWith('/docs')) {
+    return null;
   }
 
   return (
