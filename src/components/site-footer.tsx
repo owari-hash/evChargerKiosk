@@ -209,6 +209,9 @@ export async function SiteFooter() {
             <Link href="/payments" className="transition hover:text-foreground">
               {d.footer.payments}
             </Link>
+            <Link href="/docs" className="transition hover:text-brand font-medium">
+              API Docs
+            </Link>
             <FeedbackButton signedIn={Boolean(user)} />
           </div>
         </div>

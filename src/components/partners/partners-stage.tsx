@@ -51,11 +51,18 @@ const HUB_LINK = 260; // max distance for hub-to-node lines
  * drifting around it, energy pulses running hub → node, cursor parallax and
  * click shockwaves. Falls back to a single still frame for reduced motion.
  */
-export function PartnersStage({ title, subtitle, teaserLead, teaserItems }: {
+export function PartnersStage({
+  title,
+  subtitle,
+  teaserLead,
+  teaserItems,
+  children,
+}: {
   title: string;
   subtitle: string;
   teaserLead: string;
   teaserItems: string[];
+  children?: React.ReactNode;
 }) {
   const [teaser, setTeaser] = useState(0);
   useEffect(() => {
@@ -485,6 +492,13 @@ export function PartnersStage({ title, subtitle, teaserLead, teaserItems }: {
               <span aria-hidden className="size-9 shrink-0" />
             </div>
           </div>
+
+          {/* Call to Actions / API Docs Button */}
+          {children && (
+            <div className="pointer-events-auto mt-8 flex flex-wrap items-center justify-center gap-3">
+              {children}
+            </div>
+          )}
         </div>
       </div>
     </div>
