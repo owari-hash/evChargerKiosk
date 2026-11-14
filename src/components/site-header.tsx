@@ -23,6 +23,10 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
+  if (pathname?.startsWith('/docs')) {
+    return null;
+  }
+
   const nav = [
     { href: '/', label: d.nav.home },
     // "Үнэ тариф" opens the station list: every card carries its price.

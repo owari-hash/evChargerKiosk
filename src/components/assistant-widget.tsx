@@ -105,6 +105,9 @@ export function AssistantWidget({ userId }: { userId: string | null }) {
   const storageKey = scopedKey(STORAGE_KEY, userId);
   const { d } = useI18n();
   const pathname = usePathname();
+
+  if (pathname?.startsWith('/docs')) return null;
+
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(storageKey));
   const [input, setInput] = useState('');

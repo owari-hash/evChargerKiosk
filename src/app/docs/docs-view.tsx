@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
 import {
@@ -135,28 +136,50 @@ export function DocsView() {
     : '';
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+    <div id="docs-root" className="min-h-screen bg-background text-foreground font-sans">
       {/* ===================================================================== */}
-      {/* TOP SUB-HEADER: Mailchimp Developer Breadcrumbs & Actions             */}
+      {/* TOP HEADER: Back Button, Brand & Actions (No main navbar)             */}
       {/* ===================================================================== */}
-      <div className="sticky top-14 z-20 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-12 max-w-[1600px] items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2 overflow-hidden text-xs">
-            <Link
-              href="/partners"
-              className="text-muted hover:text-foreground font-medium flex items-center gap-1.5 transition"
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-md">
+        <div className="mx-auto flex h-13 max-w-[1600px] items-center justify-between px-3 sm:px-6">
+          <div className="flex items-center gap-3 overflow-hidden">
+            {/* Back Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  window.location.href = '/partners';
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs hover:bg-surface-muted hover:border-brand/40 transition active:scale-95"
+              title="Өмнөх хуудас руу буцах"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5">
-                <path d="m15 18-6-6 6-6" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7 7-7-7 7-7" />
               </svg>
-              <span>Түншүүд</span>
-            </Link>
-            <span className="text-muted">/</span>
-            <span className="text-muted font-medium">API DOC</span>
-            <span className="text-muted">/</span>
-            <span className="font-semibold text-foreground truncate max-w-[200px] sm:max-w-xs">
-              {activeItem.title}
-            </span>
+              <span>Буцах</span>
+            </button>
+
+            <span className="h-4 w-px bg-border hidden sm:inline" />
+
+            <div className="flex items-center gap-2">
+              <Image
+                src="/eplug-mark.png"
+                alt="Eplug"
+                width={24}
+                height={24}
+                className="size-6 rounded-md shadow-xs shrink-0"
+              />
+              <span className="font-bold text-sm text-foreground tracking-tight hidden min-[480px]:inline">
+                Eplug Developer API
+              </span>
+              <span className="text-muted hidden sm:inline">/</span>
+              <span className="text-xs text-muted font-medium truncate max-w-[200px] hidden sm:inline">
+                {activeItem.title}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -168,7 +191,7 @@ export function DocsView() {
               href="https://eplug.mn/api/partner/docs/openapi.json"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-muted text-foreground transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface hover:bg-surface-muted text-foreground transition active:scale-95 shadow-xs"
               title="OpenAPI 3.0.3 JSON татах (Postman / Swagger)"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5 text-brand">
@@ -178,10 +201,10 @@ export function DocsView() {
             </a>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Mobile Tab Switcher */}
-      <div className="xl:hidden sticky top-26 z-10 border-b border-border bg-background p-2">
+      <div className="xl:hidden sticky top-13 z-20 border-b border-border bg-background p-2">
         <div className="flex rounded-lg bg-surface-muted p-1 text-xs font-medium">
           <button
             onClick={() => setMobileTab('docs')}
@@ -213,7 +236,7 @@ export function DocsView() {
         {/* =================================================================== */}
         {/* COLUMN 1: LEFT SIDEBAR NAVIGATION (Sticky)                          */}
         {/* =================================================================== */}
-        <aside className="w-full xl:w-72 2xl:w-80 shrink-0 border-r border-border xl:sticky xl:top-26 xl:h-[calc(100vh-6.5rem)] xl:overflow-y-auto bg-background/50">
+        <aside className="w-full xl:w-72 2xl:w-80 shrink-0 border-r border-border xl:sticky xl:top-13 xl:h-[calc(100vh-3.25rem)] xl:overflow-y-auto bg-background/50">
           <div className="p-4 space-y-4">
             {/* Search Filter Input */}
             <div className="relative">
@@ -530,7 +553,7 @@ export function DocsView() {
         {/* COLUMN 3: RIGHT DARK CODE CONSOLE (Mailchimp Signature Pane)         */}
         {/* =================================================================== */}
         <aside
-          className={`w-full xl:w-[480px] 2xl:w-[540px] shrink-0 border-l border-slate-800 bg-[#0c1322] text-slate-100 xl:sticky xl:top-26 xl:h-[calc(100vh-6.5rem)] xl:overflow-y-auto ${
+          className={`w-full xl:w-[480px] 2xl:w-[540px] shrink-0 border-l border-slate-800 bg-[#0c1322] text-slate-100 xl:sticky xl:top-13 xl:h-[calc(100vh-3.25rem)] xl:overflow-y-auto ${
             mobileTab === 'docs' ? 'hidden xl:block' : 'block'
           }`}
         >

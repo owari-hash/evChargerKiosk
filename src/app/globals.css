@@ -1281,3 +1281,8 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .partners-border, .partners-icon { animation: none !important; }
 }
+
+/* Documentation page takes full viewport without main footer */
+body:has(#docs-root) footer {
+  display: none !important;
+}
